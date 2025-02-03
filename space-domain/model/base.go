@@ -16,7 +16,10 @@ type BaseColumn struct {
 
 // BeforeCreate 设置自定义 ID 插入
 func (base *BaseColumn) BeforeCreate(tx *gorm.DB) (err error) {
-	base.Id = util.GetSnowFlakeNode().Generate().Int64()
+	// 如果 ID 为 0, 那么手动变更
+	if base.Id == 0 {
+		base.Id = util.GetSnowFlakeNode().Generate().Int64()
+	}
 
 	return
 }

@@ -39,9 +39,9 @@ func Run() {
 			ctx.Header("Server", appConf.ServerHint)
 			ctx.Next()
 		},
-		middleware.UseExtractIpHandler(),
 		middleware.UseErrorHandler(),
-		// middleware.UseJwtAuthHandler(),
+		middleware.UseExtractIpHandler(),
+		middleware.UseJwtAuthHandler(),
 		gin.Logger(),
 	)
 	engine.NoMethod(func(ctx *gin.Context) {

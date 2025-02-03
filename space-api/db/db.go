@@ -55,18 +55,7 @@ func init() {
 			panic(err)
 		}
 	}
-	bizDB.AutoMigrate([]any{
-		&model.LoginUser{},
-		&model.OAuthLogin{},
-		&model.Post{},
-		&model.Category{},
-		&model.Tag{},
-		&model.Comment{},
-		&model.PubSocialMedia{},
-		&model.CloudFn{},
-		&model.FileRecord{},
-		&model.ServiceConf{},
-	}...)
+	bizDB.AutoMigrate(model.GetBizMigrateTables()...)
 
 	var t2 DB
 	if err := v.UnmarshalKey("dataSource.db.logDB", &t2); err != nil {
@@ -88,10 +77,7 @@ func init() {
 		}
 	}
 
-	extraHelperDB.AutoMigrate([]any{
-		&model.LogRecord{},
-	}...)
-
+	extraHelperDB.AutoMigrate(model.GetExtraHelperMigrateTables()...)
 }
 
 func GetBizDB() *gorm.DB {

@@ -31,4 +31,25 @@ type (
 	UpdatePostResp struct {
 		model.Post
 	}
+
+	GetPostListReq struct{}
+
+	GetPostListResp struct {
+		model.PageList[model.Post]
+	}
+
+	GetPostDetailReq struct {
+		Id int64 `json:"id"`
+	}
+
+	GetPostDetailResp struct {
+		model.Post
+	}
+
+	DeletePostByIdListReq struct {
+		IdList []int64 `json:"idList"`
+	}
+
+	DeletePostByIdListResp struct {
+	}
 )

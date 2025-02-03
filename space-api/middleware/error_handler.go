@@ -39,7 +39,7 @@ func UseErrorHandler() gin.HandlerFunc {
 				case *util.InnerErr:
 					ctx.JSON(code, util.RestWithError("服务内部错误, 请稍后重试或联系站长修复"))
 				default:
-					ctx.JSON(code, util.RestWithError("未知的错误..."))
+					ctx.JSON(code, util.RestWithError("未知的错误: "+err.Error()))
 				}
 			default: /* 非 error 对象 */
 				ctx.JSON(code, util.RestWithError("未知错误, 请稍后重试"))

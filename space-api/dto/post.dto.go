@@ -1,14 +1,11 @@
 package dto
 
-import "space-domain/model"
+import (
+	"space-domain/model"
+)
 
 type (
-	BizOp struct {
-		// 允许强制覆盖可能影响的业务(比如关联资源)
-		ForceOverride bool `json:"forceOverride"`
-	}
-
-	UpdatePostReq struct {
+	UpdateOrCreatePostReq struct {
 		BizOp
 		PostId       int64   `json:"postId"`
 		AuthorId     int64   `json:"authorId"`
@@ -28,14 +25,16 @@ type (
 		AllowComment *byte   `json:"allowComment"`
 	}
 
-	UpdatePostResp struct {
+	UpdateOrCreatePostResp struct {
 		model.Post
 	}
 
-	GetPostListReq struct{}
+	GetPostPageListReq struct {
+		BasePageParam
+	}
 
-	GetPostListResp struct {
-		model.PageList[model.Post]
+	GetPostPageListResp struct {
+		model.PageList[*model.Post]
 	}
 
 	GetPostDetailReq struct {

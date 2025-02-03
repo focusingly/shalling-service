@@ -15,7 +15,7 @@ func UsePostController(group *gin.RouterGroup) {
 	// 增加或者修改文章信息
 	{
 		postGroup.POST("/", func(ctx *gin.Context) {
-			updatePostReq := &dto.UpdatePostReq{}
+			updatePostReq := &dto.UpdateOrCreatePostReq{}
 			if err := ctx.BindJSON(updatePostReq); err != nil {
 				ctx.Error(&util.BizErr{
 					Reason: err,
@@ -38,6 +38,21 @@ func UsePostController(group *gin.RouterGroup) {
 	// 根据条件查询分页列表数据
 	{
 		postGroup.GET("/list", func(ctx *gin.Context) {
+			req := &dto.GetPostPageListReq{}
+			if err := ctx.ShouldBindQuery(req); err != nil {
+				ctx.Error(&util.BizErr{
+					Reason: err,
+					Msg:    "参数错误 :" + err.Error(),
+				})
+				return
+			}
+
+			if resp, err := service.GetPostList(req, ctx); err != nil {
+				ctx.Error(err)
+				return
+			} else {
+				ctx.JSON(http.StatusOK, util.RestWithSuccess(resp))
+			}
 
 		})
 	}

@@ -14,7 +14,7 @@ import (
 )
 
 // UpdateOrCreatePost 创建新的文章或者更新已有的文章
-func UpdateOrCreatePost(req *dto.UpdatePostReq, ctx *gin.Context) (resp *dto.UpdatePostResp, err error) {
+func UpdateOrCreatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.Context) (resp *dto.UpdateOrCreatePostResp, err error) {
 	// 被创建/更新的 文章的 ID
 	var postId int64 = 0
 
@@ -169,7 +169,7 @@ func UpdateOrCreatePost(req *dto.UpdatePostReq, ctx *gin.Context) (resp *dto.Upd
 	if err != nil {
 		return nil, err
 	} else {
-		resp = &dto.UpdatePostResp{
+		resp = &dto.UpdateOrCreatePostResp{
 			Post: *v,
 		}
 	}
@@ -177,10 +177,47 @@ func UpdateOrCreatePost(req *dto.UpdatePostReq, ctx *gin.Context) (resp *dto.Upd
 	return
 }
 
-// GetPostList 获取文章分页的信息(不包括正文)
-func GetPostList(req *dto.GetPostListReq, ctx *gin.Context) (resp *dto.GetPostListResp, err error) {
+// GetPostList 获取文章分页的信息(不包括正文内容)
+func GetPostList(req *dto.GetPostPageListReq, ctx *gin.Context) (resp *dto.GetPostPageListResp, err error) {
+	postOp := biz.Post
 
-	return
+	result, count, err := postOp.
+		WithContext(ctx).
+		Select(
+			postOp.Id,
+			postOp.CreatedAt,
+			postOp.UpdatedAt,
+			postOp.Hide,
+			postOp.Title,
+			postOp.AuthorId,
+			postOp.WordCount,
+			postOp.ReadTime,
+			postOp.Category,
+			postOp.Tags,
+			postOp.LastPubTime,
+			postOp.Weight,
+			postOp.Views,
+			postOp.UpVote,
+			postOp.DownVote,
+			postOp.AllowComment,
+		).
+		FindByPage(req.Resolve())
+
+	if err != nil {
+		return nil, &util.BizErr{
+			Msg:    "查询错误",
+			Reason: err,
+		}
+	}
+
+	return &dto.GetPostPageListResp{
+		PageList: model.PageList[*model.Post]{
+			List:  result,
+			Page:  int64(*req.Page),
+			Size:  int64(*req.Size),
+			Total: count,
+		},
+	}, nil
 }
 
 // GetPostById 根据文章 ID 获取全量的文章信息

@@ -33,10 +33,10 @@ type (
 
 	// PageQuery 分页查询结果包装
 	PageList[T any] struct {
-		List  []T `json:"list"`  // 查询的数据
-		Page  int `json:"page"`  // 当前页数
-		Size  int `json:"size"`  // 每页数量
-		Total int `json:"total"` // 总记录数
+		List  []T   `json:"list"`  // 查询的数据
+		Page  int64 `json:"page"`  // 当前页数
+		Size  int64 `json:"size"`  // 每页数量
+		Total int64 `json:"total"` // 总记录数
 	}
 
 	// SortColumn 排序方式

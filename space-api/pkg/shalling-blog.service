@@ -1,0 +1,13 @@
+[Unit]
+Description=My App
+After=network.target
+
+[Service]
+ExecStart=/opt/shalling-blog/app
+WorkingDirectory=/opt/shalling-blog
+Restart=always
+User=nobody
+Group=nogroup
+
+[Install]
+WantedBy=multi-user.target

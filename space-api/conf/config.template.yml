@@ -1,0 +1,33 @@
+# 将 <xxx> 替换为你的实际配置
+app:
+  port: 8088
+  serverHint: "<your conf>"
+  nodeID: 1
+dataSource:
+  db:
+    bizDB:
+      dbType: sqlite
+      dsn: "<your conf>"
+      mark: "<your conf>"
+    extraDB:
+      dbType: sqlite
+      dsn: "<your conf>"
+      mark: "<your conf>"
+oauth2Conf:
+  github:
+    endPoint: github
+    clientId: "<your conf>"
+    clientSecret: "<your conf>"
+    redirectUrl: "<your conf>"
+    scopes: ["<your conf>"]
+  google:
+    endPoint: google
+    clientId: "<your conf>"
+    clientSecret: "<your conf>"
+    redirectUrl: "<your conf>"
+    scopes: ["<your conf>"]
+jwtConf:
+  salt: "<your conf>"
+  expired:
+    unit: day
+    value: 15

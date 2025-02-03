@@ -1,0 +1,165 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "app": {
+      "type": "object",
+      "$comment": "整体配置",
+      "properties": {
+        "port": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535,
+          "default": 8088,
+          "$comment": "启动端口号"
+        },
+        "serverHint": {
+          "type": "string",
+          "default": "Shalling Server",
+          "$comment": "http 返回的 Server 默认响应头"
+        },
+        "nodeID": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "$comment": "雪花节点的机器编号"
+        }
+      }
+    },
+    "dataSource": {
+      "type": "object",
+      "properties": {
+        "skipModelMigrate": {
+          "type": "boolean",
+          "default": false,
+          "$comment": "启动程序的时候是否跳过模型的合并"
+        },
+        "db": {
+          "type": "object",
+          "propertyNames": true,
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "dbType": {
+                "type": "string",
+                "enum": [
+                  "sqlite",
+                  "postgres"
+                ],
+                "default": "sqlite",
+                "$comment": "数据库类型"
+              },
+              "dsn": {
+                "type": "string",
+                "$comment": "数据库连接 URL"
+              },
+              "mark": {
+                "type": "string",
+                "$comment": "备注"
+              }
+            }
+          },
+          "$comment": "数据库类型"
+        },
+        "redis": {
+          "type": "object",
+          "$comment": "redis 连接配置",
+          "propertyNames": true,
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "host": {
+                "type": "string",
+                "default": "localhost",
+                "$comment": "主机地址"
+              },
+              "password": {
+                "type": "string",
+                "$comment": "密码"
+              },
+              "port": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 65535,
+                "default": 6379,
+                "$comment": "端口"
+              },
+              "dbNum": {
+                "type": "integer",
+                "default": 0,
+                "$comment": "选择的数据库"
+              }
+            }
+          }
+        }
+      },
+      "$comment": "数据源配置"
+    },
+    "oauth2Conf": {
+      "type": "object",
+      "$comment": "oauth2 的配置选项",
+      "additionalProperties": {
+        "type": "object",
+        "$comment": "oauth2 平台配置",
+        "properties": {
+          "clientId": {
+            "type": "string",
+            "$comment": "客户端 ID"
+          },
+          "clientSecret": {
+            "type": "string",
+            "$comment": "客户端凭据"
+          },
+          "endPoint": {
+            "type": "string",
+            "enum": [
+              "github",
+              "google"
+            ],
+            "$comment": "接入平台"
+          },
+          "redirectUrl": {
+            "type": "string",
+            "$comment": "平台认证之后重定向的 URL 链接"
+          },
+          "scopes": {
+            "type": "array",
+            "$comment": "申请的权限范围"
+          }
+        }
+      }
+    },
+    "jwtConf": {
+      "type": "object",
+      "$comment": "JWT 配置",
+      "properties": {
+        "salt": {
+          "type": "string",
+          "$comment": "加密盐"
+        },
+        "expired": {
+          "type": "object",
+          "properties": {
+            "unit": {
+              "type": "string",
+              "enum": [
+                "second",
+                "minute",
+                "hour",
+                "day",
+                "month"
+              ],
+              "default": "day",
+              "$comment": "时间单位"
+            },
+            "value": {
+              "type": "integer",
+              "$comment": "时长"
+            }
+          },
+          "$comment": "颁发 token 的默认有效时间"
+        }
+      }
+    }
+  }
+}

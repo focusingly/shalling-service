@@ -13,80 +13,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func GetTagPageList(req *dto.GetTagPageListReq, ctx *gin.Context) (resp *dto.GetTagPageListResp, err error) {
-	tagOp := biz.Tag
-	list, count, err := tagOp.WithContext(ctx).FindByPage(req.Resolve())
-	if err != nil {
-		return nil, &util.BizErr{
-			Reason: err,
-			Msg:    "查询失败" + err.Error(),
-		}
-	}
-
-	return &dto.GetTagPageListResp{
-		PageList: model.PageList[*model.Tag]{
-			List:  list,
-			Page:  int64(*req.Page),
-			Size:  int64(*req.Size),
-			Total: count,
-		},
-	}, nil
-}
-
-func DeleteTagByIdList(req *dto.DeleteTagByIdListReq, ctx *gin.Context) (resp *dto.DeleteTagByIdListResp, err error) {
-	query := biz.Q
-	err = query.Transaction(func(tx *biz.Query) error {
-		tagOp := tx.Tag
-
-		list, e := tx.PostTagRelation.WithContext(ctx).Where(tx.PostTagRelation.TagId.In(req.IdList...)).Select(tx.PostTagRelation.Id).Find()
-		if err != nil {
-			err = &util.BizErr{
-				Reason: err,
-				Msg:    "查询关联数据失败: " + e.Error(),
-			}
-		}
-		if len(list) != 0 && !req.ForceOverride {
-			return &util.BizErr{
-				Msg:    fmt.Sprintf("存在相关联的数据: %d 条", len(list)),
-				Reason: fmt.Errorf("%v", list),
-			}
-		}
-
-		_, e = tx.Tag.WithContext(ctx).Where(tagOp.Id.In(req.IdList...)).Delete()
-		if err != nil {
-			err = &util.BizErr{
-				Reason: err,
-				Msg:    "删除错误: " + e.Error(),
-			}
-			return err
-		}
-		return nil
-	})
-
-	if err != nil {
-		return
-	}
-
-	return &dto.DeleteTagByIdListResp{}, nil
-}
-
-func GetTagDetailById(req *dto.GetTagDetailReq, ctx *gin.Context) (resp *dto.GetTagDetailResp, err error) {
-	f, e := biz.Tag.WithContext(ctx).Where(biz.Tag.Id.Eq(req.Id)).Take()
-	if e != nil {
-		err = &util.BizErr{
-			Msg:    "为找打数据",
-			Reason: err,
-		}
-		return
-	}
-	resp = &dto.GetTagDetailResp{
-		Tag: *f,
-	}
-
-	return
-}
-
-func UpdateOrCreateTag(req *dto.CreateOrUpdateTagReq, ctx *gin.Context) (resp *dto.CreateOrUpdateTagResp, err error) {
+func CreateOrUpdateTag(req *dto.CreateOrUpdateTagReq, ctx *gin.Context) (resp *dto.CreateOrUpdateTagResp, err error) {
+	// tag 的 ID
 	var tagId int64 = 0
 
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
@@ -151,21 +79,26 @@ func UpdateOrCreateTag(req *dto.CreateOrUpdateTagReq, ctx *gin.Context) (resp *d
 					relativePost.Tags = ptr.ToPtr(strings.Join(splits, ","))
 				}
 			}
-			// 批量更新文章的 tags
-			_, e = tx.Post.WithContext(ctx).Updates(relativePosts)
-			if e != nil {
-				return &util.BizErr{
-					Reason: e,
-					Msg:    "更新关联数据失败: " + e.Error(),
+			// 更新文章的 tags 字段
+			for _, newPost := range relativePosts {
+				_, e = tx.Post.WithContext(ctx).Updates(newPost)
+				if e != nil {
+					return &util.BizErr{
+						Reason: e,
+						Msg:    "更新关联数据失败: " + e.Error(),
+					}
 				}
 			}
 
 			// 最后更新标签自身
 			newTagVal := &model.Tag{
-				BaseColumn: findTag.BaseColumn,
-				TagName:    req.TagName,
-				Color:      req.Color,
-				IconUrl:    req.IconUrl,
+				BaseColumn: model.BaseColumn{
+					Id:   findTag.Id,
+					Hide: req.Hide,
+				},
+				TagName: req.TagName,
+				Color:   req.Color,
+				IconUrl: req.IconUrl,
 			}
 			_, e = tx.Tag.WithContext(ctx).Updates(newTagVal)
 			if e != nil {
@@ -194,4 +127,77 @@ func UpdateOrCreateTag(req *dto.CreateOrUpdateTagReq, ctx *gin.Context) (resp *d
 	}
 
 	return
+}
+
+func GetTagDetailById(req *dto.GetTagDetailReq, ctx *gin.Context) (resp *dto.GetTagDetailResp, err error) {
+	f, e := biz.Tag.WithContext(ctx).Where(biz.Tag.Id.Eq(req.Id)).Take()
+	if e != nil {
+		err = &util.BizErr{
+			Msg:    "未找到数据",
+			Reason: err,
+		}
+		return
+	}
+	resp = &dto.GetTagDetailResp{
+		Tag: *f,
+	}
+
+	return
+}
+
+func GetTagPageList(req *dto.GetTagPageListReq, ctx *gin.Context) (resp *dto.GetTagPageListResp, err error) {
+	tagOp := biz.Tag
+	list, count, err := tagOp.WithContext(ctx).FindByPage(req.Resolve())
+	if err != nil {
+		return nil, &util.BizErr{
+			Reason: err,
+			Msg:    "查询失败" + err.Error(),
+		}
+	}
+
+	return &dto.GetTagPageListResp{
+		PageList: model.PageList[*model.Tag]{
+			List:  list,
+			Page:  int64(*req.Page),
+			Size:  int64(*req.Size),
+			Total: count,
+		},
+	}, nil
+}
+
+func DeleteTagByIdList(req *dto.DeleteTagByIdListReq, ctx *gin.Context) (resp *dto.DeleteTagByIdListResp, err error) {
+	query := biz.Q
+	err = query.Transaction(func(tx *biz.Query) error {
+		tagOp := tx.Tag
+
+		list, e := tx.PostTagRelation.WithContext(ctx).Where(tx.PostTagRelation.TagId.In(req.IdList...)).Select(tx.PostTagRelation.Id).Find()
+		if err != nil {
+			err = &util.BizErr{
+				Reason: err,
+				Msg:    "查询关联数据失败: " + e.Error(),
+			}
+		}
+		if len(list) != 0 && !req.ForceOverride {
+			return &util.BizErr{
+				Msg:    fmt.Sprintf("存在相关联的数据: %d 条", len(list)),
+				Reason: fmt.Errorf("%v", list),
+			}
+		}
+
+		_, e = tx.Tag.WithContext(ctx).Where(tagOp.Id.In(req.IdList...)).Delete()
+		if err != nil {
+			err = &util.BizErr{
+				Reason: err,
+				Msg:    "删除错误: " + e.Error(),
+			}
+			return err
+		}
+		return nil
+	})
+
+	if err != nil {
+		return
+	}
+
+	return &dto.DeleteTagByIdListResp{}, nil
 }

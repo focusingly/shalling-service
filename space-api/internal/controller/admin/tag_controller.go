@@ -10,7 +10,7 @@ import (
 )
 
 func UseTagController(group *gin.RouterGroup) {
-	tagGroup := group.GET("/tag")
+	tagGroup := group.Group("/tag")
 
 	// 获取标签分页列表
 	{
@@ -67,7 +67,7 @@ func UseTagController(group *gin.RouterGroup) {
 				return
 			}
 
-			if resp, err := service.UpdateOrCreateTag(req, ctx); err != nil {
+			if resp, err := service.CreateOrUpdateTag(req, ctx); err != nil {
 				ctx.Error(err)
 
 			} else {
@@ -92,7 +92,7 @@ func UseTagController(group *gin.RouterGroup) {
 				ctx.Error(err)
 				return
 			} else {
-				ctx.JSON(http.StatusOK, val)
+				ctx.JSON(http.StatusOK, util.RestWithSuccess(val))
 			}
 		})
 	}

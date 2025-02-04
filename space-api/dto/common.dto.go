@@ -8,7 +8,8 @@ type BasePageParam struct {
 	Size *int `json:"size" form:"size"`
 }
 
-type BizOp struct {
+// WarningOverride 对于涉及到可能覆盖的关联数据的强制操作
+type WarningOverride struct {
 	// 允许强制覆盖可能影响的业务(比如关联资源)
 	ForceOverride bool `json:"forceOverride"`
 }

@@ -6,7 +6,7 @@ import (
 
 type (
 	UpdateOrCreatePostReq struct {
-		BizOp
+		WarningOverride
 		PostId       int64   `json:"postId"`
 		AuthorId     int64   `json:"authorId"`
 		Hide         byte    `json:"hide"`
@@ -16,7 +16,7 @@ type (
 		ReadTime     *int64  `json:"readTime"`
 		PubTime      *int64  `json:"pubTime"`
 		Category     *string `json:"category"`
-		Tags         string  `json:"tags"`
+		Tags         *string `json:"tags"`
 		LastPubTime  *int64  `json:"lastPubTime"`
 		Weight       *int    `json:"weight"`
 		Views        *int64  `json:"views"`
@@ -38,7 +38,7 @@ type (
 	}
 
 	GetPostDetailReq struct {
-		Id int64 `json:"id"`
+		Id int64 `uri:"id" json:"id"`
 	}
 
 	GetPostDetailResp struct {

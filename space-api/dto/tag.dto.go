@@ -32,7 +32,7 @@ type (
 	}
 
 	DeleteTagByIdListReq struct {
-		BizOp
+		WarningOverride
 		IdList []int64 `json:"idList"`
 	}
 

@@ -1,9 +1,9 @@
 package admin
 
 import (
-	"net/http"
 	"space-api/dto"
 	"space-api/internal/service/v1"
+	"space-api/middleware"
 	"space-api/util"
 
 	"github.com/gin-gonic/gin"
@@ -23,15 +23,14 @@ func UsePostController(group *gin.RouterGroup) {
 				})
 				return
 			}
-			if p, err := service.UpdateOrCreatePost(updatePostReq, ctx); err != nil {
+			if resp, err := service.UpdateOrCreatePost(updatePostReq, ctx); err != nil {
 				ctx.Error(&util.BizErr{
 					Reason: err,
 					Msg:    "操作失败",
 				})
 			} else {
-				ctx.JSON(http.StatusOK, util.RestWithSuccess(p))
+				middleware.NotifyRestProducer(resp, ctx)
 			}
-
 		})
 	}
 
@@ -49,9 +48,8 @@ func UsePostController(group *gin.RouterGroup) {
 
 			if resp, err := service.GetPostList(req, ctx); err != nil {
 				ctx.Error(err)
-				return
 			} else {
-				ctx.JSON(http.StatusOK, util.RestWithSuccess(resp))
+				middleware.NotifyRestProducer(resp, ctx)
 			}
 
 		})
@@ -69,10 +67,10 @@ func UsePostController(group *gin.RouterGroup) {
 				return
 			}
 
-			if result, err := service.GetPostById(req, ctx); err != nil {
+			if resp, err := service.GetPostById(req, ctx); err != nil {
 				ctx.Error(err)
 			} else {
-				ctx.JSON(http.StatusOK, util.RestWithSuccess(result))
+				middleware.NotifyRestProducer(resp, ctx)
 			}
 		})
 	}
@@ -89,14 +87,14 @@ func UsePostController(group *gin.RouterGroup) {
 
 				return
 			}
-			if v, err := service.DeletePostByIdList(req, ctx); err != nil {
+			if resp, err := service.DeletePostByIdList(req, ctx); err != nil {
 				ctx.Error(&util.BizErr{
 					Msg:    "删除失败: " + err.Error(),
 					Reason: err,
 				})
 				return
 			} else {
-				ctx.JSON(http.StatusOK, util.RestWithSuccess(v))
+				middleware.NotifyRestProducer(resp, ctx)
 			}
 		})
 	}

@@ -41,6 +41,7 @@ func Run() {
 		},
 		middleware.UseErrorHandler(),
 		middleware.UseExtractIpHandler(),
+		middleware.UseRestProduceHandler(),
 		middleware.UseJwtAuthHandler(),
 		gin.Logger(),
 	)

@@ -1,11 +1,11 @@
 package service
 
 import (
-	"database/sql"
 	"slices"
 	"space-api/dto"
 	"space-api/middleware"
 	"space-api/util"
+	"space-api/util/ptr"
 	"space-domain/dao/biz"
 	"space-domain/model"
 	"strings"
@@ -23,6 +23,19 @@ func UpdateOrCreatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.Context) (resp 
 		postOp := tx.Post
 		tagOp := tx.Tag
 		postTagRelationOp := tx.PostTagRelation
+
+		// 标准化标签
+		if req.Tags != nil {
+			newTag := slices.DeleteFunc(strings.Split(*req.Tags, ","), func(sp string) bool {
+				return strings.TrimSpace(sp) == ""
+			})
+			for index, tag := range newTag {
+				newTag[index] = strings.TrimSpace(tag)
+			}
+			req.Tags = ptr.ToPtr(strings.Join(newTag, ","))
+		} else {
+			req.Tags = ptr.ToPtr("")
+		}
 
 		// 查找已经存在的文章
 		findPost, err := postOp.WithContext(ctx).Where(postOp.Id.Eq(req.PostId)).Take()
@@ -44,7 +57,7 @@ func UpdateOrCreatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.Context) (resp 
 				WordCount:    req.WordCount,
 				ReadTime:     req.ReadTime,
 				Category:     req.Category,
-				Tags:         &req.Tags,
+				Tags:         req.Tags,
 				LastPubTime:  req.LastPubTime,
 				Weight:       req.Weight,
 				Views:        req.Views,
@@ -68,7 +81,7 @@ func UpdateOrCreatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.Context) (resp 
 				WordCount:    req.WordCount,
 				ReadTime:     req.ReadTime,
 				Category:     req.Category,
-				Tags:         &req.Tags,
+				Tags:         req.Tags,
 				LastPubTime:  req.LastPubTime,
 				Weight:       req.Weight,
 				Views:        req.Views,
@@ -83,16 +96,8 @@ func UpdateOrCreatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.Context) (resp 
 		}
 
 		// 同步其它表的信息
-
 		// 同步新的标签操作
-		trimmedTags := []string{}
-		for _, tag := range strings.Split(req.Tags, ",") {
-			t := strings.TrimSpace(tag)
-			// 过滤掉空格
-			if t != "" {
-				trimmedTags = append(trimmedTags, t)
-			}
-		}
+		trimmedTags := strings.Split(*req.Tags, ",")
 
 		// 查找表里所有已经存在的标签
 		distinctTags, err := tagOp.
@@ -106,7 +111,7 @@ func UpdateOrCreatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.Context) (resp 
 			// 通过过滤只留下需要新创建的标签
 			filterTags := slices.DeleteFunc(slices.Clone(trimmedTags), func(tag string) bool {
 				return slices.ContainsFunc(distinctTags, func(e *model.Tag) bool {
-					return e.TagName == tag
+					return e.TagName == tag || tag == ""
 				})
 			})
 
@@ -154,8 +159,6 @@ func UpdateOrCreatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.Context) (resp 
 		}
 
 		return nil
-	}, &sql.TxOptions{
-		Isolation: sql.LevelReadCommitted,
 	})
 
 	// 判断前面的事务操作结果

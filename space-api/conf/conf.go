@@ -30,7 +30,7 @@ type (
 		Salt    string `yaml:"salt"`
 		Expired struct {
 			Unit  string `yaml:"unit"`
-			Setup int64  `yaml:"setup"`
+			Value int64  `yaml:"value"`
 		} `yaml:"expired"`
 	}
 )

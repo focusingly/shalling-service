@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"space-api/conf"
+	"space-api/util/ptr"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -16,8 +17,8 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if jwtConf.Expired.Setup <= 0 {
-		panic(fmt.Errorf("require a  positive value, but got: %d", jwtConf.Expired.Setup))
+	if jwtConf.Expired.Value <= 0 {
+		panic(fmt.Errorf("require a  positive value, but got: %d", jwtConf.Expired.Value))
 	}
 	switch jwtConf.Expired.Unit {
 	case "second",
@@ -36,13 +37,13 @@ func CreateJwtToken(id string) (token string, err error) {
 
 	switch jwtConf.Expired.Unit {
 	case "second":
-		d = time.Second * time.Duration(jwtConf.Expired.Setup)
+		d = time.Second * time.Duration(jwtConf.Expired.Value)
 	case "minute":
-		d = time.Minute * time.Duration(jwtConf.Expired.Setup)
+		d = time.Minute * time.Duration(jwtConf.Expired.Value)
 	case "hour":
-		d = time.Hour * time.Duration(jwtConf.Expired.Setup)
+		d = time.Hour * time.Duration(jwtConf.Expired.Value)
 	case "day":
-		d = time.Hour * 24 * time.Duration(jwtConf.Expired.Setup)
+		d = time.Hour * 24 * time.Duration(jwtConf.Expired.Value)
 	default:
 		panic(fmt.Errorf("un-support time unit: %s", jwtConf.Expired.Unit))
 	}
@@ -62,12 +63,12 @@ func CreateJwtToken(id string) (token string, err error) {
 		},
 		ID: id,
 	})
-	return raw.SignedString(jwtConf.Salt)
+	return raw.SignedString(ptr.String2Bytes(jwtConf.Salt))
 }
 
 func VerifyJwtToken(tokenStr string) (id string, err error) {
 	token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
-		return jwtConf.Salt, nil
+		return ptr.String2Bytes(jwtConf.Salt), nil
 	})
 	if err != nil {
 		return
@@ -82,5 +83,23 @@ func VerifyJwtToken(tokenStr string) (id string, err error) {
 		err = fmt.Errorf("can't extract id value")
 	}
 
+	return
+}
+
+func VerifyAndGetClaims(tokenStr string) (claims jwt.MapClaims, err error) {
+	token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
+		return ptr.String2Bytes(jwtConf.Salt), nil
+	})
+
+	if err != nil {
+		return
+	}
+	if cl, ok := token.Claims.(jwt.MapClaims); !ok {
+		err = fmt.Errorf("can't convert jwt claims")
+
+		return
+	} else {
+		claims = cl
+	}
 	return
 }

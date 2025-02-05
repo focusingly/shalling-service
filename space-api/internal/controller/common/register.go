@@ -7,4 +7,5 @@ func RegisterAllCommonControllers(group *gin.RouterGroup) {
 
 	UseHealthCheckController(commonGroup)
 	UseOauth2Controllers(commonGroup)
+	UseCommonsController(commonGroup)
 }

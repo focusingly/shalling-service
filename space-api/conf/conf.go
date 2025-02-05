@@ -11,11 +11,13 @@ import (
 var confFile []byte
 
 type (
+	// AppConf 应用程序基本配置
 	AppConf struct {
 		Port       uint   `yaml:"port"`
 		ServerHint string `yaml:"serverHint"`
 	}
 
+	// Oauth2 认证配置
 	Oauth2Conf struct {
 		Endpoint     string   `yaml:"endPoint"`
 		ClientId     string   `yaml:"clientId"`
@@ -23,11 +25,12 @@ type (
 		Scopes       []string `yaml:"scopes"`
 	}
 
+	// Jwt 配置
 	JwtConf struct {
 		Salt    string `yaml:"salt"`
 		Expired struct {
 			Unit  string `yaml:"unit"`
-			Setup uint64 `yaml:"setup"`
+			Setup int64  `yaml:"setup"`
 		} `yaml:"expired"`
 	}
 )

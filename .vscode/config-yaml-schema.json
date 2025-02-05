@@ -146,8 +146,7 @@
                 "second",
                 "minute",
                 "hour",
-                "day",
-                "month"
+                "day"
               ],
               "default": "day",
               "$comment": "时间单位"

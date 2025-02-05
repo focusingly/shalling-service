@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+	"space-api/util"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -14,7 +15,7 @@ func UseRestProduceHandler() gin.HandlerFunc {
 		ctx.Next()
 
 		if val, ok := ctx.Get(RestInjectMarkKey); ok {
-			ctx.JSON(http.StatusOK, val)
+			ctx.JSON(http.StatusOK, util.RestWithSuccess(val))
 		}
 	}
 }

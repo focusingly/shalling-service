@@ -31,7 +31,7 @@ func newFileRecord(db *gorm.DB, opts ...gen.DOOption) fileRecord {
 	_fileRecord.Id = field.NewInt64(tableName, "id")
 	_fileRecord.CreatedAt = field.NewInt64(tableName, "created_at")
 	_fileRecord.UpdatedAt = field.NewInt64(tableName, "updated_at")
-	_fileRecord.Hide = field.NewUint8(tableName, "hide")
+	_fileRecord.Hide = field.NewInt(tableName, "hide")
 	_fileRecord.FileName = field.NewString(tableName, "file_name")
 	_fileRecord.Extension = field.NewString(tableName, "extension")
 	_fileRecord.FileSize = field.NewInt64(tableName, "file_size")
@@ -51,7 +51,7 @@ type fileRecord struct {
 	Id           field.Int64
 	CreatedAt    field.Int64
 	UpdatedAt    field.Int64
-	Hide         field.Uint8
+	Hide         field.Int
 	FileName     field.String
 	Extension    field.String
 	FileSize     field.Int64
@@ -77,7 +77,7 @@ func (f *fileRecord) updateTableName(table string) *fileRecord {
 	f.Id = field.NewInt64(table, "id")
 	f.CreatedAt = field.NewInt64(table, "created_at")
 	f.UpdatedAt = field.NewInt64(table, "updated_at")
-	f.Hide = field.NewUint8(table, "hide")
+	f.Hide = field.NewInt(table, "hide")
 	f.FileName = field.NewString(table, "file_name")
 	f.Extension = field.NewString(table, "extension")
 	f.FileSize = field.NewInt64(table, "file_size")

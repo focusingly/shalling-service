@@ -32,7 +32,7 @@ func UseSocialMediaController(group *gin.RouterGroup) {
 		// 获取列表信息
 		mediaGroup.GET("/list", func(ctx *gin.Context) {
 			req := &dto.GetSocialMediaPageListReq{}
-			if err := ctx.ShouldBindBodyWithJSON(req); err != nil {
+			if err := ctx.ShouldBindQuery(req); err != nil {
 				ctx.Error(util.CreateBizErr("参数错误: "+err.Error(), err))
 				return
 			}

@@ -11,7 +11,7 @@ type BaseColumn struct {
 	Id        int64 `gorm:"type:bigint;primaryKey;autoIncrement:false;comment:主键" json:"id"`
 	CreatedAt int64 `gorm:"type:bigint;autoCreateTime:milli;not null;comment:创建时间, unix 毫秒" json:"createdAt"`
 	UpdatedAt int64 `gorm:"type:bigint;autoUpdateTime:milli;not null;comment:更新时间, unix 毫秒时间戳" json:"updatedAt"`
-	Hide      byte  `gorm:"type:smallint;not null;default:0;comment:是否隐藏, 默认为 0 不隐藏" json:"hide"`
+	Hide      int   `gorm:"type:smallint;not null;default:0;comment:是否隐藏, 默认为 0 不隐藏" json:"hide"`
 }
 
 // BeforeCreate 设置自定义 ID 插入

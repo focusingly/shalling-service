@@ -31,7 +31,7 @@ func newMenuLink(db *gorm.DB, opts ...gen.DOOption) menuLink {
 	_menuLink.Id = field.NewInt64(tableName, "id")
 	_menuLink.CreatedAt = field.NewInt64(tableName, "created_at")
 	_menuLink.UpdatedAt = field.NewInt64(tableName, "updated_at")
-	_menuLink.Hide = field.NewUint8(tableName, "hide")
+	_menuLink.Hide = field.NewInt(tableName, "hide")
 	_menuLink.DisplayName = field.NewString(tableName, "display_name")
 	_menuLink.RoutePath = field.NewString(tableName, "route_path")
 	_menuLink.LinkType = field.NewString(tableName, "link_type")
@@ -49,7 +49,7 @@ type menuLink struct {
 	Id          field.Int64
 	CreatedAt   field.Int64
 	UpdatedAt   field.Int64
-	Hide        field.Uint8
+	Hide        field.Int
 	DisplayName field.String
 	RoutePath   field.String
 	LinkType    field.String
@@ -73,7 +73,7 @@ func (m *menuLink) updateTableName(table string) *menuLink {
 	m.Id = field.NewInt64(table, "id")
 	m.CreatedAt = field.NewInt64(table, "created_at")
 	m.UpdatedAt = field.NewInt64(table, "updated_at")
-	m.Hide = field.NewUint8(table, "hide")
+	m.Hide = field.NewInt(table, "hide")
 	m.DisplayName = field.NewString(table, "display_name")
 	m.RoutePath = field.NewString(table, "route_path")
 	m.LinkType = field.NewString(table, "link_type")

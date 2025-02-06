@@ -21,7 +21,7 @@ type (
 
 	CreateOrUpdateTagReq struct {
 		Id      int64   `json:"id"`
-		Hide    byte    `json:"hide"`
+		Hide    int     `json:"hide"`
 		TagName string  `json:"tagName"`
 		Color   *string `json:"color"`
 		IconUrl *string `json:"iconUrl"`

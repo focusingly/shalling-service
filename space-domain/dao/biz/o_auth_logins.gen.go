@@ -31,7 +31,7 @@ func newOAuthLogin(db *gorm.DB, opts ...gen.DOOption) oAuthLogin {
 	_oAuthLogin.Id = field.NewInt64(tableName, "id")
 	_oAuthLogin.CreatedAt = field.NewInt64(tableName, "created_at")
 	_oAuthLogin.UpdatedAt = field.NewInt64(tableName, "updated_at")
-	_oAuthLogin.Hide = field.NewUint8(tableName, "hide")
+	_oAuthLogin.Hide = field.NewInt(tableName, "hide")
 	_oAuthLogin.PlatformName = field.NewString(tableName, "platform_name")
 	_oAuthLogin.PlatformUserId = field.NewInt64(tableName, "platform_user_id")
 	_oAuthLogin.DisplayName = field.NewString(tableName, "display_name")
@@ -53,7 +53,7 @@ type oAuthLogin struct {
 	Id             field.Int64
 	CreatedAt      field.Int64
 	UpdatedAt      field.Int64
-	Hide           field.Uint8
+	Hide           field.Int
 	PlatformName   field.String
 	PlatformUserId field.Int64
 	DisplayName    field.String
@@ -81,7 +81,7 @@ func (o *oAuthLogin) updateTableName(table string) *oAuthLogin {
 	o.Id = field.NewInt64(table, "id")
 	o.CreatedAt = field.NewInt64(table, "created_at")
 	o.UpdatedAt = field.NewInt64(table, "updated_at")
-	o.Hide = field.NewUint8(table, "hide")
+	o.Hide = field.NewInt(table, "hide")
 	o.PlatformName = field.NewString(table, "platform_name")
 	o.PlatformUserId = field.NewInt64(table, "platform_user_id")
 	o.DisplayName = field.NewString(table, "display_name")

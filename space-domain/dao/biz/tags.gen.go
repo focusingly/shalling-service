@@ -31,7 +31,7 @@ func newTag(db *gorm.DB, opts ...gen.DOOption) tag {
 	_tag.Id = field.NewInt64(tableName, "id")
 	_tag.CreatedAt = field.NewInt64(tableName, "created_at")
 	_tag.UpdatedAt = field.NewInt64(tableName, "updated_at")
-	_tag.Hide = field.NewUint8(tableName, "hide")
+	_tag.Hide = field.NewInt(tableName, "hide")
 	_tag.TagName = field.NewString(tableName, "tag_name")
 	_tag.Color = field.NewString(tableName, "color")
 	_tag.IconUrl = field.NewString(tableName, "icon_url")
@@ -48,7 +48,7 @@ type tag struct {
 	Id        field.Int64
 	CreatedAt field.Int64
 	UpdatedAt field.Int64
-	Hide      field.Uint8
+	Hide      field.Int
 	TagName   field.String
 	Color     field.String
 	IconUrl   field.String
@@ -71,7 +71,7 @@ func (t *tag) updateTableName(table string) *tag {
 	t.Id = field.NewInt64(table, "id")
 	t.CreatedAt = field.NewInt64(table, "created_at")
 	t.UpdatedAt = field.NewInt64(table, "updated_at")
-	t.Hide = field.NewUint8(table, "hide")
+	t.Hide = field.NewInt(table, "hide")
 	t.TagName = field.NewString(table, "tag_name")
 	t.Color = field.NewString(table, "color")
 	t.IconUrl = field.NewString(table, "icon_url")

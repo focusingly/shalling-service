@@ -31,7 +31,7 @@ func newServiceConf(db *gorm.DB, opts ...gen.DOOption) serviceConf {
 	_serviceConf.Id = field.NewInt64(tableName, "id")
 	_serviceConf.CreatedAt = field.NewInt64(tableName, "created_at")
 	_serviceConf.UpdatedAt = field.NewInt64(tableName, "updated_at")
-	_serviceConf.Hide = field.NewUint8(tableName, "hide")
+	_serviceConf.Hide = field.NewInt(tableName, "hide")
 	_serviceConf.KeyName = field.NewString(tableName, "key_name")
 	_serviceConf.KeyVal = field.NewString(tableName, "key_val")
 	_serviceConf.Category = field.NewString(tableName, "category")
@@ -48,7 +48,7 @@ type serviceConf struct {
 	Id        field.Int64
 	CreatedAt field.Int64
 	UpdatedAt field.Int64
-	Hide      field.Uint8
+	Hide      field.Int
 	KeyName   field.String
 	KeyVal    field.String
 	Category  field.String
@@ -71,7 +71,7 @@ func (s *serviceConf) updateTableName(table string) *serviceConf {
 	s.Id = field.NewInt64(table, "id")
 	s.CreatedAt = field.NewInt64(table, "created_at")
 	s.UpdatedAt = field.NewInt64(table, "updated_at")
-	s.Hide = field.NewUint8(table, "hide")
+	s.Hide = field.NewInt(table, "hide")
 	s.KeyName = field.NewString(table, "key_name")
 	s.KeyVal = field.NewString(table, "key_val")
 	s.Category = field.NewString(table, "category")

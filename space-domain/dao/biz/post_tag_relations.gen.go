@@ -31,7 +31,7 @@ func newPostTagRelation(db *gorm.DB, opts ...gen.DOOption) postTagRelation {
 	_postTagRelation.Id = field.NewInt64(tableName, "id")
 	_postTagRelation.CreatedAt = field.NewInt64(tableName, "created_at")
 	_postTagRelation.UpdatedAt = field.NewInt64(tableName, "updated_at")
-	_postTagRelation.Hide = field.NewUint8(tableName, "hide")
+	_postTagRelation.Hide = field.NewInt(tableName, "hide")
 	_postTagRelation.PostId = field.NewInt64(tableName, "post_id")
 	_postTagRelation.TagId = field.NewInt64(tableName, "tag_id")
 
@@ -47,7 +47,7 @@ type postTagRelation struct {
 	Id        field.Int64
 	CreatedAt field.Int64
 	UpdatedAt field.Int64
-	Hide      field.Uint8
+	Hide      field.Int
 	PostId    field.Int64
 	TagId     field.Int64
 
@@ -69,7 +69,7 @@ func (p *postTagRelation) updateTableName(table string) *postTagRelation {
 	p.Id = field.NewInt64(table, "id")
 	p.CreatedAt = field.NewInt64(table, "created_at")
 	p.UpdatedAt = field.NewInt64(table, "updated_at")
-	p.Hide = field.NewUint8(table, "hide")
+	p.Hide = field.NewInt(table, "hide")
 	p.PostId = field.NewInt64(table, "post_id")
 	p.TagId = field.NewInt64(table, "tag_id")
 

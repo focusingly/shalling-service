@@ -19,12 +19,16 @@ func (*mediaService) CreateOrUpdateMediaTag(req *dto.CreateOrUpdateSocialMediaRe
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		mediaOp := tx.PubSocialMedia
 
-		find, err := mediaOp.WithContext(ctx).Where().Take()
+		find, err := mediaOp.WithContext(ctx).
+			Where(mediaOp.Id.Eq(req.Id)).
+			Take()
+
 		// 不存在, 那么进行创建
 		if err != nil {
 			// 赋予一个新的 ID
 			mediaId = util.GetSnowFlakeNode().Generate().Int64()
-			err = mediaOp.WithContext(ctx).Create(
+
+			e := mediaOp.WithContext(ctx).Create(
 				&model.PubSocialMedia{
 					BaseColumn: model.BaseColumn{
 						Id:   mediaId,
@@ -36,15 +40,18 @@ func (*mediaService) CreateOrUpdateMediaTag(req *dto.CreateOrUpdateSocialMediaRe
 				},
 			)
 
-			if err != nil {
-				return err
+			if e != nil {
+				return e
 			}
 		} else {
 			// 已经存在, 那么仅更新
 			mediaId = find.Id
 			_, err = mediaOp.WithContext(ctx).Updates(
 				&model.PubSocialMedia{
-					BaseColumn:  find.BaseColumn,
+					BaseColumn: model.BaseColumn{
+						Id:   mediaId,
+						Hide: req.Hide,
+					},
 					DisplayName: req.DisplayName,
 					IconURL:     req.IconURL,
 					OpenUrl:     req.OpenUrl,

@@ -31,7 +31,7 @@ func newComment(db *gorm.DB, opts ...gen.DOOption) comment {
 	_comment.Id = field.NewInt64(tableName, "id")
 	_comment.CreatedAt = field.NewInt64(tableName, "created_at")
 	_comment.UpdatedAt = field.NewInt64(tableName, "updated_at")
-	_comment.Hide = field.NewUint8(tableName, "hide")
+	_comment.Hide = field.NewInt(tableName, "hide")
 	_comment.PostId = field.NewInt64(tableName, "post_id")
 	_comment.UserId = field.NewInt64(tableName, "user_id")
 	_comment.RootCommentId = field.NewInt64(tableName, "root_comment_id")
@@ -54,7 +54,7 @@ type comment struct {
 	Id            field.Int64
 	CreatedAt     field.Int64
 	UpdatedAt     field.Int64
-	Hide          field.Uint8
+	Hide          field.Int
 	PostId        field.Int64
 	UserId        field.Int64
 	RootCommentId field.Int64
@@ -83,7 +83,7 @@ func (c *comment) updateTableName(table string) *comment {
 	c.Id = field.NewInt64(table, "id")
 	c.CreatedAt = field.NewInt64(table, "created_at")
 	c.UpdatedAt = field.NewInt64(table, "updated_at")
-	c.Hide = field.NewUint8(table, "hide")
+	c.Hide = field.NewInt(table, "hide")
 	c.PostId = field.NewInt64(table, "post_id")
 	c.UserId = field.NewInt64(table, "user_id")
 	c.RootCommentId = field.NewInt64(table, "root_comment_id")

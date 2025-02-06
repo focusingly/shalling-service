@@ -31,7 +31,7 @@ func newLoginUser(db *gorm.DB, opts ...gen.DOOption) loginUser {
 	_loginUser.Id = field.NewInt64(tableName, "id")
 	_loginUser.CreatedAt = field.NewInt64(tableName, "created_at")
 	_loginUser.UpdatedAt = field.NewInt64(tableName, "updated_at")
-	_loginUser.Hide = field.NewUint8(tableName, "hide")
+	_loginUser.Hide = field.NewInt(tableName, "hide")
 	_loginUser.DisplayName = field.NewString(tableName, "display_name")
 	_loginUser.UserType = field.NewString(tableName, "user_type")
 	_loginUser.PlatformId = field.NewInt64(tableName, "platform_id")
@@ -50,7 +50,7 @@ type loginUser struct {
 	Id          field.Int64
 	CreatedAt   field.Int64
 	UpdatedAt   field.Int64
-	Hide        field.Uint8
+	Hide        field.Int
 	DisplayName field.String
 	UserType    field.String
 	PlatformId  field.Int64
@@ -75,7 +75,7 @@ func (l *loginUser) updateTableName(table string) *loginUser {
 	l.Id = field.NewInt64(table, "id")
 	l.CreatedAt = field.NewInt64(table, "created_at")
 	l.UpdatedAt = field.NewInt64(table, "updated_at")
-	l.Hide = field.NewUint8(table, "hide")
+	l.Hide = field.NewInt(table, "hide")
 	l.DisplayName = field.NewString(table, "display_name")
 	l.UserType = field.NewString(table, "user_type")
 	l.PlatformId = field.NewInt64(table, "platform_id")

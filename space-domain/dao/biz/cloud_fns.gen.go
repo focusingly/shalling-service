@@ -31,7 +31,7 @@ func newCloudFn(db *gorm.DB, opts ...gen.DOOption) cloudFn {
 	_cloudFn.Id = field.NewInt64(tableName, "id")
 	_cloudFn.CreatedAt = field.NewInt64(tableName, "created_at")
 	_cloudFn.UpdatedAt = field.NewInt64(tableName, "updated_at")
-	_cloudFn.Hide = field.NewUint8(tableName, "hide")
+	_cloudFn.Hide = field.NewInt(tableName, "hide")
 	_cloudFn.FuncName = field.NewString(tableName, "func_name")
 	_cloudFn.Code = field.NewString(tableName, "code")
 	_cloudFn.Lang = field.NewString(tableName, "lang")
@@ -48,7 +48,7 @@ type cloudFn struct {
 	Id        field.Int64
 	CreatedAt field.Int64
 	UpdatedAt field.Int64
-	Hide      field.Uint8
+	Hide      field.Int
 	FuncName  field.String
 	Code      field.String
 	Lang      field.String
@@ -71,7 +71,7 @@ func (c *cloudFn) updateTableName(table string) *cloudFn {
 	c.Id = field.NewInt64(table, "id")
 	c.CreatedAt = field.NewInt64(table, "created_at")
 	c.UpdatedAt = field.NewInt64(table, "updated_at")
-	c.Hide = field.NewUint8(table, "hide")
+	c.Hide = field.NewInt(table, "hide")
 	c.FuncName = field.NewString(table, "func_name")
 	c.Code = field.NewString(table, "code")
 	c.Lang = field.NewString(table, "lang")

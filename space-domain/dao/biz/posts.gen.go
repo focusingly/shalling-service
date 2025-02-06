@@ -31,7 +31,7 @@ func newPost(db *gorm.DB, opts ...gen.DOOption) post {
 	_post.Id = field.NewInt64(tableName, "id")
 	_post.CreatedAt = field.NewInt64(tableName, "created_at")
 	_post.UpdatedAt = field.NewInt64(tableName, "updated_at")
-	_post.Hide = field.NewUint8(tableName, "hide")
+	_post.Hide = field.NewInt(tableName, "hide")
 	_post.Title = field.NewString(tableName, "title")
 	_post.AuthorId = field.NewInt64(tableName, "author_id")
 	_post.Content = field.NewString(tableName, "content")
@@ -58,7 +58,7 @@ type post struct {
 	Id           field.Int64
 	CreatedAt    field.Int64
 	UpdatedAt    field.Int64
-	Hide         field.Uint8
+	Hide         field.Int
 	Title        field.String
 	AuthorId     field.Int64
 	Content      field.String
@@ -91,7 +91,7 @@ func (p *post) updateTableName(table string) *post {
 	p.Id = field.NewInt64(table, "id")
 	p.CreatedAt = field.NewInt64(table, "created_at")
 	p.UpdatedAt = field.NewInt64(table, "updated_at")
-	p.Hide = field.NewUint8(table, "hide")
+	p.Hide = field.NewInt(table, "hide")
 	p.Title = field.NewString(table, "title")
 	p.AuthorId = field.NewInt64(table, "author_id")
 	p.Content = field.NewString(table, "content")

@@ -31,7 +31,7 @@ func newPubSocialMedia(db *gorm.DB, opts ...gen.DOOption) pubSocialMedia {
 	_pubSocialMedia.Id = field.NewInt64(tableName, "id")
 	_pubSocialMedia.CreatedAt = field.NewInt64(tableName, "created_at")
 	_pubSocialMedia.UpdatedAt = field.NewInt64(tableName, "updated_at")
-	_pubSocialMedia.Hide = field.NewUint8(tableName, "hide")
+	_pubSocialMedia.Hide = field.NewInt(tableName, "hide")
 	_pubSocialMedia.DisplayName = field.NewString(tableName, "display_name")
 	_pubSocialMedia.IconURL = field.NewString(tableName, "icon_url")
 	_pubSocialMedia.OpenUrl = field.NewString(tableName, "open_url")
@@ -48,7 +48,7 @@ type pubSocialMedia struct {
 	Id          field.Int64
 	CreatedAt   field.Int64
 	UpdatedAt   field.Int64
-	Hide        field.Uint8
+	Hide        field.Int
 	DisplayName field.String
 	IconURL     field.String
 	OpenUrl     field.String
@@ -71,7 +71,7 @@ func (p *pubSocialMedia) updateTableName(table string) *pubSocialMedia {
 	p.Id = field.NewInt64(table, "id")
 	p.CreatedAt = field.NewInt64(table, "created_at")
 	p.UpdatedAt = field.NewInt64(table, "updated_at")
-	p.Hide = field.NewUint8(table, "hide")
+	p.Hide = field.NewInt(table, "hide")
 	p.DisplayName = field.NewString(table, "display_name")
 	p.IconURL = field.NewString(table, "icon_url")
 	p.OpenUrl = field.NewString(table, "open_url")

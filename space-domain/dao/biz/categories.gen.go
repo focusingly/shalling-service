@@ -31,7 +31,7 @@ func newCategory(db *gorm.DB, opts ...gen.DOOption) category {
 	_category.Id = field.NewInt64(tableName, "id")
 	_category.CreatedAt = field.NewInt64(tableName, "created_at")
 	_category.UpdatedAt = field.NewInt64(tableName, "updated_at")
-	_category.Hide = field.NewUint8(tableName, "hide")
+	_category.Hide = field.NewInt(tableName, "hide")
 	_category.CategoryName = field.NewString(tableName, "category_name")
 	_category.Color = field.NewString(tableName, "color")
 	_category.IconUrl = field.NewString(tableName, "icon_url")
@@ -48,7 +48,7 @@ type category struct {
 	Id           field.Int64
 	CreatedAt    field.Int64
 	UpdatedAt    field.Int64
-	Hide         field.Uint8
+	Hide         field.Int
 	CategoryName field.String
 	Color        field.String
 	IconUrl      field.String
@@ -71,7 +71,7 @@ func (c *category) updateTableName(table string) *category {
 	c.Id = field.NewInt64(table, "id")
 	c.CreatedAt = field.NewInt64(table, "created_at")
 	c.UpdatedAt = field.NewInt64(table, "updated_at")
-	c.Hide = field.NewUint8(table, "hide")
+	c.Hide = field.NewInt(table, "hide")
 	c.CategoryName = field.NewString(table, "category_name")
 	c.Color = field.NewString(table, "color")
 	c.IconUrl = field.NewString(table, "icon_url")

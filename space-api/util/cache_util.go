@@ -28,7 +28,8 @@ func (jc *JsonCache) Group(namespace string) *JsonCache {
 	}
 }
 
-func (jc *JsonCache) SetWith(key string, val any, ttl ...Second) error {
+// Set 设置值, 如果 ttl <=0, 那么表示永不过期
+func (jc *JsonCache) Set(key string, val any, ttl ...Second) error {
 	key = jc.namespace + key
 
 	le := len(ttl)
@@ -46,7 +47,7 @@ func (jc *JsonCache) SetWith(key string, val any, ttl ...Second) error {
 	}
 }
 
-func (jc *JsonCache) GetById(key string, receivePointer any) error {
+func (jc *JsonCache) Get(key string, receivePointer any) error {
 	key = jc.namespace + key
 	bf, err := jc.instance.Get(ptr.String2Bytes(key))
 	if err != nil {
@@ -63,7 +64,7 @@ func (jc *JsonCache) Delete(key string) bool {
 	return jc.instance.Del(ptr.String2Bytes(key))
 }
 
-// ClearAll 清空缓存, 如果是根命名空间, 那么会清空所有的缓存, 如果是具体的命名空间, 那么会通过遍历逐一删除
+// ClearAll 清空缓存, 如果是根命名空间, 那么会清空所有的缓存, 如果是具体的命名空间, 那么会通过遍历逐一删除(不是原子操作)
 func (jc *JsonCache) ClearAll() {
 	if jc.namespace == "" {
 		jc.instance.Clear()
@@ -87,6 +88,7 @@ func (jc *JsonCache) GetTTL(key string) (uint32, error) {
 	return jc.instance.TTL(ptr.String2Bytes(key))
 }
 
+// SetTTL 重新设置过期时间, 如果 ttl <=0, 那么表示永远不过期
 func (jc *JsonCache) SetTTL(key string, ttl Second) (err error) {
 	key = jc.namespace + key
 	_, _, e := jc.instance.Update(
@@ -109,6 +111,7 @@ func (jc *JsonCache) SetTTL(key string, ttl Second) (err error) {
 	return
 }
 
+// GetAndDel 获取并删除一个值, 这个过程不是原子操作(受限于非重入锁)
 func (jc *JsonCache) GetAndDel(key string, receiverPtr any) (err error) {
 	key = jc.namespace + key
 	bf, err := jc.instance.Get(ptr.String2Bytes(key))
@@ -123,8 +126,35 @@ func (jc *JsonCache) GetAndDel(key string, receiverPtr any) (err error) {
 	return
 }
 
-// GetBeforeAdd 获取某个整数类型的值, 并更新, 如果不存在, 那么进行创建
-func (jc *JsonCache) GetBeforeAdd(key string, inc int, ttl Second) (count int, err error) {
+// GetAndIncr 先获取再更新一个整数记录, 如果不存在, 那么进行创建
+func (jc *JsonCache) GetAndIncr(key string, inc int, ttl Second) (count int, err error) {
+	key = jc.namespace + key
+	_, _, err = jc.instance.Update(
+		ptr.String2Bytes(key),
+		func(value []byte, found bool) (newValue []byte, replace bool, expireSeconds int) {
+			var intVal int
+			if err := json.Unmarshal(value, &intVal); err != nil {
+				panic(err)
+			}
+			count = intVal
+			intVal++
+
+			if bf, err := json.Marshal(intVal); err != nil {
+				panic(err)
+			} else {
+				newValue = bf
+			}
+			replace = true
+			expireSeconds = ttl
+
+			return
+		})
+
+	return
+}
+
+// IncAndGet 先更新再获取一个整数记录, 如果不存在, 那么进行创建
+func (jc *JsonCache) IncAndGet(key string, inc int, ttl Second) (count int, err error) {
 	key = jc.namespace + key
 	_, _, err = jc.instance.Update(
 		ptr.String2Bytes(key),
@@ -150,6 +180,7 @@ func (jc *JsonCache) GetBeforeAdd(key string, inc int, ttl Second) (count int, e
 	return
 }
 
+// ExposeInstance 直接暴露内部所使用的 freeCache 实例
 func (jc *JsonCache) ExposeInstance() *freecache.Cache {
 	return jc.instance
 }

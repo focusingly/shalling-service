@@ -37,7 +37,7 @@ func UseJwtAuthHandler() gin.HandlerFunc {
 		// 所有的后台服务都要求使用管理员权限
 		case strings.HasPrefix(p, AdminPath):
 			if user, err := GetCurrentLoginUser(ctx); err != nil {
-				ctx.Error(&util.VerifyErr{
+				ctx.Error(&util.AuthErr{
 					BizErr: util.BizErr{
 						Msg:    "获取用户凭据失败, 请先登录",
 						Reason: err,
@@ -47,7 +47,7 @@ func UseJwtAuthHandler() gin.HandlerFunc {
 				return
 			} else {
 				if user.UserType != constants.LocalUser {
-					ctx.Error(&util.VerifyErr{
+					ctx.Error(&util.AuthErr{
 						BizErr: util.BizErr{
 							Msg:    "仅限管理员用户进行登录",
 							Reason: fmt.Errorf("un-support user, want%s, but current is:%s", constants.LocalUser, user.UserType),
@@ -66,9 +66,9 @@ func UseJwtAuthHandler() gin.HandlerFunc {
 }
 
 // GetCurrentLoginUser 获取当前的凭据
-func GetCurrentLoginUser(ctx *gin.Context) (user *model.LoginUser, err *util.VerifyErr) {
+func GetCurrentLoginUser(ctx *gin.Context) (user *model.LoginUser, err *util.AuthErr) {
 	if u, exits := ctx.Get(_jwtRandMark); !exits {
-		err = &util.VerifyErr{
+		err = &util.AuthErr{
 			BizErr: util.BizErr{
 				Msg:    "无授权凭据, 请先登录",
 				Reason: fmt.Errorf("oo found login user"),
@@ -77,7 +77,7 @@ func GetCurrentLoginUser(ctx *gin.Context) (user *model.LoginUser, err *util.Ver
 		return
 	} else {
 		if t, ok := u.(*model.LoginUser); !ok {
-			err = &util.VerifyErr{
+			err = &util.AuthErr{
 				BizErr: util.BizErr{
 					Msg:    "提取用户标识失败",
 					Reason: fmt.Errorf("extract user id failed"),
@@ -129,7 +129,7 @@ func loadTokenAndStoreToContext(ctx *gin.Context) {
 		} else {
 			// 从缓存中获取凭据
 			user := new(model.LoginUser)
-			if e := AuthCacheGroup.GetById(fmt.Sprintf("%d", userId), user); e != nil {
+			if e := AuthCacheGroup.Get(fmt.Sprintf("%d", userId), user); e != nil {
 				// 缓存当中不存在数据, 那么查找数据库并进行设置
 				user, err = biz.LoginUser.WithContext(ctx).Where(biz.LoginUser.Id.Eq(userId)).Take()
 				if err != nil {
@@ -142,7 +142,7 @@ func loadTokenAndStoreToContext(ctx *gin.Context) {
 				} else {
 					exp, _ := claims.GetExpirationTime()
 					sec := time.Until(exp.Time).Seconds() / time.Hour.Seconds()
-					AuthCacheGroup.SetWith(fmt.Sprintf("%d", userId), user, util.Second(sec))
+					AuthCacheGroup.Set(fmt.Sprintf("%d", userId), user, util.Second(sec))
 					ctx.Set(_jwtRandMark, user)
 				}
 			} else {

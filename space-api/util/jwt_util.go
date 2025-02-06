@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 var jwtConf = conf.JwtConf{}
@@ -48,21 +49,17 @@ func CreateJwtToken(id string) (token string, err error) {
 		panic(fmt.Errorf("un-support time unit: %s", jwtConf.Expired.Unit))
 	}
 
-	raw := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
-		Issuer:   "shalling.me",
-		Subject:  "The",
-		Audience: []string{"user"},
-		ExpiresAt: &jwt.NumericDate{
-			Time: time.Now().Add(d),
-		},
-		NotBefore: &jwt.NumericDate{
-			Time: now,
-		},
-		IssuedAt: &jwt.NumericDate{
-			Time: now,
-		},
-		ID: id,
+	raw := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"iss":  "shalling.me",
+		"sub":  "auth-token",
+		"aud":  []string{"visit", "comment"},
+		"exp":  now.Add(d).Unix(),
+		"nbf":  now.Unix(),
+		"iat":  now.Unix(),
+		"jti":  id,
+		"uuid": uuid.NewString(),
 	})
+
 	return raw.SignedString(ptr.String2Bytes(jwtConf.Salt))
 }
 

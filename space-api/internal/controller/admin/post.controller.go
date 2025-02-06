@@ -23,7 +23,7 @@ func UsePostController(group *gin.RouterGroup) {
 				})
 				return
 			}
-			if resp, err := service.UpdateOrCreatePost(updatePostReq, ctx); err != nil {
+			if resp, err := service.CreateOrUpdatePost(updatePostReq, ctx); err != nil {
 				ctx.Error(&util.BizErr{
 					Reason: err,
 					Msg:    "操作失败",

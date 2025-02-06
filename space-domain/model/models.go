@@ -21,31 +21,32 @@ type (
 	// OAuthLogin Oauth2 用户的认证信息
 	OAuthLogin struct {
 		BaseColumn     `json:"baseColumn"`
-		PlatformName   string  `gorm:"type:varchar(255);not null;comment:oauth2授权来源平台名称" json:"platformName"`
-		PlatformUserId int64   `gorm:"type:varchar(255);not null;comment:oauth2 授权平台返回的用户标识 ID" json:"platformUserId"`
-		PrimaryEmail   string  `gorm:"type:varchar(255);not null;comment:用户主邮箱" json:"primaryEmail"`
-		AccessToken    string  `gorm:"type:text;not null;comment:授权token" json:"accessToken"`
-		RefreshToken   *string `gorm:"type:text;null;comment:刷新 token(如果存在的话)" json:"refreshToken"`
-		ExpiredAt      *int64  `gorm:"type:bigint;null;comment:凭证 token 的有效截至时间(unix 毫秒时间戳)" json:"expiredAt"`
-		Scopes         *string `gorm:"type:varchar(255);null;comment:oauth2 申请的权限范围" json:"scopes"`
+		PlatformName   string   `gorm:"type:varchar(255);not null;comment:oauth2授权来源平台名称" json:"platformName"`
+		PlatformUserId int64    `gorm:"type:varchar(255);not null;comment:oauth2 授权平台返回的用户标识 ID" json:"platformUserId"`
+		DisplayName    string   `gorm:"type:varchar(255);not null;comment:oauth2 用户在平台的名称" json:"displayName"`
+		PrimaryEmail   string   `gorm:"type:varchar(255);not null;comment:用户主邮箱" json:"primaryEmail"`
+		AccessToken    string   `gorm:"type:text;not null;comment:授权token" json:"accessToken"`
+		RefreshToken   *string  `gorm:"type:text;null;comment:刷新 token(如果存在的话)" json:"refreshToken"`
+		ExpiredAt      *int64   `gorm:"type:bigint;null;comment:凭证 token 的有效截至时间(unix 毫秒时间戳)" json:"expiredAt"`
+		Scopes         []string `gorm:"type:text;null;serializer:json;comment:oauth2 申请的权限范围" json:"scopes"`
 	}
 
 	// Post 文章
 	Post struct {
 		BaseColumn   `json:"baseColumn"`
-		Title        string  `gorm:"type:varchar(255);not null;comment:文章标题" json:"title"`
-		AuthorId     int64   `gorm:"type:bigint;not null;comment:文章作者的主键 ID" json:"authorId"`
-		Content      string  `gorm:"type:text;comment:文章内容" json:"content"`
-		WordCount    int64   `gorm:"type:bigint;not null;comment:字数统计" json:"wordCount"`
-		ReadTime     *int64  `gorm:"type:bigint;null;comment:阅读时间 unix 毫秒时间戳" json:"readTime"`
-		Category     *string `gorm:"type:varchar(255);null;comment:所属类别名称" json:"category"`
-		Tags         *string `gorm:"type:text;null;comment:包含的标签列表" json:"tags"`
-		LastPubTime  *int64  `gorm:"type:bigint;null;comment:最后一次更新时间(允许手动选择或者不设置)" json:"lastPubTime"`
-		Weight       *int    `gorm:"type:smallint;null;comment:可选的权重标识" json:"weight"`
-		Views        *int64  `gorm:"type:bigint;null;comment:总浏览量" json:"views"`
-		UpVote       *int64  `gorm:"type:bigint;null;comment:赞成数" json:"upVote"`
-		DownVote     *int64  `gorm:"type:bigint;null;comment:否定数" json:"downVote"`
-		AllowComment *byte   `gorm:"type:smallint;null;1:true;comment:是否允许评论, 默认为允许" json:"allowComment"`
+		Title        string   `gorm:"type:varchar(255);not null;comment:文章标题" json:"title"`
+		AuthorId     int64    `gorm:"type:bigint;not null;comment:文章作者的主键 ID" json:"authorId"`
+		Content      string   `gorm:"type:text;comment:文章内容" json:"content"`
+		WordCount    int64    `gorm:"type:bigint;not null;comment:字数统计" json:"wordCount"`
+		ReadTime     *int64   `gorm:"type:bigint;null;comment:阅读时间 unix 毫秒时间戳" json:"readTime"`
+		Category     *string  `gorm:"type:varchar(255);null;comment:所属类别名称" json:"category"`
+		Tags         []string `gorm:"type:text;null;serializer:json;comment:包含的标签列表" json:"tags"`
+		LastPubTime  *int64   `gorm:"type:bigint;null;comment:最后一次更新时间(允许手动选择或者不设置)" json:"lastPubTime"`
+		Weight       *int     `gorm:"type:smallint;null;comment:可选的权重标识" json:"weight"`
+		Views        *int64   `gorm:"type:bigint;null;comment:总浏览量" json:"views"`
+		UpVote       *int64   `gorm:"type:bigint;null;comment:赞成数" json:"upVote"`
+		DownVote     *int64   `gorm:"type:bigint;null;comment:否定数" json:"downVote"`
+		AllowComment *byte    `gorm:"type:smallint;null;1:true;comment:是否允许评论, 默认为允许" json:"allowComment"`
 	}
 
 	// Tag 文章标签信息

@@ -42,7 +42,7 @@ func Run() {
 		middleware.UseErrorHandler(),
 		middleware.UseExtractIpHandler(),
 		middleware.UseRestProduceHandler(),
-		middleware.UseJwtAuthHandler(),
+		// middleware.UseJwtAuthHandler(),
 		gin.Logger(),
 	)
 	engine.NoMethod(func(ctx *gin.Context) {

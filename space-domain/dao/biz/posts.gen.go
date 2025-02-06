@@ -38,7 +38,7 @@ func newPost(db *gorm.DB, opts ...gen.DOOption) post {
 	_post.WordCount = field.NewInt64(tableName, "word_count")
 	_post.ReadTime = field.NewInt64(tableName, "read_time")
 	_post.Category = field.NewString(tableName, "category")
-	_post.Tags = field.NewString(tableName, "tags")
+	_post.Tags = field.NewField(tableName, "tags")
 	_post.LastPubTime = field.NewInt64(tableName, "last_pub_time")
 	_post.Weight = field.NewInt(tableName, "weight")
 	_post.Views = field.NewInt64(tableName, "views")
@@ -65,7 +65,7 @@ type post struct {
 	WordCount    field.Int64
 	ReadTime     field.Int64
 	Category     field.String
-	Tags         field.String
+	Tags         field.Field
 	LastPubTime  field.Int64
 	Weight       field.Int
 	Views        field.Int64
@@ -98,7 +98,7 @@ func (p *post) updateTableName(table string) *post {
 	p.WordCount = field.NewInt64(table, "word_count")
 	p.ReadTime = field.NewInt64(table, "read_time")
 	p.Category = field.NewString(table, "category")
-	p.Tags = field.NewString(table, "tags")
+	p.Tags = field.NewField(table, "tags")
 	p.LastPubTime = field.NewInt64(table, "last_pub_time")
 	p.Weight = field.NewInt(table, "weight")
 	p.Views = field.NewInt64(table, "views")

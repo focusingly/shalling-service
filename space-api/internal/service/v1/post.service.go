@@ -5,7 +5,7 @@ import (
 	"space-api/dto"
 	"space-api/middleware"
 	"space-api/util"
-	"space-api/util/ptr"
+	"space-api/util/arr"
 	"space-domain/dao/biz"
 	"space-domain/model"
 	"strings"
@@ -13,8 +13,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// UpdateOrCreatePost 创建新的文章或者更新已有的文章
-func UpdateOrCreatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.Context) (resp *dto.UpdateOrCreatePostResp, err error) {
+// CreateOrUpdatePost 创建/更新文章, 取决于是否存在已有的文章
+func CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.Context) (resp *dto.UpdateOrCreatePostResp, err error) {
 	// 被创建/更新的 文章的 ID
 	var postId int64 = 0
 
@@ -24,17 +24,20 @@ func UpdateOrCreatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.Context) (resp 
 		tagOp := tx.Tag
 		postTagRelationOp := tx.PostTagRelation
 
-		// 标准化标签
+		// 标准化标签(去除首尾空格和移除纯空白字符串)
 		if req.Tags != nil {
-			newTag := slices.DeleteFunc(strings.Split(*req.Tags, ","), func(sp string) bool {
-				return strings.TrimSpace(sp) == ""
-			})
-			for index, tag := range newTag {
-				newTag[index] = strings.TrimSpace(tag)
+			filters := []string{}
+			for _, tag := range req.Tags {
+				t := strings.TrimSpace(tag)
+				if t != "" {
+					filters = append(filters, t)
+				}
 			}
-			req.Tags = ptr.ToPtr(strings.Join(newTag, ","))
-		} else {
-			req.Tags = ptr.ToPtr("")
+			if len(filters) == 0 {
+				req.Tags = nil
+			} else {
+				req.Tags = filters
+			}
 		}
 
 		// 查找已经存在的文章
@@ -48,6 +51,7 @@ func UpdateOrCreatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.Context) (resp 
 			if err != nil {
 				return err
 			}
+
 			// 创建新的文章
 			t := &model.Post{
 				BaseColumn:   model.BaseColumn{Id: postId},
@@ -89,16 +93,31 @@ func UpdateOrCreatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.Context) (resp 
 				DownVote:     req.DownVote,
 				AllowComment: req.AllowComment,
 			}
-
-			if _, err := postOp.WithContext(ctx).Updates(t); err != nil {
+			if _, err := postOp.WithContext(ctx).Where(postOp.Id.Eq(postId)).Select(
+				postOp.Id,
+				postOp.CreatedAt,
+				postOp.UpdatedAt,
+				postOp.Hide,
+				postOp.Title,
+				postOp.AuthorId,
+				postOp.Content,
+				postOp.WordCount,
+				postOp.ReadTime,
+				postOp.Category,
+				postOp.Tags,
+				postOp.LastPubTime,
+				postOp.Weight,
+				postOp.Views,
+				postOp.UpVote,
+				postOp.DownVote,
+				postOp.AllowComment,
+			).Updates(t); err != nil {
 				return err
 			}
 		}
 
 		// 同步其它表的信息
 		// 同步新的标签操作
-		trimmedTags := strings.Split(*req.Tags, ",")
-
 		// 查找表里所有已经存在的标签
 		distinctTags, err := tagOp.
 			WithContext(ctx).
@@ -109,12 +128,14 @@ func UpdateOrCreatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.Context) (resp 
 			return err
 		} else {
 			// 通过过滤只留下需要新创建的标签
-			filterTags := slices.DeleteFunc(slices.Clone(trimmedTags), func(tag string) bool {
-				return slices.ContainsFunc(distinctTags, func(e *model.Tag) bool {
-					return e.TagName == tag || tag == ""
+			filterTags := slices.DeleteFunc(
+				slices.Clone(util.TernaryExpr(req.Tags != nil, req.Tags, []string{})),
+				func(tag string) bool {
+					return slices.ContainsFunc(distinctTags, func(e *model.Tag) bool {
+						// 去掉所有已经存在的标签, 避免重复创建
+						return e.TagName == tag
+					})
 				})
-			})
-
 			// 生成需要创建的新标签
 			shouldCreateTags := []*model.Tag{}
 			for _, tag := range filterTags {
@@ -123,38 +144,44 @@ func UpdateOrCreatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.Context) (resp 
 				})
 			}
 			// 批量创建新标签
-			if err := tagOp.WithContext(ctx).
+			err := tagOp.WithContext(ctx).
 				CreateInBatches(
 					shouldCreateTags,
-					util.TernaryExpr(len(shouldCreateTags) >= 64,
-						64,
-						len(shouldCreateTags),
-					),
-				); err != nil {
+					64,
+				)
+			if err != nil {
 				return err
 			}
 		}
+
 		// 先清空已经存在的所有 文章-标签映射关系, 然后重新创建
 		// 删除所有文章 ID 为当前文章的 postTagRelation 记录
-		if _, err := postTagRelationOp.WithContext(ctx).Where(postTagRelationOp.PostId.Eq(postId)).Delete(); err != nil {
+		_, err = postTagRelationOp.WithContext(ctx).Where(postTagRelationOp.PostId.Eq(postId)).Delete()
+		// 删除失败
+		if err != nil {
 			return err
 		} else {
+			// 删除成功, 需要重新恢复映射关系
 			// 查找所有在 post 里出现的 tag
-			if findTags, err := tagOp.WithContext(ctx).Where(tagOp.TagName.In(trimmedTags...)).Find(); err != nil {
+			findRequireTags, err := tagOp.WithContext(ctx).
+				Distinct(tagOp.TagName).
+				Select(tagOp.Id).
+				Where(tagOp.TagName.In(req.Tags...)).
+				Find()
+
+			if err != nil {
 				return err
-			} else {
-				// 组装映射
-				tagPostRelationsList := []*model.PostTagRelation{}
-				for _, tag := range findTags {
-					tagPostRelationsList = append(tagPostRelationsList, &model.PostTagRelation{
-						TagId:  tag.Id,
-						PostId: postId, // 当前这篇文章
-					})
+			}
+			tagPostRelationsList := arr.MapSlice(findRequireTags, func(i int, tag *model.Tag) *model.PostTagRelation {
+				return &model.PostTagRelation{
+					TagId:  tag.Id,
+					PostId: postId, // 当前的这篇文章
 				}
-				// 恢复映射关系
-				if err := postTagRelationOp.WithContext(ctx).Create(tagPostRelationsList...); err != nil {
-					return err
-				}
+			})
+
+			// 恢复映射关系
+			if err := postTagRelationOp.WithContext(ctx).CreateInBatches(tagPostRelationsList, 64); err != nil {
+				return err
 			}
 		}
 
@@ -163,17 +190,25 @@ func UpdateOrCreatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.Context) (resp 
 
 	// 判断前面的事务操作结果
 	if err != nil {
+		err = &util.BizErr{
+			Reason: err,
+			Msg:    "更新/创建文章失败: " + err.Error(),
+		}
+
 		return
 	}
 
-	v, err := biz.Q.Post.WithContext(ctx).
+	post, err := biz.Q.Post.WithContext(ctx).
 		Where(biz.Q.Post.Id.Eq(postId)).
 		Take()
 	if err != nil {
-		return nil, err
+		return nil, &util.BizErr{
+			Reason: err,
+			Msg:    "更新/创建文章失败: " + err.Error(),
+		}
 	} else {
 		resp = &dto.UpdateOrCreatePostResp{
-			Post: *v,
+			Post: *post,
 		}
 	}
 
@@ -186,8 +221,7 @@ func GetPostList(req *dto.GetPostPageListReq, ctx *gin.Context) (resp *dto.GetPo
 
 	result, count, err := postOp.
 		WithContext(ctx).
-		Select(
-			postOp.Id,
+		Select(postOp.Id,
 			postOp.CreatedAt,
 			postOp.UpdatedAt,
 			postOp.Hide,

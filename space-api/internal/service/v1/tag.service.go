@@ -2,10 +2,9 @@ package service
 
 import (
 	"fmt"
-	"slices"
 	"space-api/dto"
 	"space-api/util"
-	"space-api/util/ptr"
+	"space-api/util/arr"
 	"space-domain/dao/biz"
 	"space-domain/model"
 	"strings"
@@ -13,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// CreateOrUpdateTag 创建/更新 标签
 func CreateOrUpdateTag(req *dto.CreateOrUpdateTagReq, ctx *gin.Context) (resp *dto.CreateOrUpdateTagResp, err error) {
 	// tag 的 ID
 	var tagId int64 = 0
@@ -20,7 +20,10 @@ func CreateOrUpdateTag(req *dto.CreateOrUpdateTagReq, ctx *gin.Context) (resp *d
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		tagOp := tx.Tag
 		req.TagName = strings.TrimSpace(req.TagName)
-		findTag, err := tagOp.WithContext(ctx).Where(tagOp.Id.Eq(req.Id)).Take()
+
+		// 找到需要被更新的 tag
+		oldTag, err := tagOp.WithContext(ctx).Where(tagOp.Id.Eq(req.Id)).Take()
+
 		// 未找到相关的的记录, 插入新的记录
 		if err != nil {
 			// 更新 id 值
@@ -32,80 +35,78 @@ func CreateOrUpdateTag(req *dto.CreateOrUpdateTagReq, ctx *gin.Context) (resp *d
 				IconUrl:    req.IconUrl,
 			})
 			if e != nil {
-				err = &util.BizErr{
-					Msg:    "创建新的标签失败: " + e.Error(),
-					Reason: e,
-				}
 				return err
 			}
 		} else {
 			// 找到相关记录, 更新本地和其它相关表数据
-			tagId = findTag.Id
+			tagId = oldTag.Id
 
-			postTagRelations, e := tx.PostTagRelation.WithContext(ctx).Where(tx.PostTagRelation.TagId.Eq(tagId)).Find()
-			if e != nil {
-				return &util.BizErr{
-					Msg:    "查找标签关联数据失败: " + e.Error(),
-					Reason: err,
-				}
-			}
-			findPostIdList := []int64{}
-			for _, relation := range postTagRelations {
-				findPostIdList = append(findPostIdList, relation.PostId)
-			}
-			// 所有和当前要变更的标签相关联的文章列表
-			relativePosts, e := tx.Post.
+			// 找到文章-标签 关联记录
+			postTagRelations, e := tx.PostTagRelation.
 				WithContext(ctx).
-				Where(tx.Post.Id.In(findPostIdList...)).
+				Where(tx.PostTagRelation.TagId.Eq(tagId)).
 				Find()
 			if e != nil {
-				return &util.BizErr{
-					Msg:    "更新相关数据失败: " + e.Error(),
-					Reason: e,
+				return e
+			}
+
+			// 需要进行更新的文章 ID 列表
+			relativePostIdList := arr.MapSlice(
+				postTagRelations,
+				func(_ int, relation *model.PostTagRelation) int64 {
+					return relation.PostId
+				},
+			)
+
+			// 找到所有要更新的文章
+			shouldUpdatePosts, e := tx.Post.
+				WithContext(ctx).
+				Where(tx.Post.Id.In(relativePostIdList...)).
+				Find()
+			if e != nil {
+				return e
+			}
+
+			// 更新 文章-标签 之间的关系
+			for _, tmpPost := range shouldUpdatePosts {
+				if tmpPost.Tags != nil {
+					// 查找就地更新掉旧的 Tag
+					for index, tg := range tmpPost.Tags {
+						if tg == oldTag.TagName {
+							tmpPost.Tags[index] = req.TagName
+						}
+					}
 				}
 			}
-			for _, relativePost := range relativePosts {
-				if relativePost.Tags != nil {
-					splits := slices.
-						DeleteFunc(
-							strings.Split(*relativePost.Tags, ","), func(tag string) bool {
-								// 排除掉旧标签
-								return tag == findTag.TagName
-							},
-						)
-					// 添加新的请求携带的标签
-					splits = append(splits, req.TagName)
-					// 拼接字符串覆盖掉旧标签
-					relativePost.Tags = ptr.ToPtr(strings.Join(splits, ","))
-				}
-			}
-			// 更新文章的 tags 字段
-			for _, newPost := range relativePosts {
+
+			// 更新文章自身的 tags 字段
+			for _, newPost := range shouldUpdatePosts {
 				_, e = tx.Post.WithContext(ctx).Updates(newPost)
 				if e != nil {
-					return &util.BizErr{
-						Reason: e,
-						Msg:    "更新关联数据失败: " + e.Error(),
-					}
+					return e
 				}
 			}
 
 			// 最后更新标签自身
 			newTagVal := &model.Tag{
 				BaseColumn: model.BaseColumn{
-					Id:   findTag.Id,
+					Id:   oldTag.Id,
 					Hide: req.Hide,
 				},
 				TagName: req.TagName,
 				Color:   req.Color,
 				IconUrl: req.IconUrl,
 			}
-			_, e = tx.Tag.WithContext(ctx).Updates(newTagVal)
+			_, e = tx.Tag.WithContext(ctx).Select(
+				tx.Tag.Id,
+				tx.Tag.Hide,
+				tx.Tag.TagName,
+				tx.Tag.Color,
+				tx.Tag.IconUrl,
+			).Updates(newTagVal)
+
 			if e != nil {
-				return &util.BizErr{
-					Reason: err,
-					Msg:    "更新标签数据失败: " + e.Error(),
-				}
+				return e
 			}
 		}
 
@@ -113,12 +114,14 @@ func CreateOrUpdateTag(req *dto.CreateOrUpdateTagReq, ctx *gin.Context) (resp *d
 	})
 
 	if err != nil {
+		err = util.CreateBizErr("更新失败: "+err.Error(), err)
 		return
 	}
 
 	// 获取当前操作的标签最新值
 	val, err := biz.Tag.WithContext(ctx).Where(biz.Tag.Id.Eq(tagId)).Take()
 	if err != nil {
+		err = util.CreateBizErr("更新失败: "+err.Error(), err)
 		return
 	}
 

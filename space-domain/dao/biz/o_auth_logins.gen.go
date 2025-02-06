@@ -34,11 +34,12 @@ func newOAuthLogin(db *gorm.DB, opts ...gen.DOOption) oAuthLogin {
 	_oAuthLogin.Hide = field.NewUint8(tableName, "hide")
 	_oAuthLogin.PlatformName = field.NewString(tableName, "platform_name")
 	_oAuthLogin.PlatformUserId = field.NewInt64(tableName, "platform_user_id")
+	_oAuthLogin.DisplayName = field.NewString(tableName, "display_name")
 	_oAuthLogin.PrimaryEmail = field.NewString(tableName, "primary_email")
 	_oAuthLogin.AccessToken = field.NewString(tableName, "access_token")
 	_oAuthLogin.RefreshToken = field.NewString(tableName, "refresh_token")
 	_oAuthLogin.ExpiredAt = field.NewInt64(tableName, "expired_at")
-	_oAuthLogin.Scopes = field.NewString(tableName, "scopes")
+	_oAuthLogin.Scopes = field.NewField(tableName, "scopes")
 
 	_oAuthLogin.fillFieldMap()
 
@@ -55,11 +56,12 @@ type oAuthLogin struct {
 	Hide           field.Uint8
 	PlatformName   field.String
 	PlatformUserId field.Int64
+	DisplayName    field.String
 	PrimaryEmail   field.String
 	AccessToken    field.String
 	RefreshToken   field.String
 	ExpiredAt      field.Int64
-	Scopes         field.String
+	Scopes         field.Field
 
 	fieldMap map[string]field.Expr
 }
@@ -82,11 +84,12 @@ func (o *oAuthLogin) updateTableName(table string) *oAuthLogin {
 	o.Hide = field.NewUint8(table, "hide")
 	o.PlatformName = field.NewString(table, "platform_name")
 	o.PlatformUserId = field.NewInt64(table, "platform_user_id")
+	o.DisplayName = field.NewString(table, "display_name")
 	o.PrimaryEmail = field.NewString(table, "primary_email")
 	o.AccessToken = field.NewString(table, "access_token")
 	o.RefreshToken = field.NewString(table, "refresh_token")
 	o.ExpiredAt = field.NewInt64(table, "expired_at")
-	o.Scopes = field.NewString(table, "scopes")
+	o.Scopes = field.NewField(table, "scopes")
 
 	o.fillFieldMap()
 
@@ -113,13 +116,14 @@ func (o *oAuthLogin) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (o *oAuthLogin) fillFieldMap() {
-	o.fieldMap = make(map[string]field.Expr, 11)
+	o.fieldMap = make(map[string]field.Expr, 12)
 	o.fieldMap["id"] = o.Id
 	o.fieldMap["created_at"] = o.CreatedAt
 	o.fieldMap["updated_at"] = o.UpdatedAt
 	o.fieldMap["hide"] = o.Hide
 	o.fieldMap["platform_name"] = o.PlatformName
 	o.fieldMap["platform_user_id"] = o.PlatformUserId
+	o.fieldMap["display_name"] = o.DisplayName
 	o.fieldMap["primary_email"] = o.PrimaryEmail
 	o.fieldMap["access_token"] = o.AccessToken
 	o.fieldMap["refresh_token"] = o.RefreshToken

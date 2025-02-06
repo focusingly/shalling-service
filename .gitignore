@@ -5,6 +5,9 @@
 *.so
 *.dylib
 
+# Temporary files created by dlv during debugging
+__debug_bin*
+
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
@@ -27,8 +30,6 @@ vendor/
 .idea/
 .vscode/settings.json
 *.swp
-
-
 
 # Logs
 *.log

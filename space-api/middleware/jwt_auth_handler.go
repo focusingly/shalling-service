@@ -36,7 +36,7 @@ func UseJwtAuthHandler() gin.HandlerFunc {
 		switch {
 		// 所有的后台服务都要求使用管理员权限
 		case strings.HasPrefix(p, AdminPath):
-			if user, err := GetCurrentLoginUser(ctx); err != nil {
+			if user, err := GetCurrentLoginSession(ctx); err != nil {
 				ctx.Error(&util.AuthErr{
 					BizErr: util.BizErr{
 						Msg:    "获取用户凭据失败, 请先登录",
@@ -65,9 +65,9 @@ func UseJwtAuthHandler() gin.HandlerFunc {
 	}
 }
 
-// GetCurrentLoginUser 获取当前的凭据
-func GetCurrentLoginUser(ctx *gin.Context) (user *model.LoginUser, err *util.AuthErr) {
-	if u, exits := ctx.Get(_jwtRandMark); !exits {
+// GetCurrentLoginSession 获取当前的凭据
+func GetCurrentLoginSession(ctx *gin.Context) (user *model.UserLoginSession, err error) {
+	if u, ok := ctx.Get(_jwtRandMark); !ok {
 		err = &util.AuthErr{
 			BizErr: util.BizErr{
 				Msg:    "无授权凭据, 请先登录",
@@ -76,7 +76,7 @@ func GetCurrentLoginUser(ctx *gin.Context) (user *model.LoginUser, err *util.Aut
 		}
 		return
 	} else {
-		if t, ok := u.(*model.LoginUser); !ok {
+		if t, ok := u.(*model.UserLoginSession); !ok {
 			err = &util.AuthErr{
 				BizErr: util.BizErr{
 					Msg:    "提取用户标识失败",
@@ -127,11 +127,14 @@ func loadTokenAndStoreToContext(ctx *gin.Context) {
 			ctx.Abort()
 			return
 		} else {
+
+			loginSessionOp := biz.UserLoginSession
 			// 从缓存中获取凭据
-			user := new(model.LoginUser)
+			user := &model.UserLoginSession{}
 			if e := AuthCacheGroup.Get(fmt.Sprintf("%d", userId), user); e != nil {
 				// 缓存当中不存在数据, 那么查找数据库并进行设置
-				user, err = biz.LoginUser.WithContext(ctx).Where(biz.LoginUser.Id.Eq(userId)).Take()
+				user, err = loginSessionOp.WithContext(ctx).Where(loginSessionOp.Id.Eq(userId)).Take()
+
 				if err != nil {
 					ctx.Error(&util.BizErr{
 						Msg:    "提取用户 ID 失败: " + err.Error(),

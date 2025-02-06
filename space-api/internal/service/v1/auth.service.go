@@ -7,7 +7,6 @@ import (
 	"space-api/constants"
 	"space-api/util"
 	"space-domain/model"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -90,9 +89,14 @@ func init() {
 		RedirectURL:  v.GetString("oauth2Conf.google.redirectUrl"),
 		Scopes:       v.GetStringSlice("oauth2Conf.google.scopes"),
 	}
+	DefaultMediaService = &mediaService{}
 }
 
-func GetGithubLoginURL(ctx *gin.Context) (url string, err error) {
+type oauth2Service struct{}
+
+var DefaultOauth2Service *oauth2Service
+
+func (*oauth2Service) GetGithubLoginURL(ctx *gin.Context) (url string, err error) {
 	state := uuid.NewString()
 	ttl := time.Minute * 5 / time.Second
 	// 设置过期
@@ -102,7 +106,7 @@ func GetGithubLoginURL(ctx *gin.Context) (url string, err error) {
 	return
 }
 
-func VerifyGithubCallback(ctx *gin.Context) (oauthUser *model.OAuthLogin, err error) {
+func (*oauth2Service) VerifyGithubCallback(ctx *gin.Context) (resp *model.OAuth2User, err error) {
 	grantCode := ctx.DefaultQuery("code", "")
 	state := ctx.DefaultQuery("state", "")
 	// 判断授权码
@@ -137,7 +141,7 @@ func VerifyGithubCallback(ctx *gin.Context) (oauthUser *model.OAuthLogin, err er
 	client := githubOauth2Config.Client(ctx, oauthToken)
 
 	var primaryEmail string
-	githubPub := new(GithubPub)
+	githubPubDetail := new(GithubPub)
 	emailList := []GithubEmailElement{}
 	var group errgroup.Group
 
@@ -153,7 +157,7 @@ func VerifyGithubCallback(ctx *gin.Context) (oauthUser *model.OAuthLogin, err er
 		if res != nil {
 			defer res.Body.Close()
 			// 获取公开信息
-			if err = json.NewDecoder(res.Body).Decode(githubPub); err != nil {
+			if err = json.NewDecoder(res.Body).Decode(githubPubDetail); err != nil {
 				err = &util.AuthErr{
 					BizErr: util.BizErr{
 						Msg:    "解码错误: " + err.Error(),
@@ -204,13 +208,16 @@ func VerifyGithubCallback(ctx *gin.Context) (oauthUser *model.OAuthLogin, err er
 
 		return
 	} else {
-		oauthUser = &model.OAuthLogin{
+		resp = &model.OAuth2User{
 			PlatformName:   constants.GithubUser,
-			PlatformUserId: githubPub.ID,
+			PlatformUserId: fmt.Sprintf("%d", githubPubDetail.ID),
+			Username:       githubPubDetail.Login,
 			PrimaryEmail:   primaryEmail,
 			AccessToken:    oauthToken.AccessToken,
 			RefreshToken:   &oauthToken.RefreshToken,
 			ExpiredAt:      &oauthToken.ExpiresIn,
+			AvatarURL:      &githubPubDetail.AvatarURL,
+			HomepageLink:   &githubPubDetail.HTMLURL,
 			Scopes:         githubOauth2Config.Scopes,
 		}
 	}
@@ -218,7 +225,7 @@ func VerifyGithubCallback(ctx *gin.Context) (oauthUser *model.OAuthLogin, err er
 	return
 }
 
-func GetGoogleLoginURL(ctx *gin.Context) (val string, err error) {
+func (*oauth2Service) GetGoogleLoginURL(ctx *gin.Context) (val string, err error) {
 	state := uuid.NewString()
 	if err = authSpaceCache.Set(state, &empty{}, util.Second(time.Minute*5/time.Second)); err != nil {
 		return
@@ -227,7 +234,7 @@ func GetGoogleLoginURL(ctx *gin.Context) (val string, err error) {
 	return
 }
 
-func VerifyGoogleCallback(ctx *gin.Context) (resp *model.OAuthLogin, err error) {
+func (*oauth2Service) VerifyGoogleCallback(ctx *gin.Context) (resp *model.OAuth2User, err error) {
 	grantCode := ctx.DefaultQuery("code", "")
 	state := ctx.DefaultQuery("state", "")
 	// 基本校验
@@ -275,9 +282,11 @@ func VerifyGoogleCallback(ctx *gin.Context) (resp *model.OAuthLogin, err error) 
 
 		return
 	}
+
 	defer res.Body.Close()
-	googlePub := GooglePub{}
-	if err = json.NewDecoder(res.Body).Decode(&googlePub); err != nil {
+
+	googlePubDetail := GooglePub{}
+	if err = json.NewDecoder(res.Body).Decode(&googlePubDetail); err != nil {
 		err = &util.AuthErr{
 			BizErr: util.BizErr{
 				Reason: err,
@@ -288,24 +297,16 @@ func VerifyGoogleCallback(ctx *gin.Context) (resp *model.OAuthLogin, err error) 
 		return
 	}
 
-	id, err := strconv.ParseInt(googlePub.ID, 10, 64)
-	if err != nil {
-		err = &util.AuthErr{
-			BizErr: util.BizErr{
-				Msg:    "获取用户 ID 失败: " + err.Error(),
-				Reason: err,
-			},
-		}
-		return
-	}
-
-	resp = &model.OAuthLogin{
+	resp = &model.OAuth2User{
 		PlatformName:   constants.GoogleUser,
-		PlatformUserId: id,
-		PrimaryEmail:   googlePub.Name,
+		PlatformUserId: googlePubDetail.ID,
+		Username:       googlePubDetail.Name,
+		PrimaryEmail:   googlePubDetail.Email,
 		AccessToken:    oauthToken.AccessToken,
 		RefreshToken:   &oauthToken.RefreshToken,
 		ExpiredAt:      &oauthToken.ExpiresIn,
+		AvatarURL:      &googlePubDetail.Picture,
+		HomepageLink:   new(string),
 		Scopes:         googleOauth2Config.Scopes,
 	}
 

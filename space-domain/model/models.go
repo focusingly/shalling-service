@@ -8,27 +8,42 @@ import (
 
 // Biz Data Tables
 type (
-	// LoginUser 表示登录用户信息
-	LoginUser struct {
-		BaseColumn  `json:"baseColumn"`
-		DisplayName string `gorm:"type:varchar(255);not null;comment:进行显示用户名称" json:"displayName"`
-		UserType    string `gorm:"type:varchar(255);not null;comment:区分登录的用户类型标识" json:"category"`
-		PlatformId  int64  `gorm:"type:bigint;not null;comment:oauth2 授权平台返回的用户标识 ID" json:"platformId"`
-		Email       string `gorm:"type:varchar(255);not null;comment:用户邮箱" json:"email"`
-		Link        string `gorm:"type:text;comment:可访问的跳转链接" json:"link"`
+
+	// AdminUser 代表本地平台的登录用户的记录信息
+	AdminUser struct {
+		BaseColumn `json:"baseColumn"`
+		Email      *string `gorm:"type:varchar(255);null;comment:用户邮箱, 可用于找回密码" json:"email"`
+		Username   string  `gorm:"type:varchar(255);not null;unique;comment:展示的用户名称" json:"username"`
+		Password   string  `gorm:"type:varchar(255);null;comment:可用于找回账户的密码" json:"password"`
+		Link       *string `gorm:"type:varchar(255);null;comment:可访问的跳转链接" json:"link"`
+		Phone      *string `gorm:"type:varchar(255);null;comment:可用于找回账户的密码" json:"phone"`
 	}
 
-	// OAuthLogin Oauth2 用户的认证信息
-	OAuthLogin struct {
+	// OAuth2User Oauth2 用户的认证记录信息
+	OAuth2User struct {
 		BaseColumn     `json:"baseColumn"`
 		PlatformName   string   `gorm:"type:varchar(255);not null;comment:oauth2授权来源平台名称" json:"platformName"`
-		PlatformUserId int64    `gorm:"type:varchar(255);not null;comment:oauth2 授权平台返回的用户标识 ID" json:"platformUserId"`
-		DisplayName    string   `gorm:"type:varchar(255);not null;comment:oauth2 用户在平台的名称" json:"displayName"`
+		PlatformUserId string   `gorm:"type:varchar(255);not null;comment:oauth2 授权平台返回的用户标识 ID" json:"platformUserId"`
+		Username       string   `gorm:"type:varchar(255);not null;comment:oauth2 用户在平台的名称" json:"username"`
 		PrimaryEmail   string   `gorm:"type:varchar(255);not null;comment:用户主邮箱" json:"primaryEmail"`
 		AccessToken    string   `gorm:"type:text;not null;comment:授权token" json:"accessToken"`
 		RefreshToken   *string  `gorm:"type:text;null;comment:刷新 token(如果存在的话)" json:"refreshToken"`
 		ExpiredAt      *int64   `gorm:"type:bigint;null;comment:凭证 token 的有效截至时间(unix 毫秒时间戳)" json:"expiredAt"`
+		AvatarURL      *string  `gorm:"type:text;null;comment:用户的头像链接"`
+		HomepageLink   *string  `gorm:"type:text;null;comment:用户的主页链接"`
 		Scopes         []string `gorm:"type:text;null;serializer:json;comment:oauth2 申请的权限范围" json:"scopes"`
+	}
+
+	// UserLoginSession 表示登录会话信息
+	UserLoginSession struct {
+		BaseColumn `json:"baseColumn"`
+		UserId     int64   `gorm:"type:bigint;not null;comment:用户的 ID" json:"userId"`
+		IpU32Val   *uint32 `gorm:"type:int;null;comment:ipv4 地址的 uint32 表示值" json:"ipU32Val"`
+		IpAddress  *string `gorm:"type:varchar(255);null;comment:ip 地址表示字符串" json:"ipAddress"`
+		IpSource   *string `gorm:"type:varchar(255);null;comment:ip 来源归属地" json:"ipSource"`
+		ExpiresAt  int64   `gorm:"type:varchar(255);not null;comment:token 的过期时间,这个值为 unix 毫秒时间戳" json:"expiresAt"`
+		UserType   string  `gorm:"type:varchar(255);not null;comment:当前登录的用户类型标识" json:"userType"`
+		Useragent  string  `gorm:"type:varchar(255);comment:用户登录的平台标识" json:"useragent"`
 	}
 
 	// Post 文章
@@ -119,6 +134,7 @@ type (
 		OpenWay     string `gorm:"type:varchar(255);default:current;not null;comment:新连接打开方式" json:"openWay"`
 	}
 
+	// ServiceConf 自定义配置
 	ServiceConf struct {
 		BaseColumn `json:"baseColumn"`
 		KeyName    string `gorm:"type:varchar(255);not null;unique;comment:配置名称" json:"keyName"`
@@ -146,8 +162,9 @@ func (logRecord *LogRecord) BeforeCreate(tx *gorm.DB) (err error) {
 
 func GetBizMigrateTables() []any {
 	return []any{
-		new(LoginUser),
-		new(OAuthLogin),
+		new(AdminUser),
+		new(UserLoginSession),
+		new(OAuth2User),
 		new(Post),
 		new(Tag),
 		new(PostTagRelation),

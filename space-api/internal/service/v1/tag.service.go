@@ -12,8 +12,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type tagService struct{}
+
+var DefaultTagService = &tagService{}
+
 // CreateOrUpdateTag 创建/更新 标签
-func CreateOrUpdateTag(req *dto.CreateOrUpdateTagReq, ctx *gin.Context) (resp *dto.CreateOrUpdateTagResp, err error) {
+func (*tagService) CreateOrUpdateTag(req *dto.CreateOrUpdateTagReq, ctx *gin.Context) (resp *dto.CreateOrUpdateTagResp, err error) {
 	// tag 的 ID
 	var tagId int64 = 0
 
@@ -132,7 +136,7 @@ func CreateOrUpdateTag(req *dto.CreateOrUpdateTagReq, ctx *gin.Context) (resp *d
 	return
 }
 
-func GetTagDetailById(req *dto.GetTagDetailReq, ctx *gin.Context) (resp *dto.GetTagDetailResp, err error) {
+func (*tagService) GetTagDetailById(req *dto.GetTagDetailReq, ctx *gin.Context) (resp *dto.GetTagDetailResp, err error) {
 	f, e := biz.Tag.WithContext(ctx).Where(biz.Tag.Id.Eq(req.Id)).Take()
 	if e != nil {
 		err = &util.BizErr{
@@ -148,7 +152,7 @@ func GetTagDetailById(req *dto.GetTagDetailReq, ctx *gin.Context) (resp *dto.Get
 	return
 }
 
-func GetTagPageList(req *dto.GetTagPageListReq, ctx *gin.Context) (resp *dto.GetTagPageListResp, err error) {
+func (*tagService) GetTagPageList(req *dto.GetTagPageListReq, ctx *gin.Context) (resp *dto.GetTagPageListResp, err error) {
 	tagOp := biz.Tag
 	list, count, err := tagOp.WithContext(ctx).FindByPage(req.Resolve())
 	if err != nil {
@@ -168,7 +172,7 @@ func GetTagPageList(req *dto.GetTagPageListReq, ctx *gin.Context) (resp *dto.Get
 	}, nil
 }
 
-func DeleteTagByIdList(req *dto.DeleteTagByIdListReq, ctx *gin.Context) (resp *dto.DeleteTagByIdListResp, err error) {
+func (*tagService) DeleteTagByIdList(req *dto.DeleteTagByIdListReq, ctx *gin.Context) (resp *dto.DeleteTagByIdListResp, err error) {
 	query := biz.Q
 	err = query.Transaction(func(tx *biz.Query) error {
 		tagOp := tx.Tag

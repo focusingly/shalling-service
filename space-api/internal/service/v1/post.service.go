@@ -13,8 +13,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type postService struct{}
+
+var DefaultPostService = &postService{}
+
 // CreateOrUpdatePost 创建/更新文章, 取决于是否存在已有的文章
-func CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.Context) (resp *dto.UpdateOrCreatePostResp, err error) {
+func (*postService) CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.Context) (resp *dto.UpdateOrCreatePostResp, err error) {
 	// 被创建/更新的 文章的 ID
 	var postId int64 = 0
 
@@ -47,7 +51,7 @@ func CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.Context) (resp 
 			// 同步更新 ID
 			postId = util.GetSnowFlakeNode().Generate().Int64()
 			// 获取当前登录的用户信息
-			loginUser, err := middleware.GetCurrentLoginUser(ctx)
+			loginUser, err := middleware.GetCurrentLoginSession(ctx)
 			if err != nil {
 				return err
 			}
@@ -216,7 +220,7 @@ func CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.Context) (resp 
 }
 
 // GetPostList 获取文章分页的信息(不包括正文内容)
-func GetPostList(req *dto.GetPostPageListReq, ctx *gin.Context) (resp *dto.GetPostPageListResp, err error) {
+func (*postService) GetPostList(req *dto.GetPostPageListReq, ctx *gin.Context) (resp *dto.GetPostPageListResp, err error) {
 	postOp := biz.Post
 
 	result, count, err := postOp.
@@ -258,7 +262,7 @@ func GetPostList(req *dto.GetPostPageListReq, ctx *gin.Context) (resp *dto.GetPo
 }
 
 // GetPostById 根据文章 ID 获取全量的文章信息
-func GetPostById(req *dto.GetPostDetailReq, ctx *gin.Context) (resp *dto.GetPostDetailResp, err error) {
+func (*postService) GetPostById(req *dto.GetPostDetailReq, ctx *gin.Context) (resp *dto.GetPostDetailResp, err error) {
 	val, err := biz.Post.WithContext(ctx).Where(biz.Post.Id.Eq(req.Id)).Take()
 	if err != nil {
 		return nil, &util.BizErr{
@@ -273,7 +277,7 @@ func GetPostById(req *dto.GetPostDetailReq, ctx *gin.Context) (resp *dto.GetPost
 }
 
 // GetPostById 根据文章 ID 获取全量的文章信息
-func DeletePostByIdList(req *dto.DeletePostByIdListReq, ctx *gin.Context) (resp *dto.DeletePostByIdListResp, err error) {
+func (*postService) DeletePostByIdList(req *dto.DeletePostByIdListReq, ctx *gin.Context) (resp *dto.DeletePostByIdListResp, err error) {
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		_, err = tx.Post.WithContext(ctx).Where(tx.Post.Id.In(req.IdList...)).Delete()
 		return err

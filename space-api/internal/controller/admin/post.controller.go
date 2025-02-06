@@ -11,6 +11,7 @@ import (
 
 func UsePostController(group *gin.RouterGroup) {
 	postGroup := group.Group("/posts")
+	postService := service.DefaultPostService
 
 	// 增加或者修改文章信息
 	{
@@ -23,7 +24,7 @@ func UsePostController(group *gin.RouterGroup) {
 				})
 				return
 			}
-			if resp, err := service.CreateOrUpdatePost(updatePostReq, ctx); err != nil {
+			if resp, err := postService.CreateOrUpdatePost(updatePostReq, ctx); err != nil {
 				ctx.Error(&util.BizErr{
 					Reason: err,
 					Msg:    "操作失败",
@@ -46,7 +47,7 @@ func UsePostController(group *gin.RouterGroup) {
 				return
 			}
 
-			if resp, err := service.GetPostList(req, ctx); err != nil {
+			if resp, err := postService.GetPostList(req, ctx); err != nil {
 				ctx.Error(err)
 			} else {
 				middleware.NotifyRestProducer(resp, ctx)
@@ -67,7 +68,7 @@ func UsePostController(group *gin.RouterGroup) {
 				return
 			}
 
-			if resp, err := service.GetPostById(req, ctx); err != nil {
+			if resp, err := postService.GetPostById(req, ctx); err != nil {
 				ctx.Error(err)
 			} else {
 				middleware.NotifyRestProducer(resp, ctx)
@@ -87,7 +88,7 @@ func UsePostController(group *gin.RouterGroup) {
 
 				return
 			}
-			if resp, err := service.DeletePostByIdList(req, ctx); err != nil {
+			if resp, err := postService.DeletePostByIdList(req, ctx); err != nil {
 				ctx.Error(&util.BizErr{
 					Msg:    "删除失败: " + err.Error(),
 					Reason: err,

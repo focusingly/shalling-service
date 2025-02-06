@@ -11,6 +11,7 @@ import (
 
 func UseTagController(group *gin.RouterGroup) {
 	tagGroup := group.Group("/tag")
+	service := service.DefaultTagService
 
 	// 获取标签分页列表
 	{

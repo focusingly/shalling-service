@@ -2,7 +2,8 @@ package common
 
 import (
 	"space-api/internal/service/v1"
-	"space-api/middleware"
+	"space-api/middleware/auth"
+	"space-api/middleware/outbound"
 	"space-api/util"
 
 	"github.com/gin-gonic/gin"
@@ -35,7 +36,7 @@ func UseOauth2Controller(group *gin.RouterGroup) {
 					Msg:    "获取认证链接失败",
 				})
 			} else {
-				middleware.NotifyRestProducer(url, ctx)
+				outbound.NotifyProduceRestJSON(url, ctx)
 			}
 		})
 
@@ -47,7 +48,7 @@ func UseOauth2Controller(group *gin.RouterGroup) {
 					Msg:    "登录失败",
 				})
 			} else {
-				middleware.NotifyRestProducer(resp, ctx)
+				outbound.NotifyProduceRestJSON(resp, ctx)
 			}
 		})
 	}
@@ -62,7 +63,7 @@ func UseOauth2Controller(group *gin.RouterGroup) {
 					Msg:    "获取认证链接失败",
 				})
 			} else {
-				middleware.NotifyRestProducer(url, ctx)
+				outbound.NotifyProduceRestJSON(url, ctx)
 			}
 		})
 		googleRouting.GET("/callback", func(ctx *gin.Context) {
@@ -72,7 +73,7 @@ func UseOauth2Controller(group *gin.RouterGroup) {
 					Msg:    "登录失败",
 				})
 			} else {
-				middleware.NotifyRestProducer(val, ctx)
+				outbound.NotifyProduceRestJSON(val, ctx)
 			}
 		})
 	}
@@ -82,13 +83,13 @@ func UseLogoutController(group *gin.RouterGroup) {
 	// 退出登录
 	{
 		group.GET("/logout", func(ctx *gin.Context) {
-			_, err := middleware.GetCurrentLoginSession(ctx)
+			_, err := auth.GetCurrentLoginSession(ctx)
 			if err != nil {
 				ctx.Error(err)
 				return
 			}
 
-			middleware.NotifyRestProducer(new(struct{}), ctx)
+			outbound.NotifyProduceRestJSON(new(struct{}), ctx)
 		})
 	}
 }

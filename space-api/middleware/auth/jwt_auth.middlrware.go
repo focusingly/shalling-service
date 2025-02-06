@@ -1,4 +1,4 @@
-package middleware
+package auth
 
 import (
 	"fmt"
@@ -53,6 +53,7 @@ func UseJwtAuthHandler() gin.HandlerFunc {
 							Reason: fmt.Errorf("un-support user, want%s, but current is:%s", constants.LocalUser, user.UserType),
 						},
 					})
+					// 不需要后续流程
 					ctx.Abort()
 					return
 				}

@@ -3,7 +3,7 @@ package service
 import (
 	"slices"
 	"space-api/dto"
-	"space-api/middleware"
+	"space-api/middleware/auth"
 	"space-api/util"
 	"space-api/util/arr"
 	"space-domain/dao/biz"
@@ -51,7 +51,7 @@ func (*postService) CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.
 			// 同步更新 ID
 			postId = util.GetSnowFlakeNode().Generate().Int64()
 			// 获取当前登录的用户信息
-			loginUser, err := middleware.GetCurrentLoginSession(ctx)
+			loginUser, err := auth.GetCurrentLoginSession(ctx)
 			if err != nil {
 				return err
 			}

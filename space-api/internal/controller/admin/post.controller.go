@@ -3,7 +3,7 @@ package admin
 import (
 	"space-api/dto"
 	"space-api/internal/service/v1"
-	"space-api/middleware"
+	"space-api/middleware/outbound"
 	"space-api/util"
 
 	"github.com/gin-gonic/gin"
@@ -30,7 +30,7 @@ func UsePostController(group *gin.RouterGroup) {
 					Msg:    "操作失败",
 				})
 			} else {
-				middleware.NotifyRestProducer(resp, ctx)
+				outbound.NotifyProduceRestJSON(resp, ctx)
 			}
 		})
 	}
@@ -50,7 +50,7 @@ func UsePostController(group *gin.RouterGroup) {
 			if resp, err := postService.GetPostList(req, ctx); err != nil {
 				ctx.Error(err)
 			} else {
-				middleware.NotifyRestProducer(resp, ctx)
+				outbound.NotifyProduceRestJSON(resp, ctx)
 			}
 
 		})
@@ -71,7 +71,7 @@ func UsePostController(group *gin.RouterGroup) {
 			if resp, err := postService.GetPostById(req, ctx); err != nil {
 				ctx.Error(err)
 			} else {
-				middleware.NotifyRestProducer(resp, ctx)
+				outbound.NotifyProduceRestJSON(resp, ctx)
 			}
 		})
 	}
@@ -95,7 +95,7 @@ func UsePostController(group *gin.RouterGroup) {
 				})
 				return
 			} else {
-				middleware.NotifyRestProducer(resp, ctx)
+				outbound.NotifyProduceRestJSON(resp, ctx)
 			}
 		})
 	}

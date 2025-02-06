@@ -3,7 +3,8 @@ package admin
 import (
 	"space-api/dto"
 	"space-api/internal/service/v1"
-	"space-api/middleware"
+	"space-api/middleware/outbound"
+
 	"space-api/util"
 
 	"github.com/gin-gonic/gin"
@@ -25,7 +26,7 @@ func UseSocialMediaController(group *gin.RouterGroup) {
 			if err != nil {
 				ctx.Error(err)
 			} else {
-				middleware.NotifyRestProducer(resp, ctx)
+				outbound.NotifyProduceRestJSON(resp, ctx)
 			}
 		})
 
@@ -41,7 +42,7 @@ func UseSocialMediaController(group *gin.RouterGroup) {
 			if err != nil {
 				ctx.Error(err)
 			} else {
-				middleware.NotifyRestProducer(resp, ctx)
+				outbound.NotifyProduceRestJSON(resp, ctx)
 			}
 		})
 
@@ -56,7 +57,7 @@ func UseSocialMediaController(group *gin.RouterGroup) {
 			if resp, err := mediaService.CreateOrUpdateMediaTag(req, ctx); err != nil {
 				ctx.Error(err)
 			} else {
-				middleware.NotifyRestProducer(resp, ctx)
+				outbound.NotifyProduceRestJSON(resp, ctx)
 			}
 
 		})
@@ -74,7 +75,7 @@ func UseSocialMediaController(group *gin.RouterGroup) {
 			if err != nil {
 				ctx.Error(err)
 			} else {
-				middleware.NotifyRestProducer(resp, ctx)
+				outbound.NotifyProduceRestJSON(resp, ctx)
 			}
 		})
 	}

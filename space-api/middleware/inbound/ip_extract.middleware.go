@@ -1,12 +1,15 @@
-package middleware
+package inbound
 
 import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
-func getClientIP(c *gin.Context) string {
+var _ipMarked = "ip:" + uuid.NewString()
+
+func getClientIPv4(c *gin.Context) string {
 	// 优先尝试获取 Cloudflare 提供的真实客户端 IP
 	if clientIP := c.Request.Header.Get("CF-Connecting-IP"); clientIP != "" {
 		return clientIP
@@ -22,12 +25,14 @@ func getClientIP(c *gin.Context) string {
 	return c.ClientIP()
 }
 
-func UseExtractIpHandler() gin.HandlerFunc {
+func UseExtractIPv4Middleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		ctx.Set("extract-real-ip", getClientIP(ctx))
+		ctx.Set(_ipMarked, getClientIPv4(ctx))
+
+		ctx.Next()
 	}
 }
 
 func TryGetRealIp(ctx *gin.Context) string {
-	return ctx.GetString("extract-real-ip")
+	return ctx.GetString(_ipMarked)
 }

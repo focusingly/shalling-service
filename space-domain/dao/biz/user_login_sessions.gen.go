@@ -41,6 +41,8 @@ func newUserLoginSession(db *gorm.DB, opts ...gen.DOOption) userLoginSession {
 	_userLoginSession.UserType = field.NewString(tableName, "user_type")
 	_userLoginSession.Token = field.NewString(tableName, "token")
 	_userLoginSession.Useragent = field.NewString(tableName, "useragent")
+	_userLoginSession.ClientName = field.NewString(tableName, "client_name")
+	_userLoginSession.OsName = field.NewString(tableName, "os_name")
 
 	_userLoginSession.fillFieldMap()
 
@@ -50,20 +52,22 @@ func newUserLoginSession(db *gorm.DB, opts ...gen.DOOption) userLoginSession {
 type userLoginSession struct {
 	userLoginSessionDo userLoginSessionDo
 
-	ALL       field.Asterisk
-	Id        field.Int64
-	CreatedAt field.Int64
-	UpdatedAt field.Int64
-	Hide      field.Int
-	UserId    field.Int64
-	UUID      field.String
-	IpU32Val  field.Uint32
-	IpAddress field.String
-	IpSource  field.String
-	ExpiredAt field.Int64
-	UserType  field.String
-	Token     field.String
-	Useragent field.String
+	ALL        field.Asterisk
+	Id         field.Int64
+	CreatedAt  field.Int64
+	UpdatedAt  field.Int64
+	Hide       field.Int
+	UserId     field.Int64
+	UUID       field.String
+	IpU32Val   field.Uint32
+	IpAddress  field.String
+	IpSource   field.String
+	ExpiredAt  field.Int64
+	UserType   field.String
+	Token      field.String
+	Useragent  field.String
+	ClientName field.String
+	OsName     field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -93,6 +97,8 @@ func (u *userLoginSession) updateTableName(table string) *userLoginSession {
 	u.UserType = field.NewString(table, "user_type")
 	u.Token = field.NewString(table, "token")
 	u.Useragent = field.NewString(table, "useragent")
+	u.ClientName = field.NewString(table, "client_name")
+	u.OsName = field.NewString(table, "os_name")
 
 	u.fillFieldMap()
 
@@ -121,7 +127,7 @@ func (u *userLoginSession) GetFieldByName(fieldName string) (field.OrderExpr, bo
 }
 
 func (u *userLoginSession) fillFieldMap() {
-	u.fieldMap = make(map[string]field.Expr, 13)
+	u.fieldMap = make(map[string]field.Expr, 15)
 	u.fieldMap["id"] = u.Id
 	u.fieldMap["created_at"] = u.CreatedAt
 	u.fieldMap["updated_at"] = u.UpdatedAt
@@ -135,6 +141,8 @@ func (u *userLoginSession) fillFieldMap() {
 	u.fieldMap["user_type"] = u.UserType
 	u.fieldMap["token"] = u.Token
 	u.fieldMap["useragent"] = u.Useragent
+	u.fieldMap["client_name"] = u.ClientName
+	u.fieldMap["os_name"] = u.OsName
 }
 
 func (u userLoginSession) clone(db *gorm.DB) userLoginSession {

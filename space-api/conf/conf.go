@@ -13,25 +13,27 @@ var confFile []byte
 type (
 	// AppConf 应用程序基本配置
 	AppConf struct {
-		Port       uint   `yaml:"port"`
-		ServerHint string `yaml:"serverHint"`
+		Port          uint   `yaml:"port" json:"port"`
+		ServerHint    string `yaml:"serverHint" json:"serverHint"`
+		Salt          string `yaml:"salt" json:"salt"`
+		MaxUserActive int    `yaml:"maxUserActive" json:"maxUserActive"`
 	}
 
 	// Oauth2 认证配置
 	Oauth2Conf struct {
-		Endpoint     string   `yaml:"endPoint"`
-		ClientId     string   `yaml:"clientId"`
-		ClientSecret string   `yaml:"clientSecret"`
-		Scopes       []string `yaml:"scopes"`
+		Endpoint     string   `yaml:"endPoint" json:"endpoint"`
+		ClientId     string   `yaml:"clientId" json:"clientId"`
+		ClientSecret string   `yaml:"clientSecret" json:"clientSecret"`
+		Scopes       []string `yaml:"scopes" json:"scopes"`
 	}
 
 	// Jwt 配置
 	JwtConf struct {
-		Salt    string `yaml:"salt"`
+		Salt    string `yaml:"salt" json:"salt"`
 		Expired struct {
-			Unit  string `yaml:"unit"`
-			Value int64  `yaml:"value"`
-		} `yaml:"expired"`
+			Unit  string `yaml:"unit" json:"unit"`
+			Value int64  `yaml:"value" json:"value"`
+		} `yaml:"expired" json:"expired"`
 	}
 )
 

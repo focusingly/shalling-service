@@ -3,9 +3,20 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 	"space-api/conf"
 	"space-api/constants"
+	"space-api/dto"
+	"space-api/middleware/auth"
+	"space-api/middleware/inbound"
 	"space-api/util"
+	"space-api/util/arr"
+	"space-api/util/encrypt"
+	"space-api/util/id"
+	"space-api/util/ip"
+	"space-api/util/performance"
+	"space-api/util/verify"
+	"space-domain/dao/biz"
 	"space-domain/model"
 	"time"
 
@@ -67,10 +78,13 @@ type (
 	}
 )
 
-var githubOauth2Config, googleOauth2Config *oauth2.Config
-
-// 记录缓存
-var authSpaceCache = util.DefaultJsonCache.Group("auth")
+var (
+	githubOauth2Config, googleOauth2Config *oauth2.Config
+	// 本地缓存空间
+	_authCache = auth.GetMiddlewareUsingCacheSpace()
+	_jwtConf   = &conf.JwtConf{}
+	_appConf   = &conf.AppConf{}
+)
 
 func init() {
 	v := conf.GetProjectViper()
@@ -81,7 +95,6 @@ func init() {
 		RedirectURL:  v.GetString("oauth2Conf.github.redirectUrl"),
 		Scopes:       v.GetStringSlice("oauth2Conf.github.scopes"),
 	}
-
 	googleOauth2Config = &oauth2.Config{
 		ClientID:     v.GetString("oauth2Conf.google.clientId"),
 		ClientSecret: v.GetString("oauth2Conf.google.clientSecret"),
@@ -89,19 +102,184 @@ func init() {
 		RedirectURL:  v.GetString("oauth2Conf.google.redirectUrl"),
 		Scopes:       v.GetStringSlice("oauth2Conf.google.scopes"),
 	}
-	DefaultMediaService = &mediaService{}
+	if err := v.UnmarshalKey("app", _appConf); err != nil {
+		panic(err)
+	}
+
+	if err := v.UnmarshalKey("jwtConf", _jwtConf); err != nil {
+		panic(err)
+	}
+	if _jwtConf.Expired.Value <= 0 {
+		panic(fmt.Errorf("require a  positive value, but got: %d", _jwtConf.Expired.Value))
+	}
+	switch _jwtConf.Expired.Unit {
+	case "second",
+		"minute",
+		"hour",
+		"day":
+		return
+	default:
+		panic(fmt.Errorf("un-support time unit: %s", _jwtConf.Expired.Unit))
+	}
 }
 
 type oauth2Service struct{}
 
 var DefaultOauth2Service *oauth2Service
 
-func (*oauth2Service) GetGithubLoginURL(ctx *gin.Context) (url string, err error) {
+// AdminLogin 后台管理员登录
+func (*oauth2Service) AdminLogin(req *dto.AdminLoginReq, ctx *gin.Context) (resp *dto.AdminLoginResp, err error) {
+	var localUser *model.LocalUser
+	var token string
+	var newLoginSession *model.UserLoginSession
+
+	err = biz.Q.Transaction(func(tx *biz.Query) error {
+		localUserTx := tx.LocalUser
+
+		// 数据库中的本地账户
+		findUser, e := localUserTx.WithContext(ctx).Where(
+			localUserTx.Username.Eq(req.Username),
+		).Take()
+		if e != nil {
+			return fmt.Errorf("不存在的用户或密码不正确")
+		}
+		if !encrypt.ComparePassword(req.Password, findUser.Password) {
+			return fmt.Errorf("不存在的用户或密码不正确")
+		}
+		localUser = findUser
+
+		loginSessionTx := tx.UserLoginSession
+		// 所有已经登录的会话信息
+		existsSessions, e := loginSessionTx.WithContext(ctx).Where(loginSessionTx.UserId.Eq(findUser.Id)).Find()
+		if e != nil {
+			return fmt.Errorf("设置会话信息失败")
+		}
+
+		// 更新列表
+		nowUnixMill := time.Now().UnixMilli()
+		updates := slices.DeleteFunc(
+			slices.Clone(existsSessions),
+			func(s *model.UserLoginSession) bool {
+				return nowUnixMill >= s.ExpiredAt
+			},
+		)
+		slices.SortFunc(
+			updates,
+			func(a, b *model.UserLoginSession) int {
+				// 比较新的数据, 放在前面
+				return int(b.Id - a.Id)
+			},
+		)
+		if len(updates) >= _appConf.MaxUserActive-1 {
+			// 淘汰末尾数据
+			updates = updates[:_appConf.MaxUserActive-1]
+		}
+		var d time.Duration
+		exp := _jwtConf.Expired
+		switch exp.Unit {
+		case "second":
+			d = time.Second * time.Duration(exp.Value)
+		case "minute":
+			d = time.Minute * time.Duration(exp.Value)
+		case "hour":
+			d = time.Hour * time.Duration(exp.Value)
+		case "day":
+			d = time.Hour * 24 * time.Duration(exp.Value)
+		}
+
+		ipAddr := inbound.GetRealIpWithContext(ctx)
+		ua := inbound.GetUserAgentFromContext(ctx)
+		to32Ip, _ := ip.Ipv4StringToU32(ipAddr)
+		ipSource, _ := ip.GetIpSearcher().SearchByStr(ipAddr)
+
+		newLoginSession = &model.UserLoginSession{
+			BaseColumn: model.BaseColumn{
+				Id: id.GetSnowFlakeNode().Generate().Int64(),
+			},
+			UserId:     findUser.Id,
+			UUID:       uuid.NewString(),
+			IpU32Val:   &to32Ip,
+			IpAddress:  &ipAddr,
+			IpSource:   &ipSource,
+			ExpiredAt:  time.Now().Add(d).UnixMilli(),
+			UserType:   constants.LocalUser,
+			Useragent:  ua.Useragent,
+			ClientName: ua.ClientName,
+			OsName:     ua.OS,
+		}
+		token, e = verify.CreateJwtToken(newLoginSession)
+		if e != nil {
+			return e
+		}
+		// 设置新的 token
+		newLoginSession.Token = token
+		// 存入新的会话
+		updates = append(updates, newLoginSession)
+		// 删除所有已存在的列表
+		_, e = loginSessionTx.WithContext(ctx).Where(loginSessionTx.Id.In(
+			arr.MapSlice(existsSessions, func(_ int, s *model.UserLoginSession) int64 {
+				return s.Id
+			})...,
+		)).Delete()
+		if e != nil {
+			return e
+		}
+		// 重新创建
+		e = loginSessionTx.WithContext(ctx).Create(updates...)
+		if e != nil {
+			return e
+		}
+		// 更新缓存中的数据
+		cacheSpace := auth.GetMiddlewareUsingCacheSpace()
+		for _, s := range existsSessions {
+			cacheSpace.Delete(s.UUID)
+		}
+		nowUnixMilli := time.Now().UnixMilli()
+		for _, s := range updates {
+			cacheSpace.Set(s.UUID, s, performance.Second((s.ExpiredAt-nowUnixMilli)/1000))
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		err = util.CreateAuthErr("登录失败: "+err.Error(), err)
+		return
+	}
+
+	resp = &dto.AdminLoginResp{
+		Token: newLoginSession.Token,
+		UserBasicData: dto.UserBasicData{
+			UserType:     constants.LocalUser,
+			IsAdmin:      localUser.IsAdmin > 0,
+			IconURL:      localUser.AvatarURL,
+			HomePageLink: localUser.HomepageLink,
+			DisplayName:  localUser.DisplayName, // 只展示对外公开的用户名, 降低攻击概率
+			ExpiredAt:    newLoginSession.ExpiredAt,
+		},
+	}
+	return
+}
+
+func (*oauth2Service) GetOauth2LoginGrantURL(req *dto.GetLoginURLReq, ctx *gin.Context) (resp dto.GetLoginURLResp, err error) {
 	state := uuid.NewString()
 	ttl := time.Minute * 5 / time.Second
 	// 设置过期
-	authSpaceCache.Set(state, new(empty), util.Second(ttl))
-	url = githubOauth2Config.AuthCodeURL(state)
+	err = _authCache.Set(state, new(empty), performance.Second(ttl))
+	if err != nil {
+		err = util.CreateBizErr("设置校验状态失败: "+err.Error(), err)
+		return
+	}
+
+	switch req.OauthPlatform {
+	case "github":
+		resp = dto.GetLoginURLResp(githubOauth2Config.AuthCodeURL(state))
+	case "google":
+		resp = dto.GetLoginURLResp(googleOauth2Config.AuthCodeURL(state))
+	default:
+		err = util.CreateBizErr("暂不支持的验证平台: "+req.OauthPlatform, fmt.Errorf("un-support oauth2 platform: %s", req.OauthPlatform))
+		return
+	}
 
 	return
 }
@@ -122,7 +300,7 @@ func (*oauth2Service) VerifyGithubCallback(ctx *gin.Context) (resp *model.OAuth2
 
 	// 判断 state
 	// 判断缓存里的情况
-	if err = authSpaceCache.GetAndDel(state, &empty{}); err != nil {
+	if err = _authCache.GetAndDel(state, &empty{}); err != nil {
 		return
 	}
 
@@ -197,7 +375,6 @@ func (*oauth2Service) VerifyGithubCallback(ctx *gin.Context) (resp *model.OAuth2
 		}
 		return nil
 	})
-
 	if err = group.Wait(); err != nil {
 		err = &util.AuthErr{
 			BizErr: util.BizErr{
@@ -227,7 +404,7 @@ func (*oauth2Service) VerifyGithubCallback(ctx *gin.Context) (resp *model.OAuth2
 
 func (*oauth2Service) GetGoogleLoginURL(ctx *gin.Context) (val string, err error) {
 	state := uuid.NewString()
-	if err = authSpaceCache.Set(state, &empty{}, util.Second(time.Minute*5/time.Second)); err != nil {
+	if err = _authCache.Set(state, &empty{}, performance.Second(time.Minute*5/time.Second)); err != nil {
 		return
 	}
 	val = googleOauth2Config.AuthCodeURL(state)
@@ -247,7 +424,7 @@ func (*oauth2Service) VerifyGoogleCallback(ctx *gin.Context) (resp *model.OAuth2
 		}
 		return
 	}
-	if err = authSpaceCache.GetAndDel(state, &empty{}); err != nil {
+	if err = _authCache.GetAndDel(state, &empty{}); err != nil {
 		err = &util.AuthErr{
 			BizErr: util.BizErr{
 				Msg:    "凭据校验失败",

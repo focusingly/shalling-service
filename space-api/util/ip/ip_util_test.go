@@ -1,8 +1,8 @@
-package util_test
+package ip_test
 
 import (
 	"fmt"
-	"space-api/util"
+	"space-api/util/ip"
 	"testing"
 )
 
@@ -31,18 +31,18 @@ func TestIpUtil(t *testing.T) {
 		"45.32.61.34",
 	}
 
-	searcher := util.GetIpSearcher()
+	searcher := ip.GetIpSearcher()
 
-	for index, ip := range ips {
-		v, err := util.Ipv4Str2U32(ip)
+	for index, ipStr := range ips {
+		v, err := ip.Ipv4StringToU32(ipStr)
 
 		if err != nil {
-			t.Fatalf("invalid ip address: %d; %s", index+1, ip)
+			t.Fatalf("invalid ip address: %d; %s", index+1, ipStr)
 		}
 		if region, err := searcher.Search(v); err != nil {
-			t.Fatalf("during parse the %d ip: %s, got an error: %#v", index+1, ip, err)
+			t.Fatalf("during parse the %d ip: %s, got an error: %#v", index+1, ipStr, err)
 		} else {
-			fmt.Printf("Ip: %s region is: %s\n", ip, region)
+			fmt.Printf("Ip: %s region is: %s\n", ipStr, region)
 		}
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"space-api/conf"
 	"space-api/constants"
 	"space-api/db"
+	"space-api/effect"
 	"space-api/internal/controller"
 	"space-api/middleware/auth"
 	"space-api/middleware/inbound"
@@ -43,6 +44,7 @@ func Run() {
 		outbound.UseErrorHandler(),
 		outbound.UseServerResponseHintMiddleware(),
 		outbound.UseRestProduceHandler(),
+		inbound.UseUseragentParserMiddleware(),
 		inbound.UseExtractIPv4Middleware(),
 		auth.UseJwtAuthHandler(),
 	}
@@ -60,6 +62,14 @@ func Run() {
 	})
 
 	apiRouteGroup := engine.Group("/v1/api")
+	apiRouteGroup.GET("/", func(ctx *gin.Context) {
+		ctx.JSON(200, []any{
+			inbound.GetUserAgentFromContext(ctx),
+			inbound.GetRealIpWithContext(ctx),
+		})
+	})
 	controller.RegisterAllControllers(apiRouteGroup)
+
+	effect.InvokeInit()
 	engine.Run(fmt.Sprintf(":%d", appConf.Port))
 }

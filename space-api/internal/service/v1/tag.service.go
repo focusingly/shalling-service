@@ -5,6 +5,7 @@ import (
 	"space-api/dto"
 	"space-api/util"
 	"space-api/util/arr"
+	"space-api/util/id"
 	"space-domain/dao/biz"
 	"space-domain/model"
 	"strings"
@@ -31,7 +32,7 @@ func (*tagService) CreateOrUpdateTag(req *dto.CreateOrUpdateTagReq, ctx *gin.Con
 		// 未找到相关的的记录, 插入新的记录
 		if err != nil {
 			// 更新 id 值
-			tagId = util.GetSnowFlakeNode().Generate().Int64()
+			tagId = id.GetSnowFlakeNode().Generate().Int64()
 			e := tagOp.WithContext(ctx).Create(&model.Tag{
 				BaseColumn: model.BaseColumn{Id: tagId},
 				TagName:    req.TagName,

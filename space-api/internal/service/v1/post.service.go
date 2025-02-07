@@ -6,6 +6,7 @@ import (
 	"space-api/middleware/auth"
 	"space-api/util"
 	"space-api/util/arr"
+	"space-api/util/id"
 	"space-domain/dao/biz"
 	"space-domain/model"
 	"strings"
@@ -49,7 +50,7 @@ func (*postService) CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.
 		// 如果当前不存在文章则直接创新新的文章
 		if err != nil {
 			// 同步更新 ID
-			postId = util.GetSnowFlakeNode().Generate().Int64()
+			postId = id.GetSnowFlakeNode().Generate().Int64()
 			// 获取当前登录的用户信息
 			loginUser, err := auth.GetCurrentLoginSession(ctx)
 			if err != nil {

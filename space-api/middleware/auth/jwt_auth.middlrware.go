@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"space-api/constants"
 	"space-api/util"
+	"space-api/util/performance"
+	"space-api/util/verify"
 	"space-domain/dao/biz"
 	"space-domain/model"
 	"strconv"
@@ -18,7 +20,11 @@ const BearerAuthPrefix = "Bearer "
 
 var _jwtRandMark = uuid.NewString()
 
-var AuthCacheGroup = util.DefaultJsonCache.Group("/auth")
+var _authCacheGroup = performance.DefaultJsonCache.Group("auth")
+
+func GetMiddlewareUsingCacheSpace() *performance.JsonCache {
+	return _authCacheGroup
+}
 
 const (
 	BaseVersion = "/v1/api"
@@ -30,7 +36,7 @@ const (
 
 func UseJwtAuthHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		loadTokenAndStoreToContext(ctx)
+		loadTokenAndSetupContext(ctx)
 		p := ctx.Request.URL.Path
 
 		switch {
@@ -49,8 +55,21 @@ func UseJwtAuthHandler() gin.HandlerFunc {
 				if user.UserType != constants.LocalUser {
 					ctx.Error(&util.AuthErr{
 						BizErr: util.BizErr{
-							Msg:    "仅限管理员用户进行登录",
+							Msg:    "当前用户类型不支持此操作",
 							Reason: fmt.Errorf("un-support user, want%s, but current is:%s", constants.LocalUser, user.UserType),
+						},
+					})
+					// 不需要后续流程
+					ctx.Abort()
+					return
+				}
+				f, e := biz.LocalUser.WithContext(ctx).Where(biz.LocalUser.Id.Eq(user.Id)).Take()
+				// TODO 暂时设置为只支持使用本地的 admin 用户进行操作, 后续视情况添加 RBAC 管理
+				if e != nil || !(f.IsAdmin > 0) {
+					ctx.Error(&util.AuthErr{
+						BizErr: util.BizErr{
+							Msg:    "仅限管理员用户进行操作",
+							Reason: fmt.Errorf("permission required admin"),
 						},
 					})
 					// 不需要后续流程
@@ -93,66 +112,66 @@ func GetCurrentLoginSession(ctx *gin.Context) (user *model.UserLoginSession, err
 	return
 }
 
-func loadTokenAndStoreToContext(ctx *gin.Context) {
+func loadTokenAndSetupContext(ctx *gin.Context) {
 	bearerToken := ctx.Request.Header.Get("Authorization")
-	// 没有携带 token 的情况下直接跳过设置上下文
+	// 没有携带 token 的情况下直接跳过设置上下文, 不进行解析
 	if bearerToken == "" {
 		return
 	}
 
 	if !strings.HasPrefix(bearerToken, BearerAuthPrefix) {
-		ctx.Error(&util.BizErr{
-			Msg:    "非法的授权凭据",
-			Reason: fmt.Errorf("illegal principal: %s", bearerToken),
-		})
+		ctx.Error(
+			util.CreateAuthErr(
+				"非法的授权凭据",
+				fmt.Errorf("illegal principal: %s", bearerToken),
+			),
+		)
 		ctx.Abort()
 		return
 	}
 
 	// 获取 token
-	claims, err := util.VerifyAndGetClaims(bearerToken[len(BearerAuthPrefix):])
+	claims, err := verify.VerifyAndGetParsedBizClaims(bearerToken[len(BearerAuthPrefix):])
 
 	// token 本身无效
 	if err != nil {
-		ctx.Error(&util.BizErr{
-			Msg:    "凭据验证失败: " + err.Error(),
-			Reason: err,
-		})
+		ctx.Error(util.CreateAuthErr(
+			"凭据无效, 请重新登录",
+			err,
+		))
+		ctx.Abort()
 	} else {
-		userId, err := strconv.ParseInt((claims["jti"]).(string), 10, 64)
+		// 优先尝试从缓存中获取用户信息
+		cacheUUIDKey := claims.UUID
+		cachedLoginSession := &model.UserLoginSession{}
+		if err := _authCacheGroup.Get(cacheUUIDKey, cachedLoginSession); err == nil {
+			// 存在命中情况, 直接返回即可
+			ctx.Set(_jwtRandMark, cachedLoginSession)
+			return
+		}
+
+		// 不存在的情况下, 进行查表进行二次判断
+		userId, err := strconv.ParseInt(claims.Jti, 10, 64)
 		if err != nil {
-			ctx.Error(&util.BizErr{
-				Msg:    "提取用户 ID 失败: " + err.Error(),
-				Reason: err,
-			})
+			ctx.Error(util.CreateAuthErr("提取用户 ID 失败: "+err.Error(), err))
 			ctx.Abort()
 			return
 		} else {
-
-			loginSessionOp := biz.UserLoginSession
-			// 从缓存中获取凭据
-			user := &model.UserLoginSession{}
-			if e := AuthCacheGroup.Get(fmt.Sprintf("%d", userId), user); e != nil {
-				// 缓存当中不存在数据, 那么查找数据库并进行设置
-				user, err = loginSessionOp.WithContext(ctx).Where(loginSessionOp.Id.Eq(userId)).Take()
-
-				if err != nil {
-					ctx.Error(&util.BizErr{
-						Msg:    "提取用户 ID 失败: " + err.Error(),
-						Reason: e,
-					})
-					ctx.Abort()
-					return
-				} else {
-					exp, _ := claims.GetExpirationTime()
-					sec := time.Until(exp.Time).Seconds() / time.Hour.Seconds()
-					AuthCacheGroup.Set(fmt.Sprintf("%d", userId), user, util.Second(sec))
-					ctx.Set(_jwtRandMark, user)
-				}
-			} else {
-				// 缓存当中存在, 直接设置到上下文
-				ctx.Set(_jwtRandMark, user)
+			loginSessionTx := biz.UserLoginSession
+			findLoginSession, err := loginSessionTx.
+				WithContext(ctx).
+				Where(loginSessionTx.Id.Eq(userId), loginSessionTx.UUID.Eq(cacheUUIDKey)).
+				Take()
+			if err != nil {
+				ctx.Error(util.CreateAuthErr("用户登录会话已失效, 请重新登录", fmt.Errorf("user login session expired, please re-login")))
+				ctx.Abort()
+				return
 			}
+
+			// 设置到缓存
+			_authCacheGroup.Set(cacheUUIDKey, findLoginSession, performance.Second(findLoginSession.ExpiredAt-time.Now().Unix()))
+			//设置到上下文
+			ctx.Set(_jwtRandMark, findLoginSession)
 		}
 	}
 }

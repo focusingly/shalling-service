@@ -49,6 +49,8 @@ type (
 		UserType   string  `gorm:"type:varchar(255);not null;comment:当前登录的用户类型标识" json:"userType"`
 		Token      string  `gorm:"type:text;not null;comment:当前用户的凭据" json:"token"`
 		Useragent  string  `gorm:"type:varchar(255);comment:用户登录的平台标识" json:"useragent"`
+		ClientName string  `gorm:"type:varchar(255);comment:客户端名称" json:"clientName"`
+		OsName     string  `gorm:"type:varchar(255);comment:系统名称" json:"osName"`
 	}
 
 	// Post 文章

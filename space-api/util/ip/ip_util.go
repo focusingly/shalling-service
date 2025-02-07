@@ -1,4 +1,4 @@
-package util
+package ip
 
 import (
 	"fmt"
@@ -22,14 +22,14 @@ func GetIpSearcher() *xdb.Searcher {
 	return _ipSearcher
 }
 
-// Ipv4Str2U32 将表示 ipv4 地址的字符串转换为 int32 值, 如果解析错误, err 不为 nil
+// Ipv4StringToU32 将表示 ipv4 地址的字符串转换为 int32 值, 如果解析错误, err 不为 nil
 //
-//	if i32, err := Ipv4Str2U32("207.67.34.8"); err != nil {
+//	if i32, err := Ipv4StringToU32("207.67.34.8"); err != nil {
 //		return
 //	} else {
 //		fmt.Println("addr to uint32 is: ", i32)
 //	}
-func Ipv4Str2U32(ipStr string) (uint32, error) {
+func Ipv4StringToU32(ipStr string) (uint32, error) {
 	// 将 IPv4 地址字符串解析为 net.IP 类型
 	ip := net.ParseIP(ipStr)
 	// 检查是否是有效的 IPv4 地址

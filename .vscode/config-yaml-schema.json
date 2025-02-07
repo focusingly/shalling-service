@@ -23,6 +23,16 @@
           "minimum": 0,
           "default": 0,
           "$comment": "雪花节点的机器编号"
+        },
+        "maxUserActive": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 3,
+          "$comment": "单个用户允许登录的最大会话数(同时登录个数)"
+        },
+        "salt": {
+          "type": "string",
+          "$comment": "用于本地数据库密码加密的盐值"
         }
       }
     },

@@ -3,6 +3,7 @@ package service
 import (
 	"space-api/dto"
 	"space-api/util"
+	"space-api/util/id"
 	"space-domain/dao/biz"
 	"space-domain/model"
 
@@ -26,7 +27,7 @@ func (*mediaService) CreateOrUpdateMediaTag(req *dto.CreateOrUpdateSocialMediaRe
 		// 不存在, 那么进行创建
 		if err != nil {
 			// 赋予一个新的 ID
-			mediaId = util.GetSnowFlakeNode().Generate().Int64()
+			mediaId = id.GetSnowFlakeNode().Generate().Int64()
 
 			e := mediaOp.WithContext(ctx).Create(
 				&model.PubSocialMedia{

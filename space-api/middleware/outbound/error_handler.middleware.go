@@ -33,9 +33,9 @@ func UseErrorHandler() gin.HandlerFunc {
 				case *util.BizErr:
 					ctx.JSON(code, util.RestWithError(err.Error()))
 				case *util.LimitErr:
-					ctx.JSON(code, util.RestWithError("请求过于频繁: "+err.Error()))
+					ctx.JSON(code, util.RestWithError(err.Error()))
 				case *util.AuthErr:
-					ctx.JSON(code, util.RestWithError("参数不正确: "+err.Error()))
+					ctx.JSON(code, util.RestWithError(err.Error()))
 				case *util.FatalErr:
 					ctx.JSON(code, util.RestWithError("服务内部错误, 请稍后重试或联系站长修复"))
 				default:

@@ -2,6 +2,8 @@
 app:
   port: 8088
   serverHint: "<your conf>"
+  salt: "<your conf>"
+  maxUserActive: 3
   nodeID: 1
 dataSource:
   db:

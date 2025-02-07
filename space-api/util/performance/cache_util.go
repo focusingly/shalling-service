@@ -1,4 +1,4 @@
-package util
+package performance
 
 import (
 	"encoding/json"
@@ -19,6 +19,15 @@ type JsonCache bizCache
 type Second = int
 
 var DefaultJsonCache *JsonCache
+
+func init() {
+	maxBfSize := constants.MB * 16
+	cacheInstance := freecache.NewCache(int(maxBfSize))
+	DefaultJsonCache = (*JsonCache)(&bizCache{
+		instance:  cacheInstance,
+		namespace: "",
+	})
+}
 
 // Group 返回新的命名空间存储
 func (jc *JsonCache) Group(namespace string) *JsonCache {
@@ -183,13 +192,4 @@ func (jc *JsonCache) IncAndGet(key string, inc int, ttl Second) (count int, err 
 // ExposeInstance 直接暴露内部所使用的 freeCache 实例
 func (jc *JsonCache) ExposeInstance() *freecache.Cache {
 	return jc.instance
-}
-
-func init() {
-	maxBfSize := constants.MB * 16
-	cacheInstance := freecache.NewCache(int(maxBfSize))
-	DefaultJsonCache = (*JsonCache)(&bizCache{
-		instance:  cacheInstance,
-		namespace: "",
-	})
 }

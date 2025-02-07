@@ -1,7 +1,7 @@
 package model
 
 import (
-	"space-api/util"
+	"space-api/util/id"
 
 	"gorm.io/gorm"
 )
@@ -18,7 +18,7 @@ type BaseColumn struct {
 func (base *BaseColumn) BeforeCreate(tx *gorm.DB) (err error) {
 	// 如果 ID 为 0, 那么手动变更
 	if base.Id == 0 {
-		base.Id = util.GetSnowFlakeNode().Generate().Int64()
+		base.Id = id.GetSnowFlakeNode().Generate().Int64()
 	}
 
 	return

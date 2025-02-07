@@ -1,7 +1,7 @@
 package model
 
 import (
-	"space-api/util"
+	"space-api/util/id"
 
 	"gorm.io/gorm"
 )
@@ -9,14 +9,17 @@ import (
 // Biz Data Tables
 type (
 
-	// AdminUser 代表本地平台的登录用户的记录信息
-	AdminUser struct {
-		BaseColumn `json:"baseColumn"`
-		Email      *string `gorm:"type:varchar(255);null;comment:用户邮箱, 可用于找回密码" json:"email"`
-		Username   string  `gorm:"type:varchar(255);not null;unique;comment:展示的用户名称" json:"username"`
-		Password   string  `gorm:"type:varchar(255);null;comment:可用于找回账户的密码" json:"password"`
-		Link       *string `gorm:"type:varchar(255);null;comment:可访问的跳转链接" json:"link"`
-		Phone      *string `gorm:"type:varchar(255);null;comment:可用于找回账户的密码" json:"phone"`
+	// LocalUser 代表本地平台的登录用户的记录信息
+	LocalUser struct {
+		BaseColumn   `json:"baseColumn"`
+		Email        *string `gorm:"type:varchar(255);null;comment:用户邮箱, 可用于找回密码" json:"email"`
+		Username     string  `gorm:"type:varchar(255);not null;unique;comment:登录的用户名称" json:"username"`
+		DisplayName  string  `gorm:"type:varchar(255);not null;comment:对外展示的用户名称" json:"displayName"`
+		Password     string  `gorm:"type:varchar(255);null;comment:可用于找回账户的密码" json:"password"`
+		AvatarURL    *string `gorm:"type:text;null;comment:用户的头像链接"`
+		HomepageLink *string `gorm:"type:text;null;comment:用户的主页链接"`
+		Phone        *string `gorm:"type:varchar(255);null;comment:可用于找回账户的密码" json:"phone"`
+		IsAdmin      int     `gorm:"type:smallint;default:0;comment:是否为超级管理员用户(大于 0 的都可以认为是)" json:"isAdmin"`
 	}
 
 	// OAuth2User Oauth2 用户的认证记录信息
@@ -38,11 +41,13 @@ type (
 	UserLoginSession struct {
 		BaseColumn `json:"baseColumn"`
 		UserId     int64   `gorm:"type:bigint;not null;comment:用户的 ID" json:"userId"`
+		UUID       string  `gorm:"type:varchar(255);not null;comment:在额外的缓存中用于标识 key, 也对应 token 中设置的 uuid" json:"uuid"`
 		IpU32Val   *uint32 `gorm:"type:int;null;comment:ipv4 地址的 uint32 表示值" json:"ipU32Val"`
 		IpAddress  *string `gorm:"type:varchar(255);null;comment:ip 地址表示字符串" json:"ipAddress"`
 		IpSource   *string `gorm:"type:varchar(255);null;comment:ip 来源归属地" json:"ipSource"`
-		ExpiresAt  int64   `gorm:"type:varchar(255);not null;comment:token 的过期时间,这个值为 unix 毫秒时间戳" json:"expiresAt"`
+		ExpiredAt  int64   `gorm:"type:bigint;not null;comment:token 的过期时间,这个值为 unix 毫秒时间戳" json:"expiresAt"`
 		UserType   string  `gorm:"type:varchar(255);not null;comment:当前登录的用户类型标识" json:"userType"`
+		Token      string  `gorm:"type:text;not null;comment:当前用户的凭据" json:"token"`
 		Useragent  string  `gorm:"type:varchar(255);comment:用户登录的平台标识" json:"useragent"`
 	}
 
@@ -155,14 +160,14 @@ type (
 )
 
 func (logRecord *LogRecord) BeforeCreate(tx *gorm.DB) (err error) {
-	logRecord.Id = util.GetSnowFlakeNode().Generate().Int64()
+	logRecord.Id = id.GetSnowFlakeNode().Generate().Int64()
 
 	return
 }
 
 func GetBizMigrateTables() []any {
 	return []any{
-		new(AdminUser),
+		new(LocalUser),
 		new(UserLoginSession),
 		new(OAuth2User),
 		new(Post),

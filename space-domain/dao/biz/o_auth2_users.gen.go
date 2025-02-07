@@ -39,7 +39,7 @@ func newOAuth2User(db *gorm.DB, opts ...gen.DOOption) oAuth2User {
 	_oAuth2User.AccessToken = field.NewString(tableName, "access_token")
 	_oAuth2User.RefreshToken = field.NewString(tableName, "refresh_token")
 	_oAuth2User.ExpiredAt = field.NewInt64(tableName, "expired_at")
-	_oAuth2User.IconURL = field.NewString(tableName, "icon_url")
+	_oAuth2User.AvatarURL = field.NewString(tableName, "avatar_url")
 	_oAuth2User.HomepageLink = field.NewString(tableName, "homepage_link")
 	_oAuth2User.Scopes = field.NewField(tableName, "scopes")
 
@@ -63,7 +63,7 @@ type oAuth2User struct {
 	AccessToken    field.String
 	RefreshToken   field.String
 	ExpiredAt      field.Int64
-	IconURL        field.String
+	AvatarURL      field.String
 	HomepageLink   field.String
 	Scopes         field.Field
 
@@ -93,7 +93,7 @@ func (o *oAuth2User) updateTableName(table string) *oAuth2User {
 	o.AccessToken = field.NewString(table, "access_token")
 	o.RefreshToken = field.NewString(table, "refresh_token")
 	o.ExpiredAt = field.NewInt64(table, "expired_at")
-	o.IconURL = field.NewString(table, "icon_url")
+	o.AvatarURL = field.NewString(table, "avatar_url")
 	o.HomepageLink = field.NewString(table, "homepage_link")
 	o.Scopes = field.NewField(table, "scopes")
 
@@ -134,7 +134,7 @@ func (o *oAuth2User) fillFieldMap() {
 	o.fieldMap["access_token"] = o.AccessToken
 	o.fieldMap["refresh_token"] = o.RefreshToken
 	o.fieldMap["expired_at"] = o.ExpiredAt
-	o.fieldMap["icon_url"] = o.IconURL
+	o.fieldMap["avatar_url"] = o.AvatarURL
 	o.fieldMap["homepage_link"] = o.HomepageLink
 	o.fieldMap["scopes"] = o.Scopes
 }

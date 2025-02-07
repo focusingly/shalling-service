@@ -17,11 +17,11 @@ import (
 
 var (
 	Q                = new(Query)
-	AdminUser        *adminUser
 	Category         *category
 	CloudFn          *cloudFn
 	Comment          *comment
 	FileRecord       *fileRecord
+	LocalUser        *localUser
 	MenuLink         *menuLink
 	OAuth2User       *oAuth2User
 	Post             *post
@@ -34,11 +34,11 @@ var (
 
 func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	*Q = *Use(db, opts...)
-	AdminUser = &Q.AdminUser
 	Category = &Q.Category
 	CloudFn = &Q.CloudFn
 	Comment = &Q.Comment
 	FileRecord = &Q.FileRecord
+	LocalUser = &Q.LocalUser
 	MenuLink = &Q.MenuLink
 	OAuth2User = &Q.OAuth2User
 	Post = &Q.Post
@@ -52,11 +52,11 @@ func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 	return &Query{
 		db:               db,
-		AdminUser:        newAdminUser(db, opts...),
 		Category:         newCategory(db, opts...),
 		CloudFn:          newCloudFn(db, opts...),
 		Comment:          newComment(db, opts...),
 		FileRecord:       newFileRecord(db, opts...),
+		LocalUser:        newLocalUser(db, opts...),
 		MenuLink:         newMenuLink(db, opts...),
 		OAuth2User:       newOAuth2User(db, opts...),
 		Post:             newPost(db, opts...),
@@ -71,11 +71,11 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 type Query struct {
 	db *gorm.DB
 
-	AdminUser        adminUser
 	Category         category
 	CloudFn          cloudFn
 	Comment          comment
 	FileRecord       fileRecord
+	LocalUser        localUser
 	MenuLink         menuLink
 	OAuth2User       oAuth2User
 	Post             post
@@ -91,11 +91,11 @@ func (q *Query) Available() bool { return q.db != nil }
 func (q *Query) clone(db *gorm.DB) *Query {
 	return &Query{
 		db:               db,
-		AdminUser:        q.AdminUser.clone(db),
 		Category:         q.Category.clone(db),
 		CloudFn:          q.CloudFn.clone(db),
 		Comment:          q.Comment.clone(db),
 		FileRecord:       q.FileRecord.clone(db),
+		LocalUser:        q.LocalUser.clone(db),
 		MenuLink:         q.MenuLink.clone(db),
 		OAuth2User:       q.OAuth2User.clone(db),
 		Post:             q.Post.clone(db),
@@ -118,11 +118,11 @@ func (q *Query) WriteDB() *Query {
 func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 	return &Query{
 		db:               db,
-		AdminUser:        q.AdminUser.replaceDB(db),
 		Category:         q.Category.replaceDB(db),
 		CloudFn:          q.CloudFn.replaceDB(db),
 		Comment:          q.Comment.replaceDB(db),
 		FileRecord:       q.FileRecord.replaceDB(db),
+		LocalUser:        q.LocalUser.replaceDB(db),
 		MenuLink:         q.MenuLink.replaceDB(db),
 		OAuth2User:       q.OAuth2User.replaceDB(db),
 		Post:             q.Post.replaceDB(db),
@@ -135,11 +135,11 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 }
 
 type queryCtx struct {
-	AdminUser        IAdminUserDo
 	Category         ICategoryDo
 	CloudFn          ICloudFnDo
 	Comment          ICommentDo
 	FileRecord       IFileRecordDo
+	LocalUser        ILocalUserDo
 	MenuLink         IMenuLinkDo
 	OAuth2User       IOAuth2UserDo
 	Post             IPostDo
@@ -152,11 +152,11 @@ type queryCtx struct {
 
 func (q *Query) WithContext(ctx context.Context) *queryCtx {
 	return &queryCtx{
-		AdminUser:        q.AdminUser.WithContext(ctx),
 		Category:         q.Category.WithContext(ctx),
 		CloudFn:          q.CloudFn.WithContext(ctx),
 		Comment:          q.Comment.WithContext(ctx),
 		FileRecord:       q.FileRecord.WithContext(ctx),
+		LocalUser:        q.LocalUser.WithContext(ctx),
 		MenuLink:         q.MenuLink.WithContext(ctx),
 		OAuth2User:       q.OAuth2User.WithContext(ctx),
 		Post:             q.Post.WithContext(ctx),

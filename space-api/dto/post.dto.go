@@ -22,7 +22,7 @@ type (
 		Views        *int64   `json:"views"`
 		UpVote       *int64   `json:"upVote"`
 		DownVote     *int64   `json:"downVote"`
-		AllowComment *byte    `json:"allowComment"`
+		AllowComment int      `json:"allowComment"`
 	}
 
 	UpdateOrCreatePostResp struct {

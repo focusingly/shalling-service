@@ -38,7 +38,7 @@ type (
 		AvatarURL         string    `json:"avatar_url"`
 		GravatarID        string    `json:"gravatar_id"`
 		URL               string    `json:"url"`
-		HTMLURL           string    `json:"html_url"`
+		HtmlURL           string    `json:"html_url"`
 		FollowersURL      string    `json:"followers_url"`
 		FollowingURL      string    `json:"following_url"`
 		GistsURL          string    `json:"gists_url"`
@@ -394,7 +394,7 @@ func (*oauth2Service) VerifyGithubCallback(ctx *gin.Context) (resp *model.OAuth2
 			RefreshToken:   &oauthToken.RefreshToken,
 			ExpiredAt:      &oauthToken.ExpiresIn,
 			AvatarURL:      &githubPubDetail.AvatarURL,
-			HomepageLink:   &githubPubDetail.HTMLURL,
+			HomepageLink:   &githubPubDetail.HtmlURL,
 			Scopes:         githubOauth2Config.Scopes,
 		}
 	}

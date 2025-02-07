@@ -34,13 +34,20 @@ func newComment(db *gorm.DB, opts ...gen.DOOption) comment {
 	_comment.Hide = field.NewInt(tableName, "hide")
 	_comment.PostId = field.NewInt64(tableName, "post_id")
 	_comment.UserId = field.NewInt64(tableName, "user_id")
+	_comment.UserType = field.NewString(tableName, "user_type")
+	_comment.Avatar = field.NewString(tableName, "avatar")
+	_comment.HomePageURL = field.NewString(tableName, "home_page_url")
 	_comment.RootCommentId = field.NewInt64(tableName, "root_comment_id")
 	_comment.ReplyToId = field.NewInt64(tableName, "reply_to_id")
 	_comment.Content = field.NewString(tableName, "content")
-	_comment.IpSource = field.NewString(tableName, "ip_source")
-	_comment.Platform = field.NewString(tableName, "platform")
 	_comment.UpVote = field.NewInt64(tableName, "up_vote")
 	_comment.DownVote = field.NewInt64(tableName, "down_vote")
+	_comment.IpAddr = field.NewString(tableName, "ip_addr")
+	_comment.IpSource = field.NewString(tableName, "ip_source")
+	_comment.Useragent = field.NewString(tableName, "useragent")
+	_comment.OS = field.NewString(tableName, "os")
+	_comment.SubEmailReply = field.NewInt(tableName, "sub_email_reply")
+	_comment.ClientName = field.NewString(tableName, "client_name")
 
 	_comment.fillFieldMap()
 
@@ -57,13 +64,20 @@ type comment struct {
 	Hide          field.Int
 	PostId        field.Int64
 	UserId        field.Int64
+	UserType      field.String
+	Avatar        field.String
+	HomePageURL   field.String
 	RootCommentId field.Int64
 	ReplyToId     field.Int64
 	Content       field.String
-	IpSource      field.String
-	Platform      field.String
 	UpVote        field.Int64
 	DownVote      field.Int64
+	IpAddr        field.String
+	IpSource      field.String
+	Useragent     field.String
+	OS            field.String
+	SubEmailReply field.Int
+	ClientName    field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -86,13 +100,20 @@ func (c *comment) updateTableName(table string) *comment {
 	c.Hide = field.NewInt(table, "hide")
 	c.PostId = field.NewInt64(table, "post_id")
 	c.UserId = field.NewInt64(table, "user_id")
+	c.UserType = field.NewString(table, "user_type")
+	c.Avatar = field.NewString(table, "avatar")
+	c.HomePageURL = field.NewString(table, "home_page_url")
 	c.RootCommentId = field.NewInt64(table, "root_comment_id")
 	c.ReplyToId = field.NewInt64(table, "reply_to_id")
 	c.Content = field.NewString(table, "content")
-	c.IpSource = field.NewString(table, "ip_source")
-	c.Platform = field.NewString(table, "platform")
 	c.UpVote = field.NewInt64(table, "up_vote")
 	c.DownVote = field.NewInt64(table, "down_vote")
+	c.IpAddr = field.NewString(table, "ip_addr")
+	c.IpSource = field.NewString(table, "ip_source")
+	c.Useragent = field.NewString(table, "useragent")
+	c.OS = field.NewString(table, "os")
+	c.SubEmailReply = field.NewInt(table, "sub_email_reply")
+	c.ClientName = field.NewString(table, "client_name")
 
 	c.fillFieldMap()
 
@@ -117,20 +138,27 @@ func (c *comment) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (c *comment) fillFieldMap() {
-	c.fieldMap = make(map[string]field.Expr, 13)
+	c.fieldMap = make(map[string]field.Expr, 20)
 	c.fieldMap["id"] = c.Id
 	c.fieldMap["created_at"] = c.CreatedAt
 	c.fieldMap["updated_at"] = c.UpdatedAt
 	c.fieldMap["hide"] = c.Hide
 	c.fieldMap["post_id"] = c.PostId
 	c.fieldMap["user_id"] = c.UserId
+	c.fieldMap["user_type"] = c.UserType
+	c.fieldMap["avatar"] = c.Avatar
+	c.fieldMap["home_page_url"] = c.HomePageURL
 	c.fieldMap["root_comment_id"] = c.RootCommentId
 	c.fieldMap["reply_to_id"] = c.ReplyToId
 	c.fieldMap["content"] = c.Content
-	c.fieldMap["ip_source"] = c.IpSource
-	c.fieldMap["platform"] = c.Platform
 	c.fieldMap["up_vote"] = c.UpVote
 	c.fieldMap["down_vote"] = c.DownVote
+	c.fieldMap["ip_addr"] = c.IpAddr
+	c.fieldMap["ip_source"] = c.IpSource
+	c.fieldMap["useragent"] = c.Useragent
+	c.fieldMap["os"] = c.OS
+	c.fieldMap["sub_email_reply"] = c.SubEmailReply
+	c.fieldMap["client_name"] = c.ClientName
 }
 
 func (c comment) clone(db *gorm.DB) comment {

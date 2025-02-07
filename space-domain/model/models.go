@@ -68,7 +68,7 @@ type (
 		Views        *int64   `gorm:"type:bigint;null;comment:总浏览量" json:"views"`
 		UpVote       *int64   `gorm:"type:bigint;null;comment:赞成数" json:"upVote"`
 		DownVote     *int64   `gorm:"type:bigint;null;comment:否定数" json:"downVote"`
-		AllowComment *byte    `gorm:"type:smallint;null;1:true;comment:是否允许评论, 默认为允许" json:"allowComment"`
+		AllowComment int      `gorm:"type:smallint;default:0;comment:是否允许评论, 默认为允许" json:"allowComment"`
 	}
 
 	// Tag 文章标签信息
@@ -97,15 +97,22 @@ type (
 	// 用户评论
 	Comment struct {
 		BaseColumn    `json:"baseColumn"`
-		PostId        int64  `gorm:"type:bigint;not null;comment:文章的的 ID" json:"postId"`
-		UserId        int64  `gorm:"type:bigint;not null;comment:评论用户 ID" json:"userId"`
-		RootCommentId int64  `gorm:"type:bigint;not null;default:0;comment:评论所属的根评论 ID, 用于查找评论下所有子评论的以及评论二级分页" json:"rootCommentId"`
-		ReplyToId     int64  `gorm:"type:bigint;not null;default:0;comment:回复的上条评论 ID, 如果自身是根评论, 那么为 0" json:"replyToId"`
-		Content       string `gorm:"type:text;not null;comment:评论内容" json:"content"`
-		IpSource      string `gorm:"type:varchar(255);comment:IP 归属地" json:"ipSource"`
-		Platform      string `gorm:"type:varchar(255);comment:用户设备标识" json:"platform"`
-		UpVote        *int64 `gorm:"type:bigint;null;comment:赞成数" json:"upVote"`
-		DownVote      *int64 `gorm:"type:bigint;null;comment:否定数" json:"downVote"`
+		PostId        int64   `gorm:"type:bigint;not null;comment:文章的的 ID" json:"postId"`
+		UserId        int64   `gorm:"type:bigint;not null;comment:评论用户 ID" json:"userId"`
+		UserType      string  `gorm:"type:text;null;comment:用户类型" json:"userType"`
+		Avatar        *string `gorm:"type:text;null;comment:用户头像的链接" json:"avatar"`
+		HomePageURL   *string `gorm:"type:text;null;comment:用户的公开主页" json:"homePageURL"`
+		RootCommentId int64   `gorm:"type:bigint;not null;default:0;comment:评论所属的根评论 ID, 用于查找评论下所有子评论的以及评论二级分页" json:"rootCommentId"`
+		ReplyToId     int64   `gorm:"type:bigint;not null;default:0;comment:回复的上条评论 ID, 如果自身是根评论, 那么为 0" json:"replyToId"`
+		Content       string  `gorm:"type:text;not null;comment:评论内容" json:"content"`
+		UpVote        *int64  `gorm:"type:bigint;null;comment:赞成数" json:"upVote"`
+		DownVote      *int64  `gorm:"type:bigint;null;comment:否定数" json:"downVote"`
+		IpAddr        string  `gorm:"type:varchar(255);null;comment:客户端的 IP 地址" json:"ipAddr"`
+		IpSource      *string `gorm:"type:varchar(255);null;comment:IP 归属地" json:"ipSource"`
+		Useragent     *string `gorm:"type:text;null;comment:用户的客户端标识" json:"useragent"`
+		OS            *string `gorm:"type:text;null;comment:用户的操作系统平台" json:"os"`
+		SubEmailReply int     `gorm:"type:smallint;default:0;comment:是否订阅邮件的通知回复" json:"subEmailReply"`
+		ClientName    *string `gorm:"type:text;null;comment:用户的访问平台名称" json:"clientName"`
 	}
 
 	// 公开的社交媒体信息

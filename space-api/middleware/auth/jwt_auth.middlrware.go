@@ -86,7 +86,7 @@ func UseJwtAuthHandler() gin.HandlerFunc {
 }
 
 // GetCurrentLoginSession 获取当前的凭据
-func GetCurrentLoginSession(ctx *gin.Context) (user *model.UserLoginSession, err error) {
+func GetCurrentLoginSession(ctx *gin.Context) (user *model.UserLoginSession, err *util.AuthErr) {
 	if u, ok := ctx.Get(_jwtRandMark); !ok {
 		err = &util.AuthErr{
 			BizErr: util.BizErr{

@@ -44,7 +44,7 @@ func newPost(db *gorm.DB, opts ...gen.DOOption) post {
 	_post.Views = field.NewInt64(tableName, "views")
 	_post.UpVote = field.NewInt64(tableName, "up_vote")
 	_post.DownVote = field.NewInt64(tableName, "down_vote")
-	_post.AllowComment = field.NewUint8(tableName, "allow_comment")
+	_post.AllowComment = field.NewInt(tableName, "allow_comment")
 
 	_post.fillFieldMap()
 
@@ -71,7 +71,7 @@ type post struct {
 	Views        field.Int64
 	UpVote       field.Int64
 	DownVote     field.Int64
-	AllowComment field.Uint8
+	AllowComment field.Int
 
 	fieldMap map[string]field.Expr
 }
@@ -104,7 +104,7 @@ func (p *post) updateTableName(table string) *post {
 	p.Views = field.NewInt64(table, "views")
 	p.UpVote = field.NewInt64(table, "up_vote")
 	p.DownVote = field.NewInt64(table, "down_vote")
-	p.AllowComment = field.NewUint8(table, "allow_comment")
+	p.AllowComment = field.NewInt(table, "allow_comment")
 
 	p.fillFieldMap()
 

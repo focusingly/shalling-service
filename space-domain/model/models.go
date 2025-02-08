@@ -187,6 +187,16 @@ type (
 		BgURL       *string `gorm:"type:varchar(255);null;comment:可选的展示卡片底图背景" json:"bgURL"`
 	}
 
+	// 定时任务管理
+	CronJob struct {
+		BaseColumn  `json:"baseColumn"`
+		JobFuncName string `gorm:"type:varchar(255);not null;comment:执行的任务函数名称" json:"jobFuncName"`
+		CronExpr    string `gorm:"type:varchar(255);not null;comment:cron 表达式" json:"cronExpr"`
+		Status      string `gorm:"type:varchar(255);not null;comment:运行状态" json:"status"`
+		Enable      int    `gorm:"type:smallint;default:0;not null;comment:是否启用,默认不启用(0)" json:"enable"`
+		Mark        string `gorm:"type:varchar(255);null;comment:可选的任务备注" json:"mark"`
+	}
+
 	// ServiceConf 自定义配置
 	ServiceConf struct {
 		BaseColumn `json:"baseColumn"`
@@ -198,26 +208,23 @@ type (
 
 // Extra tables
 type (
-	// 定时任务管理
-	CronJob struct {
-		BaseColumn  `json:"baseColumn"`
-		JobFuncName string `gorm:"type:varchar(255);not null;comment:执行的任务函数名称" json:"jobFuncName"`
-		CronExpr    string `gorm:"type:varchar(255);not null;comment:cron 表达式" json:"cronExpr"`
-		Status      string `gorm:"type:varchar(255);not null;comment:运行状态" json:"status"`
-		Enable      int    `gorm:"type:smallint;default:0;not null;comment:是否启用,默认不启用(0)" json:"enable"`
-		Mark        string `gorm:"type:varchar(255);null;comment:可选的任务备注" json:"mark"`
-	}
-
-	LogRecord struct {
-		ID        int64  `gorm:"primaryKey;autoIncrement:false;comment:日志 ID" json:"id"`
-		Category  string `gorm:"type:varchar(255);not null;comment:日志类型" json:"category"`
-		Content   string `gorm:"type:text;comment:日志内容" json:"content"`
-		Source    string `gorm:"type:varchar(255);comment:来源信息" json:"source"`
-		CreatedAt int64  `gorm:"autoCreateTime:milli" json:"createdAt"`
+	LogInfo struct {
+		ID            int64   `gorm:"primaryKey;autoIncrement:false;comment:日志 ID" json:"id"`
+		LogType       string  `gorm:"type:varchar(255);not null;comment:日志类型" json:"category"`
+		Message       string  `gorm:"type:varchar(255);not null;comment:消息" json:"message"`
+		Level         string  `gorm:"type:varchar(255);not null;comment:" json:"level"`
+		CostTime      int64   `gorm:"type:bigint;not null;comment:执行耗费时间" json:"costTime"`
+		RequestMethod *string `gorm:"type:varchar(255);comment:请求方式(如果是 web 请求的话)" json:"requestMethod"`
+		RequestURI    *string `gorm:"type:text;null;comment:访问的URI(如果是 web 请求的话)" json:"requestURI"`
+		StackTrace    *string `gorm:"type:text;null;comment:错误堆栈(如果发生了严重错误的话)" json:"stackTrace"`
+		IPAddr        *string `gorm:"type:varchar(255);null;comment:ip 地址" json:"ipAddr"`
+		IPSource      *string `gorm:"type:varchar(255);null;comment:ip 归属地" json:"ipSource"`
+		Useragent     *string `gorm:"type:varchar(255);null;comment:客户端标识" json:"useragent"`
+		CreatedAt     int64   `gorm:"type:bigint;autoCreateTime:milli;comment:创建时间" json:"createdAt"`
 	}
 )
 
-func (logRecord *LogRecord) BeforeCreate(tx *gorm.DB) (err error) {
+func (logRecord *LogInfo) BeforeCreate(tx *gorm.DB) (err error) {
 	logRecord.ID = id.GetSnowFlakeNode().Generate().Int64()
 
 	return
@@ -240,12 +247,12 @@ func GetBizMigrateTables() []any {
 		new(MenuLink),
 		new(FriendLink),
 		new(ServiceConf),
+		new(CronJob),
 	}
 }
 
 func GetExtraHelperMigrateTables() []any {
 	return []any{
-		new(CronJob),
-		new(LogRecord),
+		new(LogInfo),
 	}
 }

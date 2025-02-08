@@ -3,13 +3,18 @@ package service
 import (
 	"context"
 	"fmt"
+	"runtime/debug"
 	"slices"
+	"space-api/constants"
 	"space-api/dto"
 	"space-api/util"
 	"space-api/util/arr"
+	"space-api/util/ptr"
+	"space-domain/dao/biz"
 	"space-domain/dao/extra"
 	"space-domain/model"
 	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/robfig/cron/v3"
@@ -31,29 +36,73 @@ type (
 		Description string
 	}
 
-	jobRecord struct {
+	_taskRelationRecord struct {
 		entryID    cron.EntryID
 		dbRecordID int64
 	}
 
-	memSyncRecord struct {
+	_memSyncRecord struct {
 		sync.Mutex
-		records []*jobRecord
+		records []*_taskRelationRecord
+	}
+
+	_jobWrapper struct {
+		taskName string
+		task     func()
 	}
 )
 
-func (s *memSyncRecord) AppendJobID(rc *jobRecord) {
+func createJobWrapper(taskName string, task func()) cron.Job {
+	return &_jobWrapper{
+		taskName: taskName,
+		task:     task,
+	}
+}
+
+func (s *_memSyncRecord) appendJobID(rc *_taskRelationRecord) {
 	s.Lock()
 	defer s.Unlock()
 	if rc == nil {
 		panic("record can't nil")
 	}
-	s.records = append(s.records, &jobRecord{})
+	s.records = append(s.records, &_taskRelationRecord{})
+}
+
+var _ cron.Job = (*_jobWrapper)(nil)
+
+// Run implements cron.Job.
+func (j *_jobWrapper) Run() {
+	now := time.Now().UnixMilli()
+	defer func() {
+		cost := time.Now().UnixMilli() - now
+		var logInfo *model.LogInfo
+		if fatalErr := recover(); fatalErr != nil {
+			logInfo = &model.LogInfo{
+				LogType:    constants.TaskExecute,
+				Message:    j.taskName + ": 任务执行失败",
+				Level:      constants.Fatal,
+				CostTime:   cost,
+				StackTrace: ptr.ToPtr(ptr.Bytes2String(debug.Stack())),
+				CreatedAt:  now,
+			}
+		} else {
+			logInfo = &model.LogInfo{
+				LogType:   constants.TaskExecute,
+				Message:   j.taskName + ": 任务执行成功",
+				Level:     constants.Trace,
+				CostTime:  cost,
+				CreatedAt: now,
+			}
+		}
+		extra.LogInfo.WithContext(context.Background()).Create(logInfo)
+	}()
+
+	j.task()
 }
 
 var (
 	_singleScheduler = cron.New()
-	_memJobRecords   = &memSyncRecord{}
+	_memJobRecords   = &_memSyncRecord{}
 	// 已经注册的所有任务
 	// TODO 暂时只支持本地定义的方法
 	RegisterJobs = []*CustomTask{
@@ -77,7 +126,7 @@ func (servicePtr *_taskService) ResumeFromDatabase() (err error) {
 	defer servicePtr.mu.Unlock()
 
 	// 从数据库中恢复任务记录
-	jobs, err := extra.CronJob.WithContext(context.TODO()).Find()
+	jobs, err := biz.CronJob.WithContext(context.TODO()).Find()
 	if err != nil {
 		return
 	}
@@ -94,7 +143,7 @@ func (servicePtr *_taskService) ResumeFromDatabase() (err error) {
 			if err != nil {
 				return err
 			}
-			_memJobRecords.AppendJobID(&jobRecord{
+			_memJobRecords.appendJobID(&_taskRelationRecord{
 				entryID:    entryID,
 				dbRecordID: job.ID,
 			})
@@ -119,7 +168,7 @@ func (*_taskService) GetAvailableJobList(req *dto.GetAvailableJobListReq, ctx *g
 }
 
 func (*_taskService) CreateOrUpdateNewJob(req *dto.CreateOrUpdateJobReq, ctx *gin.Context) (resp *dto.CreateOrUpdateJobResp, err error) {
-	err = extra.Q.Transaction(func(tx *extra.Query) error {
+	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		// 加锁操作
 		_memJobRecords.Lock()
 		defer _memJobRecords.Unlock()
@@ -162,9 +211,12 @@ func (*_taskService) CreateOrUpdateNewJob(req *dto.CreateOrUpdateJobReq, ctx *gi
 				return e
 			}
 			if req.Enable != 0 {
-				entryID := _singleScheduler.Schedule(parsedCronExpr, cron.FuncJob(newTaskRecord.Task))
+				entryID := _singleScheduler.Schedule(
+					parsedCronExpr,
+					createJobWrapper(newTaskRecord.FuncName, newTaskRecord.Task),
+				)
 				// 同步到内存列表当中
-				_memJobRecords.records = append(_memJobRecords.records, &jobRecord{
+				_memJobRecords.records = append(_memJobRecords.records, &_taskRelationRecord{
 					entryID:    entryID,
 					dbRecordID: findTask.ID,
 				})
@@ -194,7 +246,7 @@ func (*_taskService) CreateOrUpdateNewJob(req *dto.CreateOrUpdateJobReq, ctx *gi
 			if e != nil {
 				return e
 			}
-			existsTaskIndex := slices.IndexFunc(_memJobRecords.records, func(rc *jobRecord) bool {
+			existsTaskIndex := slices.IndexFunc(_memJobRecords.records, func(rc *_taskRelationRecord) bool {
 				return rc.dbRecordID == findTask.ID
 			})
 			if existsTaskIndex == -1 {
@@ -207,8 +259,8 @@ func (*_taskService) CreateOrUpdateNewJob(req *dto.CreateOrUpdateJobReq, ctx *gi
 			updates := slices.Delete(_memJobRecords.records, existsTaskIndex, existsTaskIndex+1)
 			if req.Enable != 0 {
 				// 设置新的任务
-				entryID := _singleScheduler.Schedule(parsedCronExpr, cron.FuncJob(newTaskRecord.Task))
-				updates = append(updates, &jobRecord{
+				entryID := _singleScheduler.Schedule(parsedCronExpr, createJobWrapper(newTaskRecord.FuncName, newTaskRecord.Task))
+				updates = append(updates, &_taskRelationRecord{
 					entryID:    entryID,
 					dbRecordID: findTask.ID,
 				})
@@ -230,7 +282,11 @@ func (*_taskService) CreateOrUpdateNewJob(req *dto.CreateOrUpdateJobReq, ctx *gi
 
 // 立马执行任务
 func (*_taskService) RunJobImmediately(req *dto.RunJobReq, ctx *gin.Context) (resp *dto.RunJobResp, err error) {
-	jobTx := extra.CronJob
+	// 上锁
+	_memJobRecords.Lock()
+	defer _memJobRecords.Lock()
+
+	jobTx := biz.CronJob
 	job, err := jobTx.WithContext(ctx).
 		Where(jobTx.ID.Eq(req.JobID)).
 		Take()
@@ -243,12 +299,9 @@ func (*_taskService) RunJobImmediately(req *dto.RunJobReq, ctx *gin.Context) (re
 		err = util.CreateBizErr("当前任务未启用", fmt.Errorf("current job not enable"))
 		return
 	}
-	// 上锁
-	_memJobRecords.Lock()
-	defer _memJobRecords.Lock()
 
 	// 查找是否在活动列表当中
-	index := slices.IndexFunc(_memJobRecords.records, func(r *jobRecord) bool {
+	index := slices.IndexFunc(_memJobRecords.records, func(r *_taskRelationRecord) bool {
 		return r.dbRecordID == job.ID
 	})
 	if index == -1 {
@@ -269,7 +322,7 @@ func (*_taskService) RunJobImmediately(req *dto.RunJobReq, ctx *gin.Context) (re
 
 // 获取已经添加到数据库中的任务列表
 func (*_taskService) GetRunningJobs(req *dto.GetRunningJobListReq, ctx *gin.Context) (resp *dto.GetRunningJobListResp, err error) {
-	list, err := extra.CronJob.WithContext(ctx).Find()
+	list, err := biz.CronJob.WithContext(ctx).Find()
 	if err != nil {
 		err = util.CreateBizErr("查询任务列表失败", err)
 		return
@@ -287,7 +340,7 @@ func (*_taskService) DeleteRunningJobs(req *dto.DeleteRunningJobListReq, ctx *gi
 		_memJobRecords.Lock()
 		defer _memJobRecords.Unlock()
 
-		jobTx := tx.CronJob
+		jobTx := biz.CronJob
 		_, e := jobTx.WithContext(ctx).
 			Where(jobTx.ID.In(req.IDList...)).
 			Delete()
@@ -296,7 +349,7 @@ func (*_taskService) DeleteRunningJobs(req *dto.DeleteRunningJobListReq, ctx *gi
 		}
 		shouldRemoves := arr.FilterSlice(
 			_memJobRecords.records,
-			func(memRecord *jobRecord, _ int) bool {
+			func(memRecord *_taskRelationRecord, _ int) bool {
 				return slices.ContainsFunc(req.IDList, func(dbID int64) bool {
 					return memRecord.dbRecordID == dbID
 				})
@@ -305,7 +358,7 @@ func (*_taskService) DeleteRunningJobs(req *dto.DeleteRunningJobListReq, ctx *gi
 			_singleScheduler.Remove(d.entryID)
 		}
 
-		replaces := arr.FilterSlice(_memJobRecords.records, func(memRecord *jobRecord, _ int) bool {
+		replaces := arr.FilterSlice(_memJobRecords.records, func(memRecord *_taskRelationRecord, _ int) bool {
 			return !slices.ContainsFunc(
 				req.IDList,
 				func(dbID int64) bool {

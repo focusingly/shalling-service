@@ -16,39 +16,34 @@ import (
 )
 
 var (
-	Q         = new(Query)
-	CronJob   *cronJob
-	LogRecord *logRecord
+	Q       = new(Query)
+	LogInfo *logInfo
 )
 
 func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	*Q = *Use(db, opts...)
-	CronJob = &Q.CronJob
-	LogRecord = &Q.LogRecord
+	LogInfo = &Q.LogInfo
 }
 
 func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 	return &Query{
-		db:        db,
-		CronJob:   newCronJob(db, opts...),
-		LogRecord: newLogRecord(db, opts...),
+		db:      db,
+		LogInfo: newLogInfo(db, opts...),
 	}
 }
 
 type Query struct {
 	db *gorm.DB
 
-	CronJob   cronJob
-	LogRecord logRecord
+	LogInfo logInfo
 }
 
 func (q *Query) Available() bool { return q.db != nil }
 
 func (q *Query) clone(db *gorm.DB) *Query {
 	return &Query{
-		db:        db,
-		CronJob:   q.CronJob.clone(db),
-		LogRecord: q.LogRecord.clone(db),
+		db:      db,
+		LogInfo: q.LogInfo.clone(db),
 	}
 }
 
@@ -62,21 +57,18 @@ func (q *Query) WriteDB() *Query {
 
 func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 	return &Query{
-		db:        db,
-		CronJob:   q.CronJob.replaceDB(db),
-		LogRecord: q.LogRecord.replaceDB(db),
+		db:      db,
+		LogInfo: q.LogInfo.replaceDB(db),
 	}
 }
 
 type queryCtx struct {
-	CronJob   ICronJobDo
-	LogRecord ILogRecordDo
+	LogInfo ILogInfoDo
 }
 
 func (q *Query) WithContext(ctx context.Context) *queryCtx {
 	return &queryCtx{
-		CronJob:   q.CronJob.WithContext(ctx),
-		LogRecord: q.LogRecord.WithContext(ctx),
+		LogInfo: q.LogInfo.WithContext(ctx),
 	}
 }
 

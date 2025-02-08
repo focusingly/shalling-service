@@ -27,18 +27,27 @@ func Run() {
 		}
 	}
 
-	gin.SetMode(util.TernaryExpr(useDebug, gin.DebugMode, gin.ReleaseMode))
 	biz.SetDefault(db.GetBizDB())
 	extra.SetDefault(db.GetExtraHelperDB())
+
+	gin.SetMode(util.TernaryExpr(useDebug, gin.DebugMode, gin.ReleaseMode))
 	gin.ForceConsoleColor()
 	engine := gin.New()
 	engine.MaxMultipartMemory = int64(constants.MB * 8)
+
 	v := conf.GetProjectViper()
 	var appConf conf.AppConf
-
 	if err := v.UnmarshalKey("app", &appConf); err != nil {
 		panic(err)
 	}
+
+	// TODO 时区设置, 暂不设置, 统一全部直接使用 unix 时间戳; 数据格式化由客户端自己解析
+	// 定时任务的时区直接遵循服务器所设置的时区
+	// if tz, err := time.LoadLocation(appConf.ServerTimezone); err != nil {
+	// 	log.Fatal("获取时区失败: ", err)
+	// } else {
+	// 	time.Local = tz
+	// }
 
 	middlewares := []gin.HandlerFunc{
 		outbound.UseErrorHandler(),

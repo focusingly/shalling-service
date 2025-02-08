@@ -13,10 +13,11 @@ var confFile []byte
 type (
 	// AppConf 应用程序基本配置
 	AppConf struct {
-		Port          uint   `yaml:"port" json:"port"`
-		ServerHint    string `yaml:"serverHint" json:"serverHint"`
-		Salt          string `yaml:"salt" json:"salt"`
-		MaxUserActive int    `yaml:"maxUserActive" json:"maxUserActive"`
+		Port           uint   `yaml:"port" json:"port"`
+		ServerHint     string `yaml:"serverHint" json:"serverHint"`
+		Salt           string `yaml:"salt" json:"salt"`
+		MaxUserActive  int    `yaml:"maxUserActive" json:"maxUserActive"`
+		ServerTimezone string `yaml:"serverTimezone" json:"serverTimezone"`
 	}
 
 	// Oauth2 认证配置

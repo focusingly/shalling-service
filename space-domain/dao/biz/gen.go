@@ -20,6 +20,7 @@ var (
 	Category         *category
 	CloudFn          *cloudFn
 	Comment          *comment
+	CronJob          *cronJob
 	FileRecord       *fileRecord
 	FriendLink       *friendLink
 	LocalUser        *localUser
@@ -39,6 +40,7 @@ func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	Category = &Q.Category
 	CloudFn = &Q.CloudFn
 	Comment = &Q.Comment
+	CronJob = &Q.CronJob
 	FileRecord = &Q.FileRecord
 	FriendLink = &Q.FriendLink
 	LocalUser = &Q.LocalUser
@@ -59,6 +61,7 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 		Category:         newCategory(db, opts...),
 		CloudFn:          newCloudFn(db, opts...),
 		Comment:          newComment(db, opts...),
+		CronJob:          newCronJob(db, opts...),
 		FileRecord:       newFileRecord(db, opts...),
 		FriendLink:       newFriendLink(db, opts...),
 		LocalUser:        newLocalUser(db, opts...),
@@ -80,6 +83,7 @@ type Query struct {
 	Category         category
 	CloudFn          cloudFn
 	Comment          comment
+	CronJob          cronJob
 	FileRecord       fileRecord
 	FriendLink       friendLink
 	LocalUser        localUser
@@ -102,6 +106,7 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		Category:         q.Category.clone(db),
 		CloudFn:          q.CloudFn.clone(db),
 		Comment:          q.Comment.clone(db),
+		CronJob:          q.CronJob.clone(db),
 		FileRecord:       q.FileRecord.clone(db),
 		FriendLink:       q.FriendLink.clone(db),
 		LocalUser:        q.LocalUser.clone(db),
@@ -131,6 +136,7 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 		Category:         q.Category.replaceDB(db),
 		CloudFn:          q.CloudFn.replaceDB(db),
 		Comment:          q.Comment.replaceDB(db),
+		CronJob:          q.CronJob.replaceDB(db),
 		FileRecord:       q.FileRecord.replaceDB(db),
 		FriendLink:       q.FriendLink.replaceDB(db),
 		LocalUser:        q.LocalUser.replaceDB(db),
@@ -150,6 +156,7 @@ type queryCtx struct {
 	Category         ICategoryDo
 	CloudFn          ICloudFnDo
 	Comment          ICommentDo
+	CronJob          ICronJobDo
 	FileRecord       IFileRecordDo
 	FriendLink       IFriendLinkDo
 	LocalUser        ILocalUserDo
@@ -169,6 +176,7 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		Category:         q.Category.WithContext(ctx),
 		CloudFn:          q.CloudFn.WithContext(ctx),
 		Comment:          q.Comment.WithContext(ctx),
+		CronJob:          q.CronJob.WithContext(ctx),
 		FileRecord:       q.FileRecord.WithContext(ctx),
 		FriendLink:       q.FriendLink.WithContext(ctx),
 		LocalUser:        q.LocalUser.WithContext(ctx),

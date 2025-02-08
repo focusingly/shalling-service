@@ -30,6 +30,11 @@
           "default": 3,
           "$comment": "单个用户允许登录的最大会话数(同时登录个数)"
         },
+        "serverTimezone": {
+          "type": "string",
+          "default": "Asia/Shanghai",
+          "$comment": "服务器时区设置"
+        },
         "salt": {
           "type": "string",
           "$comment": "用于本地数据库密码加密的盐值"

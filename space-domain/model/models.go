@@ -190,16 +190,26 @@ type (
 	// ServiceConf 自定义配置
 	ServiceConf struct {
 		BaseColumn `json:"baseColumn"`
-		KeyName    string `gorm:"type:varchar(255);not null;unique;comment:配置名称" json:"keyName"`
-		KeyVal     string `gorm:"type:text;comment;null;comment:配置值" json:"keyVal"`
+		ConfKey    string `gorm:"type:varchar(255);not null;unique;comment:配置名称" json:"confKey"`
+		ConfVal    string `gorm:"type:text;comment;null;comment:配置值" json:"confVal"`
 		Category   string `gorm:"type:varchar(255);not null;comment:类型" json:"category"`
 	}
 )
 
 // Extra tables
 type (
+	// 定时任务管理
+	CronJob struct {
+		BaseColumn  `json:"baseColumn"`
+		JobFuncName string `gorm:"type:varchar(255);not null;comment:执行的任务函数名称" json:"jobFuncName"`
+		CronExpr    string `gorm:"type:varchar(255);not null;comment:cron 表达式" json:"cronExpr"`
+		Status      string `gorm:"type:varchar(255);not null;comment:运行状态" json:"status"`
+		Enable      int    `gorm:"type:smallint;default:0;not null;comment:是否启用,默认不启用(0)" json:"enable"`
+		Mark        string `gorm:"type:varchar(255);null;comment:可选的任务备注" json:"mark"`
+	}
+
 	LogRecord struct {
-		Id        int64  `gorm:"primaryKey;autoIncrement:false;comment:日志 ID" json:"id"`
+		ID        int64  `gorm:"primaryKey;autoIncrement:false;comment:日志 ID" json:"id"`
 		Category  string `gorm:"type:varchar(255);not null;comment:日志类型" json:"category"`
 		Content   string `gorm:"type:text;comment:日志内容" json:"content"`
 		Source    string `gorm:"type:varchar(255);comment:来源信息" json:"source"`
@@ -208,7 +218,7 @@ type (
 )
 
 func (logRecord *LogRecord) BeforeCreate(tx *gorm.DB) (err error) {
-	logRecord.Id = id.GetSnowFlakeNode().Generate().Int64()
+	logRecord.ID = id.GetSnowFlakeNode().Generate().Int64()
 
 	return
 }
@@ -226,13 +236,16 @@ func GetBizMigrateTables() []any {
 		new(PubSocialMedia),
 		new(CloudFn),
 		new(FileRecord),
+		new(MenuGroup),
 		new(MenuLink),
+		new(FriendLink),
 		new(ServiceConf),
 	}
 }
 
 func GetExtraHelperMigrateTables() []any {
 	return []any{
+		new(CronJob),
 		new(LogRecord),
 	}
 }

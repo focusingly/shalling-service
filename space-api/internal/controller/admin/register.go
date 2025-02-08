@@ -8,4 +8,5 @@ func RegisterAllAdminControllers(group *gin.RouterGroup) {
 	UsePostController(adminGroup)
 	UseTagController(adminGroup)
 	UseSocialMediaController(adminGroup)
+	UseJobController(adminGroup)
 }

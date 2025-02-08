@@ -32,8 +32,8 @@ func newServiceConf(db *gorm.DB, opts ...gen.DOOption) serviceConf {
 	_serviceConf.CreatedAt = field.NewInt64(tableName, "created_at")
 	_serviceConf.UpdatedAt = field.NewInt64(tableName, "updated_at")
 	_serviceConf.Hide = field.NewInt(tableName, "hide")
-	_serviceConf.KeyName = field.NewString(tableName, "key_name")
-	_serviceConf.KeyVal = field.NewString(tableName, "key_val")
+	_serviceConf.ConfKey = field.NewString(tableName, "conf_key")
+	_serviceConf.ConfVal = field.NewString(tableName, "conf_val")
 	_serviceConf.Category = field.NewString(tableName, "category")
 
 	_serviceConf.fillFieldMap()
@@ -49,8 +49,8 @@ type serviceConf struct {
 	CreatedAt field.Int64
 	UpdatedAt field.Int64
 	Hide      field.Int
-	KeyName   field.String
-	KeyVal    field.String
+	ConfKey   field.String
+	ConfVal   field.String
 	Category  field.String
 
 	fieldMap map[string]field.Expr
@@ -72,8 +72,8 @@ func (s *serviceConf) updateTableName(table string) *serviceConf {
 	s.CreatedAt = field.NewInt64(table, "created_at")
 	s.UpdatedAt = field.NewInt64(table, "updated_at")
 	s.Hide = field.NewInt(table, "hide")
-	s.KeyName = field.NewString(table, "key_name")
-	s.KeyVal = field.NewString(table, "key_val")
+	s.ConfKey = field.NewString(table, "conf_key")
+	s.ConfVal = field.NewString(table, "conf_val")
 	s.Category = field.NewString(table, "category")
 
 	s.fillFieldMap()
@@ -106,8 +106,8 @@ func (s *serviceConf) fillFieldMap() {
 	s.fieldMap["created_at"] = s.CreatedAt
 	s.fieldMap["updated_at"] = s.UpdatedAt
 	s.fieldMap["hide"] = s.Hide
-	s.fieldMap["key_name"] = s.KeyName
-	s.fieldMap["key_val"] = s.KeyVal
+	s.fieldMap["conf_key"] = s.ConfKey
+	s.fieldMap["conf_val"] = s.ConfVal
 	s.fieldMap["category"] = s.Category
 }
 

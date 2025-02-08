@@ -28,7 +28,7 @@ func newLogRecord(db *gorm.DB, opts ...gen.DOOption) logRecord {
 
 	tableName := _logRecord.logRecordDo.TableName()
 	_logRecord.ALL = field.NewAsterisk(tableName)
-	_logRecord.Id = field.NewInt64(tableName, "id")
+	_logRecord.ID = field.NewInt64(tableName, "id")
 	_logRecord.Category = field.NewString(tableName, "category")
 	_logRecord.Content = field.NewString(tableName, "content")
 	_logRecord.Source = field.NewString(tableName, "source")
@@ -43,7 +43,7 @@ type logRecord struct {
 	logRecordDo logRecordDo
 
 	ALL       field.Asterisk
-	Id        field.Int64
+	ID        field.Int64
 	Category  field.String
 	Content   field.String
 	Source    field.String
@@ -64,7 +64,7 @@ func (l logRecord) As(alias string) *logRecord {
 
 func (l *logRecord) updateTableName(table string) *logRecord {
 	l.ALL = field.NewAsterisk(table)
-	l.Id = field.NewInt64(table, "id")
+	l.ID = field.NewInt64(table, "id")
 	l.Category = field.NewString(table, "category")
 	l.Content = field.NewString(table, "content")
 	l.Source = field.NewString(table, "source")
@@ -96,7 +96,7 @@ func (l *logRecord) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 
 func (l *logRecord) fillFieldMap() {
 	l.fieldMap = make(map[string]field.Expr, 5)
-	l.fieldMap["id"] = l.Id
+	l.fieldMap["id"] = l.ID
 	l.fieldMap["category"] = l.Category
 	l.fieldMap["content"] = l.Content
 	l.fieldMap["source"] = l.Source

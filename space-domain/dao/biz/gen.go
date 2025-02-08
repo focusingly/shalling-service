@@ -21,7 +21,9 @@ var (
 	CloudFn          *cloudFn
 	Comment          *comment
 	FileRecord       *fileRecord
+	FriendLink       *friendLink
 	LocalUser        *localUser
+	MenuGroup        *menuGroup
 	MenuLink         *menuLink
 	OAuth2User       *oAuth2User
 	Post             *post
@@ -38,7 +40,9 @@ func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	CloudFn = &Q.CloudFn
 	Comment = &Q.Comment
 	FileRecord = &Q.FileRecord
+	FriendLink = &Q.FriendLink
 	LocalUser = &Q.LocalUser
+	MenuGroup = &Q.MenuGroup
 	MenuLink = &Q.MenuLink
 	OAuth2User = &Q.OAuth2User
 	Post = &Q.Post
@@ -56,7 +60,9 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 		CloudFn:          newCloudFn(db, opts...),
 		Comment:          newComment(db, opts...),
 		FileRecord:       newFileRecord(db, opts...),
+		FriendLink:       newFriendLink(db, opts...),
 		LocalUser:        newLocalUser(db, opts...),
+		MenuGroup:        newMenuGroup(db, opts...),
 		MenuLink:         newMenuLink(db, opts...),
 		OAuth2User:       newOAuth2User(db, opts...),
 		Post:             newPost(db, opts...),
@@ -75,7 +81,9 @@ type Query struct {
 	CloudFn          cloudFn
 	Comment          comment
 	FileRecord       fileRecord
+	FriendLink       friendLink
 	LocalUser        localUser
+	MenuGroup        menuGroup
 	MenuLink         menuLink
 	OAuth2User       oAuth2User
 	Post             post
@@ -95,7 +103,9 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		CloudFn:          q.CloudFn.clone(db),
 		Comment:          q.Comment.clone(db),
 		FileRecord:       q.FileRecord.clone(db),
+		FriendLink:       q.FriendLink.clone(db),
 		LocalUser:        q.LocalUser.clone(db),
+		MenuGroup:        q.MenuGroup.clone(db),
 		MenuLink:         q.MenuLink.clone(db),
 		OAuth2User:       q.OAuth2User.clone(db),
 		Post:             q.Post.clone(db),
@@ -122,7 +132,9 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 		CloudFn:          q.CloudFn.replaceDB(db),
 		Comment:          q.Comment.replaceDB(db),
 		FileRecord:       q.FileRecord.replaceDB(db),
+		FriendLink:       q.FriendLink.replaceDB(db),
 		LocalUser:        q.LocalUser.replaceDB(db),
+		MenuGroup:        q.MenuGroup.replaceDB(db),
 		MenuLink:         q.MenuLink.replaceDB(db),
 		OAuth2User:       q.OAuth2User.replaceDB(db),
 		Post:             q.Post.replaceDB(db),
@@ -139,7 +151,9 @@ type queryCtx struct {
 	CloudFn          ICloudFnDo
 	Comment          ICommentDo
 	FileRecord       IFileRecordDo
+	FriendLink       IFriendLinkDo
 	LocalUser        ILocalUserDo
+	MenuGroup        IMenuGroupDo
 	MenuLink         IMenuLinkDo
 	OAuth2User       IOAuth2UserDo
 	Post             IPostDo
@@ -156,7 +170,9 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		CloudFn:          q.CloudFn.WithContext(ctx),
 		Comment:          q.Comment.WithContext(ctx),
 		FileRecord:       q.FileRecord.WithContext(ctx),
+		FriendLink:       q.FriendLink.WithContext(ctx),
 		LocalUser:        q.LocalUser.WithContext(ctx),
+		MenuGroup:        q.MenuGroup.WithContext(ctx),
 		MenuLink:         q.MenuLink.WithContext(ctx),
 		OAuth2User:       q.OAuth2User.WithContext(ctx),
 		Post:             q.Post.WithContext(ctx),

@@ -17,17 +17,20 @@ import (
 
 var (
 	Q         = new(Query)
+	CronJob   *cronJob
 	LogRecord *logRecord
 )
 
 func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	*Q = *Use(db, opts...)
+	CronJob = &Q.CronJob
 	LogRecord = &Q.LogRecord
 }
 
 func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 	return &Query{
 		db:        db,
+		CronJob:   newCronJob(db, opts...),
 		LogRecord: newLogRecord(db, opts...),
 	}
 }
@@ -35,6 +38,7 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 type Query struct {
 	db *gorm.DB
 
+	CronJob   cronJob
 	LogRecord logRecord
 }
 
@@ -43,6 +47,7 @@ func (q *Query) Available() bool { return q.db != nil }
 func (q *Query) clone(db *gorm.DB) *Query {
 	return &Query{
 		db:        db,
+		CronJob:   q.CronJob.clone(db),
 		LogRecord: q.LogRecord.clone(db),
 	}
 }
@@ -58,16 +63,19 @@ func (q *Query) WriteDB() *Query {
 func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 	return &Query{
 		db:        db,
+		CronJob:   q.CronJob.replaceDB(db),
 		LogRecord: q.LogRecord.replaceDB(db),
 	}
 }
 
 type queryCtx struct {
+	CronJob   ICronJobDo
 	LogRecord ILogRecordDo
 }
 
 func (q *Query) WithContext(ctx context.Context) *queryCtx {
 	return &queryCtx{
+		CronJob:   q.CronJob.WithContext(ctx),
 		LogRecord: q.LogRecord.WithContext(ctx),
 	}
 }

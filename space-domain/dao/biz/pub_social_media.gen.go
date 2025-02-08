@@ -28,7 +28,7 @@ func newPubSocialMedia(db *gorm.DB, opts ...gen.DOOption) pubSocialMedia {
 
 	tableName := _pubSocialMedia.pubSocialMediaDo.TableName()
 	_pubSocialMedia.ALL = field.NewAsterisk(tableName)
-	_pubSocialMedia.Id = field.NewInt64(tableName, "id")
+	_pubSocialMedia.ID = field.NewInt64(tableName, "id")
 	_pubSocialMedia.CreatedAt = field.NewInt64(tableName, "created_at")
 	_pubSocialMedia.UpdatedAt = field.NewInt64(tableName, "updated_at")
 	_pubSocialMedia.Hide = field.NewInt(tableName, "hide")
@@ -45,7 +45,7 @@ type pubSocialMedia struct {
 	pubSocialMediaDo pubSocialMediaDo
 
 	ALL         field.Asterisk
-	Id          field.Int64
+	ID          field.Int64
 	CreatedAt   field.Int64
 	UpdatedAt   field.Int64
 	Hide        field.Int
@@ -68,7 +68,7 @@ func (p pubSocialMedia) As(alias string) *pubSocialMedia {
 
 func (p *pubSocialMedia) updateTableName(table string) *pubSocialMedia {
 	p.ALL = field.NewAsterisk(table)
-	p.Id = field.NewInt64(table, "id")
+	p.ID = field.NewInt64(table, "id")
 	p.CreatedAt = field.NewInt64(table, "created_at")
 	p.UpdatedAt = field.NewInt64(table, "updated_at")
 	p.Hide = field.NewInt(table, "hide")
@@ -104,7 +104,7 @@ func (p *pubSocialMedia) GetFieldByName(fieldName string) (field.OrderExpr, bool
 
 func (p *pubSocialMedia) fillFieldMap() {
 	p.fieldMap = make(map[string]field.Expr, 7)
-	p.fieldMap["id"] = p.Id
+	p.fieldMap["id"] = p.ID
 	p.fieldMap["created_at"] = p.CreatedAt
 	p.fieldMap["updated_at"] = p.UpdatedAt
 	p.fieldMap["hide"] = p.Hide

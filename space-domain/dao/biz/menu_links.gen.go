@@ -28,13 +28,13 @@ func newMenuLink(db *gorm.DB, opts ...gen.DOOption) menuLink {
 
 	tableName := _menuLink.menuLinkDo.TableName()
 	_menuLink.ALL = field.NewAsterisk(tableName)
-	_menuLink.Id = field.NewInt64(tableName, "id")
+	_menuLink.ID = field.NewInt64(tableName, "id")
 	_menuLink.CreatedAt = field.NewInt64(tableName, "created_at")
 	_menuLink.UpdatedAt = field.NewInt64(tableName, "updated_at")
 	_menuLink.Hide = field.NewInt(tableName, "hide")
-	_menuLink.DisplayName = field.NewString(tableName, "display_name")
+	_menuLink.LinkName = field.NewString(tableName, "link_name")
 	_menuLink.RoutePath = field.NewString(tableName, "route_path")
-	_menuLink.LinkType = field.NewString(tableName, "link_type")
+	_menuLink.PostLink = field.NewString(tableName, "post_link")
 	_menuLink.OpenWay = field.NewString(tableName, "open_way")
 
 	_menuLink.fillFieldMap()
@@ -45,15 +45,15 @@ func newMenuLink(db *gorm.DB, opts ...gen.DOOption) menuLink {
 type menuLink struct {
 	menuLinkDo menuLinkDo
 
-	ALL         field.Asterisk
-	Id          field.Int64
-	CreatedAt   field.Int64
-	UpdatedAt   field.Int64
-	Hide        field.Int
-	DisplayName field.String
-	RoutePath   field.String
-	LinkType    field.String
-	OpenWay     field.String
+	ALL       field.Asterisk
+	ID        field.Int64
+	CreatedAt field.Int64
+	UpdatedAt field.Int64
+	Hide      field.Int
+	LinkName  field.String
+	RoutePath field.String
+	PostLink  field.String
+	OpenWay   field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -70,13 +70,13 @@ func (m menuLink) As(alias string) *menuLink {
 
 func (m *menuLink) updateTableName(table string) *menuLink {
 	m.ALL = field.NewAsterisk(table)
-	m.Id = field.NewInt64(table, "id")
+	m.ID = field.NewInt64(table, "id")
 	m.CreatedAt = field.NewInt64(table, "created_at")
 	m.UpdatedAt = field.NewInt64(table, "updated_at")
 	m.Hide = field.NewInt(table, "hide")
-	m.DisplayName = field.NewString(table, "display_name")
+	m.LinkName = field.NewString(table, "link_name")
 	m.RoutePath = field.NewString(table, "route_path")
-	m.LinkType = field.NewString(table, "link_type")
+	m.PostLink = field.NewString(table, "post_link")
 	m.OpenWay = field.NewString(table, "open_way")
 
 	m.fillFieldMap()
@@ -103,13 +103,13 @@ func (m *menuLink) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 
 func (m *menuLink) fillFieldMap() {
 	m.fieldMap = make(map[string]field.Expr, 8)
-	m.fieldMap["id"] = m.Id
+	m.fieldMap["id"] = m.ID
 	m.fieldMap["created_at"] = m.CreatedAt
 	m.fieldMap["updated_at"] = m.UpdatedAt
 	m.fieldMap["hide"] = m.Hide
-	m.fieldMap["display_name"] = m.DisplayName
+	m.fieldMap["link_name"] = m.LinkName
 	m.fieldMap["route_path"] = m.RoutePath
-	m.fieldMap["link_type"] = m.LinkType
+	m.fieldMap["post_link"] = m.PostLink
 	m.fieldMap["open_way"] = m.OpenWay
 }
 

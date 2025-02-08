@@ -150,7 +150,7 @@ func (*oauth2Service) AdminLogin(req *dto.AdminLoginReq, ctx *gin.Context) (resp
 
 		loginSessionTx := tx.UserLoginSession
 		// 所有已经登录的会话信息
-		existsSessions, e := loginSessionTx.WithContext(ctx).Where(loginSessionTx.UserId.Eq(findUser.Id)).Find()
+		existsSessions, e := loginSessionTx.WithContext(ctx).Where(loginSessionTx.UserId.Eq(findUser.ID)).Find()
 		if e != nil {
 			return fmt.Errorf("设置会话信息失败")
 		}
@@ -167,7 +167,7 @@ func (*oauth2Service) AdminLogin(req *dto.AdminLoginReq, ctx *gin.Context) (resp
 			updates,
 			func(a, b *model.UserLoginSession) int {
 				// 比较新的数据, 放在前面
-				return int(b.Id - a.Id)
+				return int(b.ID - a.ID)
 			},
 		)
 		if len(updates) >= _appConf.MaxUserActive-1 {
@@ -194,9 +194,9 @@ func (*oauth2Service) AdminLogin(req *dto.AdminLoginReq, ctx *gin.Context) (resp
 
 		newLoginSession = &model.UserLoginSession{
 			BaseColumn: model.BaseColumn{
-				Id: id.GetSnowFlakeNode().Generate().Int64(),
+				ID: id.GetSnowFlakeNode().Generate().Int64(),
 			},
-			UserId:     findUser.Id,
+			UserId:     findUser.ID,
 			UUID:       uuid.NewString(),
 			IpU32Val:   &to32Ip,
 			IpAddress:  &ipAddr,
@@ -216,9 +216,9 @@ func (*oauth2Service) AdminLogin(req *dto.AdminLoginReq, ctx *gin.Context) (resp
 		// 存入新的会话
 		updates = append(updates, newLoginSession)
 		// 删除所有已存在的列表
-		_, e = loginSessionTx.WithContext(ctx).Where(loginSessionTx.Id.In(
+		_, e = loginSessionTx.WithContext(ctx).Where(loginSessionTx.ID.In(
 			arr.MapSlice(existsSessions, func(_ int, s *model.UserLoginSession) int64 {
-				return s.Id
+				return s.ID
 			})...,
 		)).Delete()
 		if e != nil {

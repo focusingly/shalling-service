@@ -28,7 +28,7 @@ func newServiceConf(db *gorm.DB, opts ...gen.DOOption) serviceConf {
 
 	tableName := _serviceConf.serviceConfDo.TableName()
 	_serviceConf.ALL = field.NewAsterisk(tableName)
-	_serviceConf.Id = field.NewInt64(tableName, "id")
+	_serviceConf.ID = field.NewInt64(tableName, "id")
 	_serviceConf.CreatedAt = field.NewInt64(tableName, "created_at")
 	_serviceConf.UpdatedAt = field.NewInt64(tableName, "updated_at")
 	_serviceConf.Hide = field.NewInt(tableName, "hide")
@@ -45,7 +45,7 @@ type serviceConf struct {
 	serviceConfDo serviceConfDo
 
 	ALL       field.Asterisk
-	Id        field.Int64
+	ID        field.Int64
 	CreatedAt field.Int64
 	UpdatedAt field.Int64
 	Hide      field.Int
@@ -68,7 +68,7 @@ func (s serviceConf) As(alias string) *serviceConf {
 
 func (s *serviceConf) updateTableName(table string) *serviceConf {
 	s.ALL = field.NewAsterisk(table)
-	s.Id = field.NewInt64(table, "id")
+	s.ID = field.NewInt64(table, "id")
 	s.CreatedAt = field.NewInt64(table, "created_at")
 	s.UpdatedAt = field.NewInt64(table, "updated_at")
 	s.Hide = field.NewInt(table, "hide")
@@ -102,7 +102,7 @@ func (s *serviceConf) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 
 func (s *serviceConf) fillFieldMap() {
 	s.fieldMap = make(map[string]field.Expr, 7)
-	s.fieldMap["id"] = s.Id
+	s.fieldMap["id"] = s.ID
 	s.fieldMap["created_at"] = s.CreatedAt
 	s.fieldMap["updated_at"] = s.UpdatedAt
 	s.fieldMap["hide"] = s.Hide

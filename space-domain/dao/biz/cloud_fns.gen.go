@@ -28,13 +28,14 @@ func newCloudFn(db *gorm.DB, opts ...gen.DOOption) cloudFn {
 
 	tableName := _cloudFn.cloudFnDo.TableName()
 	_cloudFn.ALL = field.NewAsterisk(tableName)
-	_cloudFn.Id = field.NewInt64(tableName, "id")
+	_cloudFn.ID = field.NewInt64(tableName, "id")
 	_cloudFn.CreatedAt = field.NewInt64(tableName, "created_at")
 	_cloudFn.UpdatedAt = field.NewInt64(tableName, "updated_at")
 	_cloudFn.Hide = field.NewInt(tableName, "hide")
 	_cloudFn.FuncName = field.NewString(tableName, "func_name")
 	_cloudFn.Code = field.NewString(tableName, "code")
 	_cloudFn.Lang = field.NewString(tableName, "lang")
+	_cloudFn.Enable = field.NewInt(tableName, "enable")
 
 	_cloudFn.fillFieldMap()
 
@@ -45,13 +46,14 @@ type cloudFn struct {
 	cloudFnDo cloudFnDo
 
 	ALL       field.Asterisk
-	Id        field.Int64
+	ID        field.Int64
 	CreatedAt field.Int64
 	UpdatedAt field.Int64
 	Hide      field.Int
 	FuncName  field.String
 	Code      field.String
 	Lang      field.String
+	Enable    field.Int
 
 	fieldMap map[string]field.Expr
 }
@@ -68,13 +70,14 @@ func (c cloudFn) As(alias string) *cloudFn {
 
 func (c *cloudFn) updateTableName(table string) *cloudFn {
 	c.ALL = field.NewAsterisk(table)
-	c.Id = field.NewInt64(table, "id")
+	c.ID = field.NewInt64(table, "id")
 	c.CreatedAt = field.NewInt64(table, "created_at")
 	c.UpdatedAt = field.NewInt64(table, "updated_at")
 	c.Hide = field.NewInt(table, "hide")
 	c.FuncName = field.NewString(table, "func_name")
 	c.Code = field.NewString(table, "code")
 	c.Lang = field.NewString(table, "lang")
+	c.Enable = field.NewInt(table, "enable")
 
 	c.fillFieldMap()
 
@@ -99,14 +102,15 @@ func (c *cloudFn) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (c *cloudFn) fillFieldMap() {
-	c.fieldMap = make(map[string]field.Expr, 7)
-	c.fieldMap["id"] = c.Id
+	c.fieldMap = make(map[string]field.Expr, 8)
+	c.fieldMap["id"] = c.ID
 	c.fieldMap["created_at"] = c.CreatedAt
 	c.fieldMap["updated_at"] = c.UpdatedAt
 	c.fieldMap["hide"] = c.Hide
 	c.fieldMap["func_name"] = c.FuncName
 	c.fieldMap["code"] = c.Code
 	c.fieldMap["lang"] = c.Lang
+	c.fieldMap["enable"] = c.Enable
 }
 
 func (c cloudFn) clone(db *gorm.DB) cloudFn {

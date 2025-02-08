@@ -38,7 +38,7 @@ func (*commentService) createCommentDirect(req *dto.CreateCommentReq, ctx *gin.C
 			oauthUser, e := oauthUserTx.WithContext(ctx).
 				Select(oauthUserTx.Username, oauthUserTx.AvatarURL, oauthUserTx.HomepageLink).
 				Where(
-					oauthUserTx.Id.Eq(loginSession.UserId),
+					oauthUserTx.ID.Eq(loginSession.UserId),
 				).
 				Take()
 			if e != nil {
@@ -54,7 +54,7 @@ func (*commentService) createCommentDirect(req *dto.CreateCommentReq, ctx *gin.C
 			localUserTx := tx.LocalUser
 			localUser, e := localUserTx.WithContext(ctx).
 				Select(localUserTx.DisplayName, localUserTx.AvatarURL, localUserTx.HomepageLink).
-				Where(localUserTx.Id.Eq(loginSession.UserId)).
+				Where(localUserTx.ID.Eq(loginSession.UserId)).
 				Take()
 			if e != nil {
 				return e
@@ -77,7 +77,7 @@ func (*commentService) createCommentDirect(req *dto.CreateCommentReq, ctx *gin.C
 		e := commentTx.WithContext(ctx).Create(
 			&model.Comment{
 				PostId:        req.PostID,
-				UserId:        loginSession.Id,
+				UserId:        loginSession.ID,
 				UserType:      loginSession.UserType,
 				Avatar:        detailUserTmp.Avatar,
 				HomePageURL:   detailUserTmp.HomePageURL,
@@ -115,7 +115,7 @@ func (servicePtr *commentService) SimpleVerifyAndCreateComment(req *dto.CreateCo
 	loginSession, _ := auth.GetCurrentLoginSession(ctx)
 	postTx := biz.Post
 	// 找到文章
-	post, e := postTx.WithContext(ctx).Where(postTx.Id.Eq(req.PostID)).Take()
+	post, e := postTx.WithContext(ctx).Where(postTx.ID.Eq(req.PostID)).Take()
 	if e != nil {
 		err = util.CreateBizErr("不存在文章", e)
 		return
@@ -132,7 +132,7 @@ func (servicePtr *commentService) SimpleVerifyAndCreateComment(req *dto.CreateCo
 		// 如果是本地用户, 只允许管理员进行操作
 		localUserCtx := biz.LocalUser
 		_, e := localUserCtx.WithContext(ctx).
-			Where(localUserCtx.IsAdmin.Neq(0), localUserCtx.Id.Eq(loginSession.Id)).
+			Where(localUserCtx.IsAdmin.Neq(0), localUserCtx.ID.Eq(loginSession.ID)).
 			Take()
 		if e != nil {
 			err = util.CreateBizErr("当前本地账户评论功能不可用", fmt.Errorf("comment not available"))
@@ -145,7 +145,7 @@ func (servicePtr *commentService) SimpleVerifyAndCreateComment(req *dto.CreateCo
 	if req.ReplyToID != 0 || req.RootCommentID != 0 {
 		// 先尝试查找根评论
 		rootCmt, e := commentTx.WithContext(ctx).
-			Where(commentTx.Id.Eq(req.RootCommentID), commentTx.PostId.Eq(req.PostID)).
+			Where(commentTx.ID.Eq(req.RootCommentID), commentTx.PostId.Eq(req.PostID)).
 			Take()
 		if e != nil {
 			err = util.CreateBizErr("评论不可用", e)
@@ -162,7 +162,7 @@ func (servicePtr *commentService) SimpleVerifyAndCreateComment(req *dto.CreateCo
 			// 如果是本地用户, 只允许管理员进行操作
 			localUserCtx := biz.LocalUser
 			_, e := localUserCtx.WithContext(ctx).
-				Where(localUserCtx.IsAdmin.Neq(0), localUserCtx.Id.Eq(loginSession.Id)).
+				Where(localUserCtx.IsAdmin.Neq(0), localUserCtx.ID.Eq(loginSession.ID)).
 				Take()
 			if e != nil {
 				err = util.CreateBizErr("当前本地账户评论功能不可用", fmt.Errorf("comment not available"))
@@ -180,7 +180,7 @@ func (servicePtr *commentService) GetVisibleRootCommentPages(req *dto.GetRootCom
 	// 必须的文章开启评和可见论才允许获取评论
 	postCtx := biz.Post
 	_, err = postCtx.WithContext(ctx).
-		Where(postCtx.Id.Eq(req.PostID), postCtx.Hide.Eq(0), postCtx.AllowComment.Neq(0)).
+		Where(postCtx.ID.Eq(req.PostID), postCtx.Hide.Eq(0), postCtx.AllowComment.Neq(0)).
 		Take()
 	if err != nil {
 		err = util.CreateBizErr("当前文章不允许评论", err)
@@ -190,7 +190,7 @@ func (servicePtr *commentService) GetVisibleRootCommentPages(req *dto.GetRootCom
 	commentCtx := biz.Comment
 	rootList, count, err := commentCtx.WithContext(ctx).
 		Select(
-			commentCtx.Id,
+			commentCtx.ID,
 			commentCtx.CreatedAt,
 			commentCtx.UpdatedAt,
 			commentCtx.PostId,
@@ -237,7 +237,7 @@ func (servicePtr *commentService) GetVisibleRootCommentPages(req *dto.GetRootCom
 		subs, e := servicePtr.GetVisibleSubCommentPages(&dto.GetSubCommentPagesReq{
 			BasePageParam: dto.BasePageParam{Page: ptr.ToPtr(1), Size: ptr.ToPtr(10)},
 			PostID:        req.PostID,
-			RootCommentID: cmt.Id,
+			RootCommentID: cmt.ID,
 		}, ctx)
 		if e != nil {
 			return
@@ -266,7 +266,7 @@ func (*commentService) GetVisibleSubCommentPages(req *dto.GetSubCommentPagesReq,
 	// 必须的文章开启评论才允许获取评论
 	postCtx := biz.Post
 	_, err = postCtx.WithContext(ctx).
-		Where(postCtx.Id.Eq(req.PostID), postCtx.Hide.Eq(0), postCtx.AllowComment.Neq(0)).
+		Where(postCtx.ID.Eq(req.PostID), postCtx.Hide.Eq(0), postCtx.AllowComment.Neq(0)).
 		Take()
 	if err != nil {
 		err = util.CreateBizErr("当前文章不允许评论", err)
@@ -276,7 +276,7 @@ func (*commentService) GetVisibleSubCommentPages(req *dto.GetSubCommentPagesReq,
 	commentCtx := biz.Comment
 	list, count, err := commentCtx.WithContext(ctx).
 		Select(
-			commentCtx.Id,
+			commentCtx.ID,
 			commentCtx.CreatedAt,
 			commentCtx.UpdatedAt,
 			commentCtx.PostId,

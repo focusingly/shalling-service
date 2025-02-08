@@ -29,7 +29,7 @@ func (c *categoryService) CreateOrUpdateCategory(req *dto.CreateOrUpdateCategory
 			e := catTx.WithContext(ctx).Create(
 				&model.Category{
 					BaseColumn: model.BaseColumn{
-						Id: findCat.Id,
+						ID: findCat.ID,
 					},
 					CategoryName: req.CategoryName,
 					Color:        req.Color,
@@ -41,10 +41,10 @@ func (c *categoryService) CreateOrUpdateCategory(req *dto.CreateOrUpdateCategory
 			}
 		} else {
 			// 存在的情况下进行更新
-			tagID = findCat.Id
+			tagID = findCat.ID
 			_, e := catTx.WithContext(ctx).
 				Select(
-					catTx.Id,
+					catTx.ID,
 					catTx.CategoryName,
 					catTx.Color,
 					catTx.IconUrl,
@@ -80,7 +80,7 @@ func (c *categoryService) CreateOrUpdateCategory(req *dto.CreateOrUpdateCategory
 	}
 
 	catTx := biz.Category
-	find, e := catTx.WithContext(ctx).Where(catTx.Id.Eq(tagID)).Take()
+	find, e := catTx.WithContext(ctx).Where(catTx.ID.Eq(tagID)).Take()
 	if e != nil {
 		err = util.CreateBizErr("创建/更新文章分类失败", e)
 		return
@@ -92,7 +92,7 @@ func (c *categoryService) CreateOrUpdateCategory(req *dto.CreateOrUpdateCategory
 }
 
 func (c *categoryService) GetCategoryByID(id int64, ctx *gin.Context) (resp *model.Category, err error) {
-	resp, err = biz.Category.WithContext(ctx).Where(biz.Category.Id.Eq(id)).Take()
+	resp, err = biz.Category.WithContext(ctx).Where(biz.Category.ID.Eq(id)).Take()
 	if err != nil {
 		err = util.CreateBizErr("分类不存在", err)
 	}
@@ -108,7 +108,7 @@ func (c *categoryService) GetCategoryWithAllPosts(req *dto.GetCategoryWithPostsR
 	postTx := biz.Post
 	postList, err := postTx.WithContext(ctx).
 		Select(
-			postTx.Id,
+			postTx.ID,
 			postTx.CreatedAt,
 			postTx.UpdatedAt,
 			postTx.Hide,
@@ -165,7 +165,7 @@ func (c *categoryService) GetCategoryWithVisiblePosts(req *dto.GetCategoryWithPo
 	postTx := biz.Post
 	postList, err := postTx.WithContext(ctx).
 		Select(
-			postTx.Id,
+			postTx.ID,
 			postTx.CreatedAt,
 			postTx.UpdatedAt,
 			postTx.Hide,
@@ -203,7 +203,7 @@ func (c *categoryService) DeleteCategoryByIDList(req *dto.DeleteCategoryReq, ctx
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		catTx := tx.Category
 		catList, e := catTx.WithContext(ctx).
-			Where(catTx.Id.In(req.IDList...)).
+			Where(catTx.ID.In(req.IDList...)).
 			Find()
 		if e != nil {
 			return e

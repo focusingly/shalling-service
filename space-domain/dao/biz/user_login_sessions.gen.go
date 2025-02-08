@@ -28,7 +28,7 @@ func newUserLoginSession(db *gorm.DB, opts ...gen.DOOption) userLoginSession {
 
 	tableName := _userLoginSession.userLoginSessionDo.TableName()
 	_userLoginSession.ALL = field.NewAsterisk(tableName)
-	_userLoginSession.Id = field.NewInt64(tableName, "id")
+	_userLoginSession.ID = field.NewInt64(tableName, "id")
 	_userLoginSession.CreatedAt = field.NewInt64(tableName, "created_at")
 	_userLoginSession.UpdatedAt = field.NewInt64(tableName, "updated_at")
 	_userLoginSession.Hide = field.NewInt(tableName, "hide")
@@ -53,7 +53,7 @@ type userLoginSession struct {
 	userLoginSessionDo userLoginSessionDo
 
 	ALL        field.Asterisk
-	Id         field.Int64
+	ID         field.Int64
 	CreatedAt  field.Int64
 	UpdatedAt  field.Int64
 	Hide       field.Int
@@ -84,7 +84,7 @@ func (u userLoginSession) As(alias string) *userLoginSession {
 
 func (u *userLoginSession) updateTableName(table string) *userLoginSession {
 	u.ALL = field.NewAsterisk(table)
-	u.Id = field.NewInt64(table, "id")
+	u.ID = field.NewInt64(table, "id")
 	u.CreatedAt = field.NewInt64(table, "created_at")
 	u.UpdatedAt = field.NewInt64(table, "updated_at")
 	u.Hide = field.NewInt(table, "hide")
@@ -128,7 +128,7 @@ func (u *userLoginSession) GetFieldByName(fieldName string) (field.OrderExpr, bo
 
 func (u *userLoginSession) fillFieldMap() {
 	u.fieldMap = make(map[string]field.Expr, 15)
-	u.fieldMap["id"] = u.Id
+	u.fieldMap["id"] = u.ID
 	u.fieldMap["created_at"] = u.CreatedAt
 	u.fieldMap["updated_at"] = u.UpdatedAt
 	u.fieldMap["hide"] = u.Hide

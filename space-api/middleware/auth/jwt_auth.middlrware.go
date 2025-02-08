@@ -63,7 +63,7 @@ func UseJwtAuthHandler() gin.HandlerFunc {
 					ctx.Abort()
 					return
 				}
-				f, e := biz.LocalUser.WithContext(ctx).Where(biz.LocalUser.Id.Eq(user.Id)).Take()
+				f, e := biz.LocalUser.WithContext(ctx).Where(biz.LocalUser.ID.Eq(user.ID)).Take()
 				// TODO 暂时设置为只支持使用本地的 admin 用户进行操作, 后续视情况添加 RBAC 管理
 				if e != nil || !(f.IsAdmin > 0) {
 					ctx.Error(&util.AuthErr{
@@ -160,7 +160,7 @@ func loadTokenAndSetupContext(ctx *gin.Context) {
 			loginSessionTx := biz.UserLoginSession
 			findLoginSession, err := loginSessionTx.
 				WithContext(ctx).
-				Where(loginSessionTx.Id.Eq(userId), loginSessionTx.UUID.Eq(cacheUUIDKey)).
+				Where(loginSessionTx.ID.Eq(userId), loginSessionTx.UUID.Eq(cacheUUIDKey)).
 				Take()
 			if err != nil {
 				ctx.Error(util.CreateAuthErr("用户登录会话已失效, 请重新登录", fmt.Errorf("user login session expired, please re-login")))

@@ -8,7 +8,6 @@ import (
 
 // Biz Data Tables
 type (
-
 	// LocalUser 代表本地平台的登录用户的记录信息
 	LocalUser struct {
 		BaseColumn   `json:"baseColumn"`
@@ -94,7 +93,7 @@ type (
 		IconUrl      *string `gorm:"type:varchar(255);null;comment:标签图标" json:"iconUrl"`
 	}
 
-	// 用户评论
+	// 评论表
 	Comment struct {
 		BaseColumn    `json:"baseColumn"`
 		PostId        int64   `gorm:"type:bigint;not null;comment:文章的的 ID" json:"postId"`
@@ -123,29 +122,69 @@ type (
 		OpenUrl     string `gorm:"type:varchar(255);not null;comment:跳转链接" json:"openUrl"`
 	}
 
+	// 云函数(如 cloudflare 的 worker) 相关的代码片段
 	CloudFn struct {
 		BaseColumn `json:"baseColumn"`
 		FuncName   string `gorm:"not null;unique;comment:代码片段名称" json:"funcName"`
 		Code       string `gorm:"type:text;not null;comment:代码内容" json:"code"`
 		Lang       string `gorm:"type:varchar(255);not null;comment:语言类型" json:"lang"`
+		Enable     int    `gorm:"type:smallint;default:0;not null;comment:是否启用,默认不启用(0)" json:"enable"`
 	}
 
+	// 本地的文件保存记录
 	FileRecord struct {
+		BaseColumn    `json:"baseColumn"`
+		FileName      string `gorm:"type:varchar(255);not null;comment:" json:"fileName"`
+		LocalLocation string `gorm:"varchar(255);not null;comment:本地存储路径" json:"localLocation"`
+		Extension     string `gorm:"type:varchar(255);not null;comment:" json:"extension"`
+		FileSize      int64  `gorm:"type:bigint;not null;comment:" json:"fileSize"`
+		Category      string `gorm:"type:varchar(255);not null;comment:文件归类名称" json:"category"`
+		ChecksumType  string `gorm:"varchar(255);not null;comment:校验类型" json:"checksumType"`
+		Checksum      string `gorm:"type:text;not null;comment:校验和" json:"checksum"`
+	}
+
+	// 使用 OSS3 的相关服务存储记录
+	OSS3Record struct {
 		BaseColumn   `json:"baseColumn"`
 		FileName     string `gorm:"type:varchar(255);not null;comment:" json:"fileName"`
 		Extension    string `gorm:"type:varchar(255);not null;comment:" json:"extension"`
 		FileSize     int64  `gorm:"type:bigint;not null;comment:" json:"fileSize"`
-		Category     string `gorm:"type:varchar(255);not null;comment:文件归类名称" json:"category"`
+		BucketName   string `gorm:"type:varchar(255);not null;comment:存储的桶名称" json:"category"`
+		VisitURL     string `gorm:"type:text;not null;comment:oss存储上的相对路径" json:"visitURL"`
 		ChecksumType string `gorm:"varchar(255);not null;comment:校验类型" json:"checksumType"`
 		Checksum     string `gorm:"type:text;not null;comment:校验和" json:"checksum"`
 	}
 
+	// 菜单组
+	MenuGroup struct {
+		BaseColumn
+		MenuName string // 菜单名称
+		// ParentID  int64 // TODO 暂时不实现嵌套菜单
+		RoutePath *string     `gorm:"type:varchar(255);null;comment:可选的前端路由地址" json:"routePath"`
+		PostLink  *int64      `gorm:"type:varchar(255);null;comment:可选的文章的 ID(如果是站内的文章的话)" json:"postLink"`
+		OpenWay   string      `gorm:"type:varchar(255);default:_self;not null;comment:链接的打开方式(如当前页面/打开新的页面)" json:"openWay"`
+		SubLinks  []*MenuLink `gorm:"type:varchar(255);default:_self;not null;comment:菜单包含的子链接列表" json:"subLinks"`
+	}
+
+	// 动态链接
 	MenuLink struct {
+		BaseColumn `json:"baseColumn"`
+		LinkName   string  `gorm:"type:varchar(255);not null;unique;comment:链接显示的名称" json:"linkName"`
+		RoutePath  *string `gorm:"type:varchar(255);null;comment:可选的前端的跳转路由地址" json:"routePath"`
+		PostLink   *string `gorm:"type:varchar(255);null;comment:可续的文章的 ID(如果是站内的文章的话)" json:"postLink"`
+		OpenWay    string  `gorm:"type:varchar(255);default:_self;not null;comment:链接的打开方式(如当前页面/打开新的页面)" json:"openWay"`
+	}
+
+	// 友链
+	FriendLink struct {
 		BaseColumn  `json:"baseColumn"`
-		DisplayName string `gorm:"type:varchar(255);not null;unique;comment:菜单显示的名称" json:"displayName"`
-		RoutePath   string `gorm:"type:varchar(255);not null;comment:链接地址" json:"routePath"`
-		LinkType    string `gorm:"type:varchar(255);not null;comment:链接类型" json:"linkType"`
-		OpenWay     string `gorm:"type:varchar(255);default:current;not null;comment:新连接打开方式" json:"openWay"`
+		SiteURL     string  `gorm:"type:varchar(255);not null;comment:站点主页链接" json:"siteURL"`
+		Owner       string  `gorm:"type:varchar(255);not null;comment:拥有者的名称" json:"owner"`
+		ShortName   string  `gorm:"type:varchar(255);not null;comment:站点的简单描述信息" json:"shortName"`
+		Available   int     `gorm:"type:smallint;not null;default:0;comment:站点是否可用(表示是否可以正常访问, 默认为不可用:0)" json:"available"`
+		LogoURL     string  `gorm:"type:varchar(255);not null;comment:站点的页签或者站主的头像图片链接" json:"logoURL"`
+		Description *string `gorm:"type:text;null;comment:可选的额外描述信息" json:"description"`
+		BgURL       *string `gorm:"type:varchar(255);null;comment:可选的展示卡片底图背景" json:"bgURL"`
 	}
 
 	// ServiceConf 自定义配置

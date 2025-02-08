@@ -28,7 +28,7 @@ func newLocalUser(db *gorm.DB, opts ...gen.DOOption) localUser {
 
 	tableName := _localUser.localUserDo.TableName()
 	_localUser.ALL = field.NewAsterisk(tableName)
-	_localUser.Id = field.NewInt64(tableName, "id")
+	_localUser.ID = field.NewInt64(tableName, "id")
 	_localUser.CreatedAt = field.NewInt64(tableName, "created_at")
 	_localUser.UpdatedAt = field.NewInt64(tableName, "updated_at")
 	_localUser.Hide = field.NewInt(tableName, "hide")
@@ -50,7 +50,7 @@ type localUser struct {
 	localUserDo localUserDo
 
 	ALL          field.Asterisk
-	Id           field.Int64
+	ID           field.Int64
 	CreatedAt    field.Int64
 	UpdatedAt    field.Int64
 	Hide         field.Int
@@ -78,7 +78,7 @@ func (l localUser) As(alias string) *localUser {
 
 func (l *localUser) updateTableName(table string) *localUser {
 	l.ALL = field.NewAsterisk(table)
-	l.Id = field.NewInt64(table, "id")
+	l.ID = field.NewInt64(table, "id")
 	l.CreatedAt = field.NewInt64(table, "created_at")
 	l.UpdatedAt = field.NewInt64(table, "updated_at")
 	l.Hide = field.NewInt(table, "hide")
@@ -117,7 +117,7 @@ func (l *localUser) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 
 func (l *localUser) fillFieldMap() {
 	l.fieldMap = make(map[string]field.Expr, 12)
-	l.fieldMap["id"] = l.Id
+	l.fieldMap["id"] = l.ID
 	l.fieldMap["created_at"] = l.CreatedAt
 	l.fieldMap["updated_at"] = l.UpdatedAt
 	l.fieldMap["hide"] = l.Hide

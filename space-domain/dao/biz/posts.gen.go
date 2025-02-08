@@ -28,7 +28,7 @@ func newPost(db *gorm.DB, opts ...gen.DOOption) post {
 
 	tableName := _post.postDo.TableName()
 	_post.ALL = field.NewAsterisk(tableName)
-	_post.Id = field.NewInt64(tableName, "id")
+	_post.ID = field.NewInt64(tableName, "id")
 	_post.CreatedAt = field.NewInt64(tableName, "created_at")
 	_post.UpdatedAt = field.NewInt64(tableName, "updated_at")
 	_post.Hide = field.NewInt(tableName, "hide")
@@ -55,7 +55,7 @@ type post struct {
 	postDo postDo
 
 	ALL          field.Asterisk
-	Id           field.Int64
+	ID           field.Int64
 	CreatedAt    field.Int64
 	UpdatedAt    field.Int64
 	Hide         field.Int
@@ -88,7 +88,7 @@ func (p post) As(alias string) *post {
 
 func (p *post) updateTableName(table string) *post {
 	p.ALL = field.NewAsterisk(table)
-	p.Id = field.NewInt64(table, "id")
+	p.ID = field.NewInt64(table, "id")
 	p.CreatedAt = field.NewInt64(table, "created_at")
 	p.UpdatedAt = field.NewInt64(table, "updated_at")
 	p.Hide = field.NewInt(table, "hide")
@@ -130,7 +130,7 @@ func (p *post) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 
 func (p *post) fillFieldMap() {
 	p.fieldMap = make(map[string]field.Expr, 17)
-	p.fieldMap["id"] = p.Id
+	p.fieldMap["id"] = p.ID
 	p.fieldMap["created_at"] = p.CreatedAt
 	p.fieldMap["updated_at"] = p.UpdatedAt
 	p.fieldMap["hide"] = p.Hide

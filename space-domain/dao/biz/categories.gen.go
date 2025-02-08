@@ -28,7 +28,7 @@ func newCategory(db *gorm.DB, opts ...gen.DOOption) category {
 
 	tableName := _category.categoryDo.TableName()
 	_category.ALL = field.NewAsterisk(tableName)
-	_category.Id = field.NewInt64(tableName, "id")
+	_category.ID = field.NewInt64(tableName, "id")
 	_category.CreatedAt = field.NewInt64(tableName, "created_at")
 	_category.UpdatedAt = field.NewInt64(tableName, "updated_at")
 	_category.Hide = field.NewInt(tableName, "hide")
@@ -45,7 +45,7 @@ type category struct {
 	categoryDo categoryDo
 
 	ALL          field.Asterisk
-	Id           field.Int64
+	ID           field.Int64
 	CreatedAt    field.Int64
 	UpdatedAt    field.Int64
 	Hide         field.Int
@@ -68,7 +68,7 @@ func (c category) As(alias string) *category {
 
 func (c *category) updateTableName(table string) *category {
 	c.ALL = field.NewAsterisk(table)
-	c.Id = field.NewInt64(table, "id")
+	c.ID = field.NewInt64(table, "id")
 	c.CreatedAt = field.NewInt64(table, "created_at")
 	c.UpdatedAt = field.NewInt64(table, "updated_at")
 	c.Hide = field.NewInt(table, "hide")
@@ -100,7 +100,7 @@ func (c *category) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 
 func (c *category) fillFieldMap() {
 	c.fieldMap = make(map[string]field.Expr, 7)
-	c.fieldMap["id"] = c.Id
+	c.fieldMap["id"] = c.ID
 	c.fieldMap["created_at"] = c.CreatedAt
 	c.fieldMap["updated_at"] = c.UpdatedAt
 	c.fieldMap["hide"] = c.Hide

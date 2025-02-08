@@ -28,7 +28,7 @@ func newPostTagRelation(db *gorm.DB, opts ...gen.DOOption) postTagRelation {
 
 	tableName := _postTagRelation.postTagRelationDo.TableName()
 	_postTagRelation.ALL = field.NewAsterisk(tableName)
-	_postTagRelation.Id = field.NewInt64(tableName, "id")
+	_postTagRelation.ID = field.NewInt64(tableName, "id")
 	_postTagRelation.CreatedAt = field.NewInt64(tableName, "created_at")
 	_postTagRelation.UpdatedAt = field.NewInt64(tableName, "updated_at")
 	_postTagRelation.Hide = field.NewInt(tableName, "hide")
@@ -44,7 +44,7 @@ type postTagRelation struct {
 	postTagRelationDo postTagRelationDo
 
 	ALL       field.Asterisk
-	Id        field.Int64
+	ID        field.Int64
 	CreatedAt field.Int64
 	UpdatedAt field.Int64
 	Hide      field.Int
@@ -66,7 +66,7 @@ func (p postTagRelation) As(alias string) *postTagRelation {
 
 func (p *postTagRelation) updateTableName(table string) *postTagRelation {
 	p.ALL = field.NewAsterisk(table)
-	p.Id = field.NewInt64(table, "id")
+	p.ID = field.NewInt64(table, "id")
 	p.CreatedAt = field.NewInt64(table, "created_at")
 	p.UpdatedAt = field.NewInt64(table, "updated_at")
 	p.Hide = field.NewInt(table, "hide")
@@ -101,7 +101,7 @@ func (p *postTagRelation) GetFieldByName(fieldName string) (field.OrderExpr, boo
 
 func (p *postTagRelation) fillFieldMap() {
 	p.fieldMap = make(map[string]field.Expr, 6)
-	p.fieldMap["id"] = p.Id
+	p.fieldMap["id"] = p.ID
 	p.fieldMap["created_at"] = p.CreatedAt
 	p.fieldMap["updated_at"] = p.UpdatedAt
 	p.fieldMap["hide"] = p.Hide

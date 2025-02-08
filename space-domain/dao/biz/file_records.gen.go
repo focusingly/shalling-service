@@ -28,11 +28,12 @@ func newFileRecord(db *gorm.DB, opts ...gen.DOOption) fileRecord {
 
 	tableName := _fileRecord.fileRecordDo.TableName()
 	_fileRecord.ALL = field.NewAsterisk(tableName)
-	_fileRecord.Id = field.NewInt64(tableName, "id")
+	_fileRecord.ID = field.NewInt64(tableName, "id")
 	_fileRecord.CreatedAt = field.NewInt64(tableName, "created_at")
 	_fileRecord.UpdatedAt = field.NewInt64(tableName, "updated_at")
 	_fileRecord.Hide = field.NewInt(tableName, "hide")
 	_fileRecord.FileName = field.NewString(tableName, "file_name")
+	_fileRecord.LocalLocation = field.NewString(tableName, "local_location")
 	_fileRecord.Extension = field.NewString(tableName, "extension")
 	_fileRecord.FileSize = field.NewInt64(tableName, "file_size")
 	_fileRecord.Category = field.NewString(tableName, "category")
@@ -47,17 +48,18 @@ func newFileRecord(db *gorm.DB, opts ...gen.DOOption) fileRecord {
 type fileRecord struct {
 	fileRecordDo fileRecordDo
 
-	ALL          field.Asterisk
-	Id           field.Int64
-	CreatedAt    field.Int64
-	UpdatedAt    field.Int64
-	Hide         field.Int
-	FileName     field.String
-	Extension    field.String
-	FileSize     field.Int64
-	Category     field.String
-	ChecksumType field.String
-	Checksum     field.String
+	ALL           field.Asterisk
+	ID            field.Int64
+	CreatedAt     field.Int64
+	UpdatedAt     field.Int64
+	Hide          field.Int
+	FileName      field.String
+	LocalLocation field.String
+	Extension     field.String
+	FileSize      field.Int64
+	Category      field.String
+	ChecksumType  field.String
+	Checksum      field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -74,11 +76,12 @@ func (f fileRecord) As(alias string) *fileRecord {
 
 func (f *fileRecord) updateTableName(table string) *fileRecord {
 	f.ALL = field.NewAsterisk(table)
-	f.Id = field.NewInt64(table, "id")
+	f.ID = field.NewInt64(table, "id")
 	f.CreatedAt = field.NewInt64(table, "created_at")
 	f.UpdatedAt = field.NewInt64(table, "updated_at")
 	f.Hide = field.NewInt(table, "hide")
 	f.FileName = field.NewString(table, "file_name")
+	f.LocalLocation = field.NewString(table, "local_location")
 	f.Extension = field.NewString(table, "extension")
 	f.FileSize = field.NewInt64(table, "file_size")
 	f.Category = field.NewString(table, "category")
@@ -110,12 +113,13 @@ func (f *fileRecord) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (f *fileRecord) fillFieldMap() {
-	f.fieldMap = make(map[string]field.Expr, 10)
-	f.fieldMap["id"] = f.Id
+	f.fieldMap = make(map[string]field.Expr, 11)
+	f.fieldMap["id"] = f.ID
 	f.fieldMap["created_at"] = f.CreatedAt
 	f.fieldMap["updated_at"] = f.UpdatedAt
 	f.fieldMap["hide"] = f.Hide
 	f.fieldMap["file_name"] = f.FileName
+	f.fieldMap["local_location"] = f.LocalLocation
 	f.fieldMap["extension"] = f.Extension
 	f.fieldMap["file_size"] = f.FileSize
 	f.fieldMap["category"] = f.Category

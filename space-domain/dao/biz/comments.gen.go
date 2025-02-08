@@ -28,7 +28,7 @@ func newComment(db *gorm.DB, opts ...gen.DOOption) comment {
 
 	tableName := _comment.commentDo.TableName()
 	_comment.ALL = field.NewAsterisk(tableName)
-	_comment.Id = field.NewInt64(tableName, "id")
+	_comment.ID = field.NewInt64(tableName, "id")
 	_comment.CreatedAt = field.NewInt64(tableName, "created_at")
 	_comment.UpdatedAt = field.NewInt64(tableName, "updated_at")
 	_comment.Hide = field.NewInt(tableName, "hide")
@@ -58,7 +58,7 @@ type comment struct {
 	commentDo commentDo
 
 	ALL           field.Asterisk
-	Id            field.Int64
+	ID            field.Int64
 	CreatedAt     field.Int64
 	UpdatedAt     field.Int64
 	Hide          field.Int
@@ -94,7 +94,7 @@ func (c comment) As(alias string) *comment {
 
 func (c *comment) updateTableName(table string) *comment {
 	c.ALL = field.NewAsterisk(table)
-	c.Id = field.NewInt64(table, "id")
+	c.ID = field.NewInt64(table, "id")
 	c.CreatedAt = field.NewInt64(table, "created_at")
 	c.UpdatedAt = field.NewInt64(table, "updated_at")
 	c.Hide = field.NewInt(table, "hide")
@@ -139,7 +139,7 @@ func (c *comment) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 
 func (c *comment) fillFieldMap() {
 	c.fieldMap = make(map[string]field.Expr, 20)
-	c.fieldMap["id"] = c.Id
+	c.fieldMap["id"] = c.ID
 	c.fieldMap["created_at"] = c.CreatedAt
 	c.fieldMap["updated_at"] = c.UpdatedAt
 	c.fieldMap["hide"] = c.Hide

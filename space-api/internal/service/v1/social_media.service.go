@@ -21,7 +21,7 @@ func (*mediaService) CreateOrUpdateMediaTag(req *dto.CreateOrUpdateSocialMediaRe
 		mediaOp := tx.PubSocialMedia
 
 		find, err := mediaOp.WithContext(ctx).
-			Where(mediaOp.Id.Eq(req.Id)).
+			Where(mediaOp.ID.Eq(req.Id)).
 			Take()
 
 		// 不存在, 那么进行创建
@@ -32,7 +32,7 @@ func (*mediaService) CreateOrUpdateMediaTag(req *dto.CreateOrUpdateSocialMediaRe
 			e := mediaOp.WithContext(ctx).Create(
 				&model.PubSocialMedia{
 					BaseColumn: model.BaseColumn{
-						Id:   mediaId,
+						ID:   mediaId,
 						Hide: req.Hide,
 					},
 					DisplayName: req.DisplayName,
@@ -46,11 +46,11 @@ func (*mediaService) CreateOrUpdateMediaTag(req *dto.CreateOrUpdateSocialMediaRe
 			}
 		} else {
 			// 已经存在, 那么仅更新
-			mediaId = find.Id
+			mediaId = find.ID
 			_, err = mediaOp.WithContext(ctx).Updates(
 				&model.PubSocialMedia{
 					BaseColumn: model.BaseColumn{
-						Id:   mediaId,
+						ID:   mediaId,
 						Hide: req.Hide,
 					},
 					DisplayName: req.DisplayName,
@@ -71,7 +71,7 @@ func (*mediaService) CreateOrUpdateMediaTag(req *dto.CreateOrUpdateSocialMediaRe
 		return
 	}
 
-	find, err := biz.PubSocialMedia.WithContext(ctx).Where(biz.PubSocialMedia.Id.Eq(mediaId)).Take()
+	find, err := biz.PubSocialMedia.WithContext(ctx).Where(biz.PubSocialMedia.ID.Eq(mediaId)).Take()
 
 	if err != nil {
 		err = util.CreateBizErr("创建/更新公开媒体信息失败: "+err.Error(), err)
@@ -87,7 +87,7 @@ func (*mediaService) CreateOrUpdateMediaTag(req *dto.CreateOrUpdateSocialMediaRe
 func (*mediaService) GetMediaTagDetailById(req *dto.GetSocialMediaDetailReq, ctx *gin.Context) (resp *dto.GetSocialMediaDetailResp, err error) {
 	find, err := biz.PubSocialMedia.
 		WithContext(ctx).
-		Where(biz.PubSocialMedia.Id.Eq(req.Id)).
+		Where(biz.PubSocialMedia.ID.Eq(req.Id)).
 		Take()
 
 	if err != nil {
@@ -123,7 +123,7 @@ func (*mediaService) DeleteMediaTagByIdList(req *dto.DeleteSocialMediaByIdListRe
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		_, err := tx.PubSocialMedia.
 			WithContext(ctx).
-			Where(tx.PubSocialMedia.Id.In(req.IdList...)).
+			Where(tx.PubSocialMedia.ID.In(req.IdList...)).
 			Delete()
 		if err != nil {
 			return err

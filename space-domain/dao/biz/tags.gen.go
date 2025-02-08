@@ -28,7 +28,7 @@ func newTag(db *gorm.DB, opts ...gen.DOOption) tag {
 
 	tableName := _tag.tagDo.TableName()
 	_tag.ALL = field.NewAsterisk(tableName)
-	_tag.Id = field.NewInt64(tableName, "id")
+	_tag.ID = field.NewInt64(tableName, "id")
 	_tag.CreatedAt = field.NewInt64(tableName, "created_at")
 	_tag.UpdatedAt = field.NewInt64(tableName, "updated_at")
 	_tag.Hide = field.NewInt(tableName, "hide")
@@ -45,7 +45,7 @@ type tag struct {
 	tagDo tagDo
 
 	ALL       field.Asterisk
-	Id        field.Int64
+	ID        field.Int64
 	CreatedAt field.Int64
 	UpdatedAt field.Int64
 	Hide      field.Int
@@ -68,7 +68,7 @@ func (t tag) As(alias string) *tag {
 
 func (t *tag) updateTableName(table string) *tag {
 	t.ALL = field.NewAsterisk(table)
-	t.Id = field.NewInt64(table, "id")
+	t.ID = field.NewInt64(table, "id")
 	t.CreatedAt = field.NewInt64(table, "created_at")
 	t.UpdatedAt = field.NewInt64(table, "updated_at")
 	t.Hide = field.NewInt(table, "hide")
@@ -100,7 +100,7 @@ func (t *tag) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 
 func (t *tag) fillFieldMap() {
 	t.fieldMap = make(map[string]field.Expr, 7)
-	t.fieldMap["id"] = t.Id
+	t.fieldMap["id"] = t.ID
 	t.fieldMap["created_at"] = t.CreatedAt
 	t.fieldMap["updated_at"] = t.UpdatedAt
 	t.fieldMap["hide"] = t.Hide

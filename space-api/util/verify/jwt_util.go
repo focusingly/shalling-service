@@ -45,7 +45,7 @@ func CreateJwtToken(loginSession *model.UserLoginSession) (token string, err err
 		"exp":      int(loginSession.ExpiredAt / 1000),
 		"nbf":      nowUnixSec,
 		"iat":      nowUnixSec,
-		"jti":      fmt.Sprintf("%d", loginSession.Id),
+		"jti":      fmt.Sprintf("%d", loginSession.ID),
 		"uuid":     loginSession.UUID,
 		"userType": loginSession.UserType,
 	})

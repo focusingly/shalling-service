@@ -27,14 +27,14 @@ func (*tagService) CreateOrUpdateTag(req *dto.CreateOrUpdateTagReq, ctx *gin.Con
 		req.TagName = strings.TrimSpace(req.TagName)
 
 		// 找到需要被更新的 tag
-		oldTag, err := tagOp.WithContext(ctx).Where(tagOp.Id.Eq(req.Id)).Take()
+		oldTag, err := tagOp.WithContext(ctx).Where(tagOp.ID.Eq(req.Id)).Take()
 
 		// 未找到相关的的记录, 插入新的记录
 		if err != nil {
 			// 更新 id 值
 			tagId = id.GetSnowFlakeNode().Generate().Int64()
 			e := tagOp.WithContext(ctx).Create(&model.Tag{
-				BaseColumn: model.BaseColumn{Id: tagId},
+				BaseColumn: model.BaseColumn{ID: tagId},
 				TagName:    req.TagName,
 				Color:      req.Color,
 				IconUrl:    req.IconUrl,
@@ -44,7 +44,7 @@ func (*tagService) CreateOrUpdateTag(req *dto.CreateOrUpdateTagReq, ctx *gin.Con
 			}
 		} else {
 			// 找到相关记录, 更新本地和其它相关表数据
-			tagId = oldTag.Id
+			tagId = oldTag.ID
 
 			// 找到文章-标签 关联记录
 			postTagRelations, e := tx.PostTagRelation.
@@ -66,7 +66,7 @@ func (*tagService) CreateOrUpdateTag(req *dto.CreateOrUpdateTagReq, ctx *gin.Con
 			// 找到所有要更新的文章
 			shouldUpdatePosts, e := tx.Post.
 				WithContext(ctx).
-				Where(tx.Post.Id.In(relativePostIdList...)).
+				Where(tx.Post.ID.In(relativePostIdList...)).
 				Find()
 			if e != nil {
 				return e
@@ -95,7 +95,7 @@ func (*tagService) CreateOrUpdateTag(req *dto.CreateOrUpdateTagReq, ctx *gin.Con
 			// 最后更新标签自身
 			newTagVal := &model.Tag{
 				BaseColumn: model.BaseColumn{
-					Id:   oldTag.Id,
+					ID:   oldTag.ID,
 					Hide: req.Hide,
 				},
 				TagName: req.TagName,
@@ -103,7 +103,7 @@ func (*tagService) CreateOrUpdateTag(req *dto.CreateOrUpdateTagReq, ctx *gin.Con
 				IconUrl: req.IconUrl,
 			}
 			_, e = tx.Tag.WithContext(ctx).Select(
-				tx.Tag.Id,
+				tx.Tag.ID,
 				tx.Tag.Hide,
 				tx.Tag.TagName,
 				tx.Tag.Color,
@@ -124,7 +124,7 @@ func (*tagService) CreateOrUpdateTag(req *dto.CreateOrUpdateTagReq, ctx *gin.Con
 	}
 
 	// 获取当前操作的标签最新值
-	val, err := biz.Tag.WithContext(ctx).Where(biz.Tag.Id.Eq(tagId)).Take()
+	val, err := biz.Tag.WithContext(ctx).Where(biz.Tag.ID.Eq(tagId)).Take()
 	if err != nil {
 		err = util.CreateBizErr("更新失败: "+err.Error(), err)
 		return
@@ -138,7 +138,7 @@ func (*tagService) CreateOrUpdateTag(req *dto.CreateOrUpdateTagReq, ctx *gin.Con
 }
 
 func (*tagService) GetTagDetailById(req *dto.GetTagDetailReq, ctx *gin.Context) (resp *dto.GetTagDetailResp, err error) {
-	f, e := biz.Tag.WithContext(ctx).Where(biz.Tag.Id.Eq(req.Id)).Take()
+	f, e := biz.Tag.WithContext(ctx).Where(biz.Tag.ID.Eq(req.Id)).Take()
 	if e != nil {
 		err = &util.BizErr{
 			Msg:    "未找到数据",
@@ -178,7 +178,7 @@ func (*tagService) DeleteTagByIdList(req *dto.DeleteTagByIdListReq, ctx *gin.Con
 	err = query.Transaction(func(tx *biz.Query) error {
 		tagOp := tx.Tag
 
-		list, e := tx.PostTagRelation.WithContext(ctx).Where(tx.PostTagRelation.TagId.In(req.IdList...)).Select(tx.PostTagRelation.Id).Find()
+		list, e := tx.PostTagRelation.WithContext(ctx).Where(tx.PostTagRelation.TagId.In(req.IdList...)).Select(tx.PostTagRelation.ID).Find()
 		if err != nil {
 			err = &util.BizErr{
 				Reason: err,
@@ -192,7 +192,7 @@ func (*tagService) DeleteTagByIdList(req *dto.DeleteTagByIdListReq, ctx *gin.Con
 			}
 		}
 
-		_, e = tx.Tag.WithContext(ctx).Where(tagOp.Id.In(req.IdList...)).Delete()
+		_, e = tx.Tag.WithContext(ctx).Where(tagOp.ID.In(req.IdList...)).Delete()
 		if err != nil {
 			err = &util.BizErr{
 				Reason: err,

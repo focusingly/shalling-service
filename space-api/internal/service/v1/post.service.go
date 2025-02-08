@@ -46,7 +46,7 @@ func (*postService) CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.
 		}
 
 		// 查找已经存在的文章
-		findPost, err := postOp.WithContext(ctx).Where(postOp.Id.Eq(req.PostId)).Take()
+		findPost, err := postOp.WithContext(ctx).Where(postOp.ID.Eq(req.PostId)).Take()
 		// 如果当前不存在文章则直接创新新的文章
 		if err != nil {
 			// 同步更新 ID
@@ -59,9 +59,9 @@ func (*postService) CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.
 
 			// 创建新的文章
 			t := &model.Post{
-				BaseColumn:   model.BaseColumn{Id: postId},
+				BaseColumn:   model.BaseColumn{ID: postId},
 				Title:        req.Title,
-				AuthorId:     loginUser.Id,
+				AuthorId:     loginUser.ID,
 				Content:      req.Content,
 				WordCount:    req.WordCount,
 				ReadTime:     req.ReadTime,
@@ -80,7 +80,7 @@ func (*postService) CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.
 		} else {
 			// 表示文章存在, 操作为更新
 			// 更改为文章的 ID
-			postId = findPost.Id
+			postId = findPost.ID
 			// 存在的情况下进行更新
 			t := &model.Post{
 				BaseColumn:   findPost.BaseColumn,
@@ -98,8 +98,8 @@ func (*postService) CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.
 				DownVote:     req.DownVote,
 				AllowComment: req.AllowComment,
 			}
-			if _, err := postOp.WithContext(ctx).Where(postOp.Id.Eq(postId)).Select(
-				postOp.Id,
+			if _, err := postOp.WithContext(ctx).Where(postOp.ID.Eq(postId)).Select(
+				postOp.ID,
 				postOp.CreatedAt,
 				postOp.UpdatedAt,
 				postOp.Hide,
@@ -170,7 +170,7 @@ func (*postService) CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.
 			// 查找所有在 post 里出现的 tag
 			findRequireTags, err := tagOp.WithContext(ctx).
 				Distinct(tagOp.TagName).
-				Select(tagOp.Id).
+				Select(tagOp.ID).
 				Where(tagOp.TagName.In(req.Tags...)).
 				Find()
 
@@ -179,7 +179,7 @@ func (*postService) CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.
 			}
 			tagPostRelationsList := arr.MapSlice(findRequireTags, func(i int, tag *model.Tag) *model.PostTagRelation {
 				return &model.PostTagRelation{
-					TagId:  tag.Id,
+					TagId:  tag.ID,
 					PostId: postId, // 当前的这篇文章
 				}
 			})
@@ -218,7 +218,7 @@ func (*postService) CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.
 	}
 
 	post, err := biz.Q.Post.WithContext(ctx).
-		Where(biz.Q.Post.Id.Eq(postId)).
+		Where(biz.Q.Post.ID.Eq(postId)).
 		Take()
 	if err != nil {
 		return nil, &util.BizErr{
@@ -240,7 +240,7 @@ func (*postService) GetPostList(req *dto.GetPostPageListReq, ctx *gin.Context) (
 
 	result, count, err := postOp.
 		WithContext(ctx).
-		Select(postOp.Id,
+		Select(postOp.ID,
 			postOp.CreatedAt,
 			postOp.UpdatedAt,
 			postOp.Hide,
@@ -278,7 +278,7 @@ func (*postService) GetPostList(req *dto.GetPostPageListReq, ctx *gin.Context) (
 
 // GetPostById 根据文章 ID 获取全量的文章信息
 func (*postService) GetPostById(req *dto.GetPostDetailReq, ctx *gin.Context) (resp *dto.GetPostDetailResp, err error) {
-	val, err := biz.Post.WithContext(ctx).Where(biz.Post.Id.Eq(req.Id)).Take()
+	val, err := biz.Post.WithContext(ctx).Where(biz.Post.ID.Eq(req.Id)).Take()
 	if err != nil {
 		return nil, &util.BizErr{
 			Msg:    "查找文章失败",
@@ -294,7 +294,7 @@ func (*postService) GetPostById(req *dto.GetPostDetailReq, ctx *gin.Context) (re
 // GetPostById 根据文章 ID 获取全量的文章信息
 func (*postService) DeletePostByIdList(req *dto.DeletePostByIdListReq, ctx *gin.Context) (resp *dto.DeletePostByIdListResp, err error) {
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
-		_, err = tx.Post.WithContext(ctx).Where(tx.Post.Id.In(req.IdList...)).Delete()
+		_, err = tx.Post.WithContext(ctx).Where(tx.Post.ID.In(req.IdList...)).Delete()
 		return err
 	})
 

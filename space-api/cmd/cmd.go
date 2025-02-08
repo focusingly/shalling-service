@@ -8,7 +8,6 @@ import (
 	"space-api/db"
 	"space-api/effect"
 	"space-api/internal/controller"
-	"space-api/middleware/auth"
 	"space-api/middleware/inbound"
 	"space-api/middleware/outbound"
 	"space-api/util"
@@ -55,7 +54,7 @@ func Run() {
 		outbound.UseRestProduceHandler(),
 		inbound.UseUseragentParserMiddleware(),
 		inbound.UseExtractIPv4Middleware(),
-		auth.UseJwtAuthHandler(),
+		// auth.UseJwtAuthHandler(),
 	}
 
 	if useDebug {

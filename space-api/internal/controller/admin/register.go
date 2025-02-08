@@ -9,4 +9,5 @@ func RegisterAllAdminControllers(group *gin.RouterGroup) {
 	UseTagController(adminGroup)
 	UseSocialMediaController(adminGroup)
 	UseJobController(adminGroup)
+	UsePerformanceMonitorController(adminGroup)
 }

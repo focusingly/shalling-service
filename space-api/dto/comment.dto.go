@@ -1,5 +1,7 @@
 package dto
 
+import "space-domain/model"
+
 type (
 	CreateCommentReq struct {
 		PostID         int64  `json:"postID"`         // 文章的 ID
@@ -10,9 +12,25 @@ type (
 	}
 	CreateCommentResp struct{}
 
-	GetRootCommentPagesReq  struct{}
-	GetRootCommentPagesResp struct{}
+	GetSubCommentPagesReq struct {
+		BasePageParam `json:"basePageParam"`
+		PostID        int64 `form:"postID" json:"postId"`
+		RootCommentID int64 `form:"rootCommentID" json:"rootCommentID"`
+	}
+	GetSubCommentPagesResp struct {
+		model.PageList[*model.Comment]
+	}
 
-	GetSubCommentPagesReq  struct{}
-	GetSubCommentPagesResp struct{}
+	GetRootCommentPagesReq struct {
+		BasePageParam `json:"basePageParam"`
+		PostID        int64 `form:"postID" json:"postId"`
+	}
+
+	NestedComments struct {
+		RootComment *model.Comment `json:"rootComment"`
+		Subs        model.PageList[*model.Comment]
+	}
+	GetRootCommentPagesResp struct {
+		model.PageList[*NestedComments]
+	}
 )

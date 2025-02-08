@@ -243,7 +243,7 @@ func (*postService) GetPostList(req *dto.GetPostPageListReq, ctx *gin.Context) (
 			postOp.DownVote,
 			postOp.AllowComment,
 		).
-		FindByPage(req.Resolve())
+		FindByPage(req.Normalize())
 
 	if err != nil {
 		return nil, &util.BizErr{

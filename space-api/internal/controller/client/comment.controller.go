@@ -15,10 +15,10 @@ func UseCommentController(routeGroup *gin.RouterGroup) {
 	commentsGroup := routeGroup.Group("/comments")
 	commentService := service.DefaultCommentService
 
+	// 根评论分页公开查询
 	{
 		// 对根分页进行缓存
 		var rootCachedGroup = &util.Group[*dto.GetRootCommentPagesResp]{}
-		// 获取评论的根分页信息
 		commentsGroup.GET("/list", func(ctx *gin.Context) {
 			cachedKey := ctx.Request.RequestURI
 
@@ -30,7 +30,7 @@ func UseCommentController(routeGroup *gin.RouterGroup) {
 						ctx.Error(util.CreateBizErr("参数错误: "+err.Error(), err))
 						return
 					}
-					value, err = commentService.GetRootCommentPages(req, ctx)
+					value, err = commentService.GetVisibleRootCommentPages(req, ctx)
 					return
 				},
 				time.Millisecond*800,
@@ -44,10 +44,10 @@ func UseCommentController(routeGroup *gin.RouterGroup) {
 		})
 	}
 
+	// 子分页评论公开查询
 	{
 		// 对子分页进行缓存
 		var subCachedGroup = &util.Group[*dto.GetSubCommentPagesResp]{}
-		// 获取评论的根分页信息
 		commentsGroup.GET("/list/sub", func(ctx *gin.Context) {
 			cachedKey := ctx.Request.RequestURI
 
@@ -59,7 +59,7 @@ func UseCommentController(routeGroup *gin.RouterGroup) {
 						ctx.Error(util.CreateBizErr("参数错误: "+err.Error(), err))
 						return
 					}
-					value, err = commentService.GetSubCommentPages(req, ctx)
+					value, err = commentService.GetVisibleSubCommentPages(req, ctx)
 					return
 				},
 				time.Millisecond*800,
@@ -73,15 +73,14 @@ func UseCommentController(routeGroup *gin.RouterGroup) {
 		})
 	}
 
+	// 创建评论
 	{
-		// 创建评论
 		commentsGroup.POST("/",
-			// TODO 暂时仅限登录用户
+			// TODO 暂时仅限登录用户进行评论
 			func(ctx *gin.Context) {
 				if _, err := auth.GetCurrentLoginSession(ctx); err != nil {
 					ctx.Error(err)
 					ctx.Abort()
-
 					return
 				}
 				ctx.Next()

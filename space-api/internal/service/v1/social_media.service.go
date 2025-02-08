@@ -102,7 +102,7 @@ func (*mediaService) GetMediaTagDetailById(req *dto.GetSocialMediaDetailReq, ctx
 }
 
 func (*mediaService) GetMediaTagPages(req *dto.GetSocialMediaPageListReq, ctx *gin.Context) (resp *dto.GetSocialMediaPageListResp, err error) {
-	list, count, err := biz.PubSocialMedia.WithContext(ctx).FindByPage(req.BasePageParam.Resolve())
+	list, count, err := biz.PubSocialMedia.WithContext(ctx).FindByPage(req.BasePageParam.Normalize())
 	if err != nil {
 		err = util.CreateBizErr("查找分页失败: "+err.Error(), err)
 		return

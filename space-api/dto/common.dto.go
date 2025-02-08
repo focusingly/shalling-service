@@ -14,7 +14,8 @@ type WarningOverride struct {
 	ForceOverride bool `json:"forceOverride"`
 }
 
-func (bp *BasePageParam) Resolve() (offset, limit int) {
+// Normalize 规范化分页查询参数, 去除控制针, 控制每页最大查询数量
+func (bp *BasePageParam) Normalize() (offset, limit int) {
 	if bp.Page == nil || *bp.Page <= 0 {
 		bp.Page = ptr.ToPtr(1)
 	}

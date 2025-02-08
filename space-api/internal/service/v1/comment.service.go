@@ -8,6 +8,7 @@ import (
 	"space-api/middleware/inbound"
 	"space-api/util"
 	"space-api/util/ip"
+	"space-api/util/ptr"
 	"space-domain/dao/biz"
 	"space-domain/model"
 	"strings"
@@ -174,14 +175,164 @@ func (servicePtr *commentService) SimpleVerifyAndCreateComment(req *dto.CreateCo
 	return servicePtr.createCommentDirect(req, ctx)
 }
 
-// GetRootCommentPages 获取根评论的分页
-func (*commentService) GetRootCommentPages(req *dto.GetRootCommentPagesReq, ctx *gin.Context) (resp *dto.GetRootCommentPagesResp, err error) {
+// GetVisibleRootCommentPages 获取根评论的分页
+func (servicePtr *commentService) GetVisibleRootCommentPages(req *dto.GetRootCommentPagesReq, ctx *gin.Context) (resp *dto.GetRootCommentPagesResp, err error) {
+	// 必须的文章开启评和可见论才允许获取评论
+	postCtx := biz.Post
+	_, err = postCtx.WithContext(ctx).
+		Where(postCtx.Id.Eq(req.PostID), postCtx.Hide.Eq(0), postCtx.AllowComment.Neq(0)).
+		Take()
+	if err != nil {
+		err = util.CreateBizErr("当前文章不允许评论", err)
+		return
+	}
+
+	commentCtx := biz.Comment
+	rootList, count, err := commentCtx.WithContext(ctx).
+		Select(
+			commentCtx.Id,
+			commentCtx.CreatedAt,
+			commentCtx.UpdatedAt,
+			commentCtx.PostId,
+			commentCtx.UserId,
+			commentCtx.UserType,
+			commentCtx.Avatar,
+			commentCtx.HomePageURL,
+			commentCtx.RootCommentId,
+			commentCtx.ReplyToId,
+			commentCtx.Content,
+			commentCtx.UpVote,
+			commentCtx.DownVote,
+			commentCtx.IpSource,
+			commentCtx.ClientName,
+		).
+		Order(commentCtx.UpVote.Desc(), commentCtx.CreatedAt.Desc()).
+		FindByPage(req.Normalize())
+
+	if err != nil {
+		err = util.CreateBizErr("查询评论失败", err)
+		return
+	}
+
+	nestedList := []*dto.NestedComments{}
+	for _, cmt := range rootList {
+		// 规范化显示的 IP 地址
+		if cmt.IpSource != nil {
+			splits := strings.Split(*cmt.IpSource, "|")
+			if len(splits) > 0 {
+				t := ""
+				if splits[0] != "0" {
+					t = splits[0]
+				}
+				if splits[len(splits)-1] != "0" {
+					t += splits[len(splits)-1]
+				}
+				cmt.IpSource = &t
+			} else {
+				cmt.IpSource = ptr.ToPtr("")
+			}
+		}
+
+		// 获取子评论
+		subs, e := servicePtr.GetVisibleSubCommentPages(&dto.GetSubCommentPagesReq{
+			BasePageParam: dto.BasePageParam{Page: ptr.ToPtr(1), Size: ptr.ToPtr(10)},
+			PostID:        req.PostID,
+			RootCommentID: cmt.Id,
+		}, ctx)
+		if e != nil {
+			return
+		}
+		// 填充子列表
+		nestedList = append(nestedList, &dto.NestedComments{
+			RootComment: cmt,
+			Subs:        subs.PageList,
+		})
+	}
+
+	resp = &dto.GetRootCommentPagesResp{
+		PageList: model.PageList[*dto.NestedComments]{
+			List:  nestedList,
+			Page:  int64(*req.Page),
+			Size:  int64(*req.Size),
+			Total: count,
+		},
+	}
 
 	return
 }
 
 // GetRootCommentPages 获取子评论的分页
-func (*commentService) GetSubCommentPages(req *dto.GetSubCommentPagesReq, ctx *gin.Context) (resp *dto.GetSubCommentPagesResp, err error) {
+func (*commentService) GetVisibleSubCommentPages(req *dto.GetSubCommentPagesReq, ctx *gin.Context) (resp *dto.GetSubCommentPagesResp, err error) {
+	// 必须的文章开启评论才允许获取评论
+	postCtx := biz.Post
+	_, err = postCtx.WithContext(ctx).
+		Where(postCtx.Id.Eq(req.PostID), postCtx.Hide.Eq(0), postCtx.AllowComment.Neq(0)).
+		Take()
+	if err != nil {
+		err = util.CreateBizErr("当前文章不允许评论", err)
+		return
+	}
+
+	commentCtx := biz.Comment
+	list, count, err := commentCtx.WithContext(ctx).
+		Select(
+			commentCtx.Id,
+			commentCtx.CreatedAt,
+			commentCtx.UpdatedAt,
+			commentCtx.PostId,
+			commentCtx.UserId,
+			commentCtx.UserType,
+			commentCtx.Avatar,
+			commentCtx.HomePageURL,
+			commentCtx.RootCommentId,
+			commentCtx.ReplyToId,
+			commentCtx.Content,
+			commentCtx.UpVote,
+			commentCtx.DownVote,
+			commentCtx.IpSource,
+			commentCtx.ClientName,
+		).
+		Where(
+			// 匹配文章
+			commentCtx.RootCommentId.Eq(req.RootCommentID),
+			commentCtx.ReplyToId.Neq(0),
+		).
+		// 设置排序, 根据点赞数量, 创建时间逐一进行降序排列
+		Order(commentCtx.UpVote.Desc(), commentCtx.CreatedAt.Desc()).
+		FindByPage(req.BasePageParam.Normalize())
+
+	if err != nil {
+		err = util.CreateBizErr("查询评论失败", err)
+		return
+	}
+
+	// 规范化显示的 IP 地址
+	for _, cmt := range list {
+		if cmt.IpSource != nil {
+			splits := strings.Split(*cmt.IpSource, "|")
+			if len(splits) > 0 {
+				t := ""
+				if splits[0] != "0" {
+					t = splits[0]
+				}
+				if splits[len(splits)-1] != "0" {
+					t += splits[len(splits)-1]
+				}
+				cmt.IpSource = &t
+			} else {
+				cmt.IpSource = ptr.ToPtr("")
+			}
+		}
+	}
+
+	resp = &dto.GetSubCommentPagesResp{
+		PageList: model.PageList[*model.Comment]{
+			List:  list,
+			Page:  int64(*req.Page),
+			Size:  int64(*req.Size),
+			Total: count,
+		},
+	}
 
 	return
 }

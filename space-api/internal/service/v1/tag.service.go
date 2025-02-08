@@ -155,7 +155,7 @@ func (*tagService) GetTagDetailById(req *dto.GetTagDetailReq, ctx *gin.Context) 
 
 func (*tagService) GetTagPageList(req *dto.GetTagPageListReq, ctx *gin.Context) (resp *dto.GetTagPageListResp, err error) {
 	tagOp := biz.Tag
-	list, count, err := tagOp.WithContext(ctx).FindByPage(req.Resolve())
+	list, count, err := tagOp.WithContext(ctx).FindByPage(req.Normalize())
 	if err != nil {
 		return nil, &util.BizErr{
 			Reason: err,

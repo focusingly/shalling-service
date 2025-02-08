@@ -190,6 +190,20 @@ func (*postService) CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.
 			}
 		}
 
+		// 更新分类的关系
+		if req.Category != nil {
+			catTX := tx.Category
+			_, e := catTX.WithContext(ctx).Take()
+			// 如果分类还不存在, 那么创建对应的分类信息
+			if e != nil {
+				if e := catTX.WithContext(ctx).Create(&model.Category{
+					CategoryName: *req.Category,
+				}); e != nil {
+					return e
+				}
+			}
+		}
+
 		return nil
 	})
 

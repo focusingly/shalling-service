@@ -14,7 +14,7 @@ type (
 		Email        *string `gorm:"type:varchar(255);null;comment:用户邮箱, 可用于找回密码" json:"email"`
 		Username     string  `gorm:"type:varchar(255);not null;unique;comment:登录的用户名称" json:"username"`
 		DisplayName  string  `gorm:"type:varchar(255);not null;comment:对外展示的用户名称" json:"displayName"`
-		Password     string  `gorm:"type:varchar(255);null;comment:可用于找回账户的密码" json:"password"`
+		Password     string  `gorm:"type:text;not null;comment:可用于找回账户的密码" json:"password"`
 		AvatarURL    *string `gorm:"type:text;null;comment:用户的头像链接"`
 		HomepageLink *string `gorm:"type:text;null;comment:用户的主页链接"`
 		Phone        *string `gorm:"type:varchar(255);null;comment:可用于找回账户的密码" json:"phone"`
@@ -163,7 +163,7 @@ type (
 		RoutePath *string     `gorm:"type:varchar(255);null;comment:可选的前端路由地址" json:"routePath"`
 		PostLink  *int64      `gorm:"type:varchar(255);null;comment:可选的文章的 ID(如果是站内的文章的话)" json:"postLink"`
 		OpenWay   string      `gorm:"type:varchar(255);default:_self;not null;comment:链接的打开方式(如当前页面/打开新的页面)" json:"openWay"`
-		SubLinks  []*MenuLink `gorm:"type:varchar(255);default:_self;not null;comment:菜单包含的子链接列表" json:"subLinks"`
+		SubLinks  []*MenuLink `gorm:"type:text;null;comment:菜单包含的子链接列表" json:"subLinks"`
 	}
 
 	// 动态链接

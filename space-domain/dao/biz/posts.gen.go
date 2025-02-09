@@ -44,6 +44,7 @@ func newPost(db *gorm.DB, opts ...gen.DOOption) post {
 	_post.Views = field.NewInt64(tableName, "views")
 	_post.UpVote = field.NewInt64(tableName, "up_vote")
 	_post.DownVote = field.NewInt64(tableName, "down_vote")
+	_post.Lang = field.NewString(tableName, "lang")
 	_post.AllowComment = field.NewInt(tableName, "allow_comment")
 
 	_post.fillFieldMap()
@@ -71,6 +72,7 @@ type post struct {
 	Views        field.Int64
 	UpVote       field.Int64
 	DownVote     field.Int64
+	Lang         field.String
 	AllowComment field.Int
 
 	fieldMap map[string]field.Expr
@@ -104,6 +106,7 @@ func (p *post) updateTableName(table string) *post {
 	p.Views = field.NewInt64(table, "views")
 	p.UpVote = field.NewInt64(table, "up_vote")
 	p.DownVote = field.NewInt64(table, "down_vote")
+	p.Lang = field.NewString(table, "lang")
 	p.AllowComment = field.NewInt(table, "allow_comment")
 
 	p.fillFieldMap()
@@ -129,7 +132,7 @@ func (p *post) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (p *post) fillFieldMap() {
-	p.fieldMap = make(map[string]field.Expr, 17)
+	p.fieldMap = make(map[string]field.Expr, 18)
 	p.fieldMap["id"] = p.ID
 	p.fieldMap["created_at"] = p.CreatedAt
 	p.fieldMap["updated_at"] = p.UpdatedAt
@@ -146,6 +149,7 @@ func (p *post) fillFieldMap() {
 	p.fieldMap["views"] = p.Views
 	p.fieldMap["up_vote"] = p.UpVote
 	p.fieldMap["down_vote"] = p.DownVote
+	p.fieldMap["lang"] = p.Lang
 	p.fieldMap["allow_comment"] = p.AllowComment
 }
 

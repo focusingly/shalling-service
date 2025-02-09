@@ -67,6 +67,7 @@ type (
 		Views        *int64   `gorm:"type:bigint;null;comment:总浏览量" json:"views" yaml:"views" xml:"views" toml:"views"`
 		UpVote       *int64   `gorm:"type:bigint;null;comment:赞成数" json:"upVote" yaml:"upVote" xml:"upVote" toml:"upVote"`
 		DownVote     *int64   `gorm:"type:bigint;null;comment:否定数" json:"downVote" yaml:"downVote" xml:"downVote" toml:"downVote"`
+		Lang         *string  `gorm:"type:varchar(255);null;comment:文章使用的语言" json:"lang" yaml:"lang" xml:"lang" toml:"lang"`
 		AllowComment int      `gorm:"type:smallint;default:0;comment:是否允许评论, 默认为允许" json:"allowComment" yaml:"allowComment" xml:"allowComment" toml:"allowComment"`
 	}
 

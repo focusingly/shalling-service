@@ -10,13 +10,12 @@ import (
 )
 
 func UseAuthController(group *gin.RouterGroup) {
+	authService := service.DefaultAuthService
 
-	authService := service.DefaultOauth2Service
-
-	// 系统管理员/站主 登录接口
+	// 系统管理员/站主/本地用户进行 登录
 	{
-		authGroup := group.Group("/auth/admin")
-		authGroup.POST("/login", func(ctx *gin.Context) {
+		authGroup := group.Group("/local/login")
+		authGroup.POST("/", func(ctx *gin.Context) {
 			req := &dto.AdminLoginReq{}
 			if err := ctx.ShouldBindBodyWithJSON(req); err != nil {
 				ctx.Error(util.CreateBizErr("参数错误: "+err.Error(), err))
@@ -25,15 +24,14 @@ func UseAuthController(group *gin.RouterGroup) {
 			if resp, err := authService.AdminLogin(req, ctx); err != nil {
 				ctx.Error(err)
 			} else {
-				outbound.NotifyProduceRestJSON(resp, ctx)
+				outbound.NotifyProduceResponse(resp, ctx)
 			}
 		})
 	}
 
 	// 处理 oauth2 相关的登录/认证
 	{
-		oauth2LoginGroup := group.Group("/auth/login")
-
+		oauth2LoginGroup := group.Group("/oauth2/login")
 		// 获取登录链接
 		oauth2LoginGroup.GET("/url", func(ctx *gin.Context) {
 			req := &dto.GetLoginURLReq{}
@@ -45,7 +43,18 @@ func UseAuthController(group *gin.RouterGroup) {
 			if resp, err := authService.GetOauth2LoginGrantURL(req, ctx); err != nil {
 				ctx.Error(err)
 			} else {
-				outbound.NotifyProduceRestJSON(resp, ctx)
+				outbound.NotifyProduceResponse(resp, ctx)
+			}
+		})
+	}
+
+	// 退出登录
+	{
+		group.Group("/logout").GET("/", func(ctx *gin.Context) {
+			if resp, err := authService.Logout(ctx); err != nil {
+				ctx.Error(err)
+			} else {
+				outbound.NotifyProduceResponse(resp, ctx)
 			}
 		})
 	}

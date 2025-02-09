@@ -21,14 +21,13 @@ type (
 		model.PageList[*model.Comment]
 	}
 
-	GetRootCommentPagesReq struct {
-		BasePageParam `json:"basePageParam"`
-		PostID        int64 `form:"postID" json:"postId"`
-	}
-
 	NestedComments struct {
 		RootComment *model.Comment `json:"rootComment"`
 		Subs        model.PageList[*model.Comment]
+	}
+	GetRootCommentPagesReq struct {
+		BasePageParam `json:"basePageParam"`
+		PostID        int64 `form:"postID" json:"postId"`
 	}
 	GetRootCommentPagesResp struct {
 		model.PageList[*NestedComments]

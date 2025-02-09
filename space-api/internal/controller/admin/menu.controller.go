@@ -23,7 +23,7 @@ func UseMenuController(group *gin.RouterGroup) {
 		if resp, err := menuService.GetAllMenus(req, ctx); err != nil {
 			ctx.Error(err)
 		} else {
-			outbound.NotifyProduceRestJSON(resp, ctx)
+			outbound.NotifyProduceResponse(resp, ctx)
 		}
 	})
 
@@ -38,7 +38,7 @@ func UseMenuController(group *gin.RouterGroup) {
 		if resp, err := menuService.CreateOrUpdateMenu(req, ctx); err != nil {
 			ctx.Error(err)
 		} else {
-			outbound.NotifyProduceRestJSON(resp, ctx)
+			outbound.NotifyProduceResponse(resp, ctx)
 		}
 	})
 
@@ -53,7 +53,7 @@ func UseMenuController(group *gin.RouterGroup) {
 		if err != nil {
 			ctx.Error(err)
 		} else {
-			outbound.NotifyProduceRestJSON(resp, ctx)
+			outbound.NotifyProduceResponse(resp, ctx)
 		}
 	})
 }

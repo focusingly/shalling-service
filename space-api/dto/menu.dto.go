@@ -17,11 +17,11 @@ type (
 
 	GetMenusReq  struct{}
 	GetMenusResp struct {
-		Menus []*model.MenuGroup `json:"menus"`
+		Menus []*model.MenuGroup `json:"menus" yaml:"menus" xml:"menus" toml:"menus"`
 	}
 
 	DeleteMenuGroupsReq struct {
-		IDList []int64 `json:"idList"`
+		IDList []int64 `json:"idList" yaml:"idList" xml:"idList" toml:"idList"`
 	}
 	DeleteMenuGroupsResp struct {
 	}

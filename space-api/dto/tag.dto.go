@@ -6,7 +6,6 @@ type (
 	GetTagPageListReq struct {
 		BasePageParam
 	}
-
 	GetTagPageListResp struct {
 		model.PageList[*model.Tag]
 	}
@@ -14,7 +13,6 @@ type (
 	GetTagDetailReq struct {
 		Id int64 `uri:"id" json:"id"`
 	}
-
 	GetTagDetailResp struct {
 		model.Tag
 	}
@@ -26,7 +24,6 @@ type (
 		Color   *string `json:"color"`
 		IconUrl *string `json:"iconUrl"`
 	}
-
 	CreateOrUpdateTagResp struct {
 		model.Tag
 	}
@@ -35,6 +32,5 @@ type (
 		WarningOverride
 		IdList []int64 `json:"idList"`
 	}
-
 	DeleteTagByIdListResp struct{}
 )

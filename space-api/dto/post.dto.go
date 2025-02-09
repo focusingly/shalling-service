@@ -24,7 +24,6 @@ type (
 		DownVote     *int64   `json:"downVote"`
 		AllowComment int      `json:"allowComment"`
 	}
-
 	UpdateOrCreatePostResp struct {
 		model.Post
 	}
@@ -32,7 +31,6 @@ type (
 	GetPostPageListReq struct {
 		BasePageParam
 	}
-
 	GetPostPageListResp struct {
 		model.PageList[*model.Post]
 	}
@@ -40,7 +38,6 @@ type (
 	GetPostDetailReq struct {
 		Id int64 `uri:"id" json:"id"`
 	}
-
 	GetPostDetailResp struct {
 		model.Post
 	}
@@ -48,7 +45,6 @@ type (
 	DeletePostByIdListReq struct {
 		IdList []int64 `json:"idList"`
 	}
-
 	DeletePostByIdListResp struct {
 	}
 )

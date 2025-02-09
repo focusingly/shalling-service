@@ -26,7 +26,7 @@ func UseCategoryController(group *gin.RouterGroup) {
 			if err != nil {
 				ctx.Error(err)
 			} else {
-				outbound.NotifyProduceRestJSON(resp, ctx)
+				outbound.NotifyProduceResponse(resp, ctx)
 			}
 		})
 	}
@@ -43,7 +43,7 @@ func UseCategoryController(group *gin.RouterGroup) {
 			if err != nil {
 				ctx.Error(err)
 			} else {
-				outbound.NotifyProduceRestJSON(resp, ctx)
+				outbound.NotifyProduceResponse(resp, ctx)
 			}
 		})
 	}
@@ -60,7 +60,7 @@ func UseCategoryController(group *gin.RouterGroup) {
 			if err != nil {
 				ctx.Error(err)
 			} else {
-				outbound.NotifyProduceRestJSON(resp, ctx)
+				outbound.NotifyProduceResponse(resp, ctx)
 			}
 		})
 	}
@@ -76,7 +76,7 @@ func UseCategoryController(group *gin.RouterGroup) {
 			if resp, err := categoryService.DeleteCategoryByIDList(req, ctx); err != nil {
 				ctx.Error(err)
 			} else {
-				outbound.NotifyProduceRestJSON(resp, ctx)
+				outbound.NotifyProduceResponse(resp, ctx)
 			}
 		})
 	}

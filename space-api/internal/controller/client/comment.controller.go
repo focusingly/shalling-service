@@ -39,7 +39,7 @@ func UseCommentController(routeGroup *gin.RouterGroup) {
 			if err != nil {
 				ctx.Error(err)
 			} else {
-				outbound.NotifyProduceRestJSON(resp, ctx)
+				outbound.NotifyProduceResponse(resp, ctx)
 			}
 		})
 	}
@@ -68,7 +68,7 @@ func UseCommentController(routeGroup *gin.RouterGroup) {
 			if err != nil {
 				ctx.Error(err)
 			} else {
-				outbound.NotifyProduceRestJSON(resp, ctx)
+				outbound.NotifyProduceResponse(resp, ctx)
 			}
 		})
 	}
@@ -94,7 +94,7 @@ func UseCommentController(routeGroup *gin.RouterGroup) {
 				if resp, err := commentService.SimpleVerifyAndCreateComment(req, ctx); err != nil {
 					ctx.Error(err)
 				} else {
-					outbound.NotifyProduceRestJSON(resp, ctx)
+					outbound.NotifyProduceResponse(resp, ctx)
 				}
 			})
 	}

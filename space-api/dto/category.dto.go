@@ -15,7 +15,7 @@ type (
 	// TODO 暂不考虑分页, 分类列表实际不会太多
 	GetCategoryListReq  struct{}
 	GetCategoryListResp struct {
-		List []*model.Category
+		List []*model.Category `json:"list" yaml:"list" xml:"list" toml:"list"`
 	}
 
 	// 获取分类和其文章关联的所有文章列表信息
@@ -23,8 +23,8 @@ type (
 		CatID int64 `uri:"catID" json:"catID"`
 	}
 	GetCategoryWithPostsResp struct {
-		Category      *model.Category `json:"category"`
-		RelationPosts []*model.Post   `json:"relationPosts"`
+		Category      *model.Category `json:"category" yaml:"category" xml:"category" toml:"category"`
+		RelationPosts []*model.Post   `json:"relationPosts" yaml:"relationPosts" xml:"relationPosts" toml:"relationPosts"`
 	}
 
 	DeleteCategoryReq struct {

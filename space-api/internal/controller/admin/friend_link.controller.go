@@ -23,7 +23,7 @@ func UseFriendLinkController(group *gin.RouterGroup) {
 		if resp, err := friendLinkService.GetVisibleFriendLinks(req, ctx); err != nil {
 			ctx.Error(err)
 		} else {
-			outbound.NotifyProduceRestJSON(resp, ctx)
+			outbound.NotifyProduceResponse(resp, ctx)
 		}
 	})
 
@@ -38,7 +38,7 @@ func UseFriendLinkController(group *gin.RouterGroup) {
 		if resp, err := friendLinkService.CreateOrUpdateFriendLink(req, ctx); err != nil {
 			ctx.Error(err)
 		} else {
-			outbound.NotifyProduceRestJSON(resp, ctx)
+			outbound.NotifyProduceResponse(resp, ctx)
 		}
 	})
 
@@ -53,7 +53,7 @@ func UseFriendLinkController(group *gin.RouterGroup) {
 		if err != nil {
 			ctx.Error(err)
 		} else {
-			outbound.NotifyProduceRestJSON(resp, ctx)
+			outbound.NotifyProduceResponse(resp, ctx)
 		}
 	})
 }

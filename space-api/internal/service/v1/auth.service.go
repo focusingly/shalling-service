@@ -125,7 +125,7 @@ func init() {
 
 type oauth2Service struct{}
 
-var DefaultOauth2Service *oauth2Service
+var DefaultAuthService *oauth2Service
 
 // AdminLogin 后台管理员登录
 func (*oauth2Service) AdminLogin(req *dto.AdminLoginReq, ctx *gin.Context) (resp *dto.AdminLoginResp, err error) {
@@ -485,6 +485,33 @@ func (*oauth2Service) VerifyGoogleCallback(ctx *gin.Context) (resp *model.OAuth2
 		AvatarURL:      &googlePubDetail.Picture,
 		HomepageLink:   new(string),
 		Scopes:         googleOauth2Config.Scopes,
+	}
+
+	return
+}
+
+func (*oauth2Service) Logout(ctx *gin.Context) (resp *empty, err error) {
+	exitsSession, e := auth.GetCurrentLoginSession(ctx)
+	if e != nil {
+		err = util.CreateAuthErr("无效凭据", e)
+		return
+	}
+
+	err = biz.Q.Transaction(func(tx *biz.Query) error {
+		loginSessionTx := tx.UserLoginSession
+		_, e := loginSessionTx.WithContext(ctx).Where(loginSessionTx.UUID.Eq(exitsSession.UUID)).Delete()
+		if e != nil {
+			return e
+		}
+
+		// expire user
+		auth.GetMiddlewareUsingCacheSpace().Delete(exitsSession.UUID)
+		return nil
+	})
+
+	if err != nil {
+		err = util.CreateBizErr("退出登录失败", err)
+		return
 	}
 
 	return

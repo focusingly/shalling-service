@@ -13,10 +13,10 @@ const (
 )
 
 type RestResult[T any] struct {
-	Code      BizCode `json:"code"`
-	Timestamp int64   `json:"timestamp"`
-	Msg       string  `json:"msg"`
-	Data      T       `json:"data"`
+	Code      BizCode `json:"code" yaml:"code" xml:"code" toml:"code"`
+	Timestamp int64   `json:"timestamp" yaml:"timestamp" xml:"timestamp" toml:"timestamp"`
+	Msg       string  `json:"msg" yaml:"msg" xml:"msg" toml:"msg"`
+	Data      T       `json:"data" yaml:"data" xml:"data" toml:"data"`
 }
 
 func RestWithSuccess[T any](data T) *RestResult[T] {

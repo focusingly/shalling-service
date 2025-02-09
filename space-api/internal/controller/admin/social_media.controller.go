@@ -26,7 +26,7 @@ func UseSocialMediaController(group *gin.RouterGroup) {
 			if err != nil {
 				ctx.Error(err)
 			} else {
-				outbound.NotifyProduceRestJSON(resp, ctx)
+				outbound.NotifyProduceResponse(resp, ctx)
 			}
 		})
 
@@ -42,7 +42,7 @@ func UseSocialMediaController(group *gin.RouterGroup) {
 			if err != nil {
 				ctx.Error(err)
 			} else {
-				outbound.NotifyProduceRestJSON(resp, ctx)
+				outbound.NotifyProduceResponse(resp, ctx)
 			}
 		})
 
@@ -57,7 +57,7 @@ func UseSocialMediaController(group *gin.RouterGroup) {
 			if resp, err := mediaService.CreateOrUpdateMediaTag(req, ctx); err != nil {
 				ctx.Error(err)
 			} else {
-				outbound.NotifyProduceRestJSON(resp, ctx)
+				outbound.NotifyProduceResponse(resp, ctx)
 			}
 
 		})
@@ -75,7 +75,7 @@ func UseSocialMediaController(group *gin.RouterGroup) {
 			if err != nil {
 				ctx.Error(err)
 			} else {
-				outbound.NotifyProduceRestJSON(resp, ctx)
+				outbound.NotifyProduceResponse(resp, ctx)
 			}
 		})
 	}

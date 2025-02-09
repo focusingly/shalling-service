@@ -19,7 +19,7 @@ type (
 
 	GetFriendLinksReq  struct{}
 	GetFriendLinksResp struct {
-		List []*model.FriendLink
+		List []*model.FriendLink `json:"list" yaml:"list" xml:"list" toml:"list"`
 	}
 
 	DeleteFriendLinkReq struct {

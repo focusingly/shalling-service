@@ -30,7 +30,7 @@ func UsePostController(group *gin.RouterGroup) {
 					Msg:    "操作失败",
 				})
 			} else {
-				outbound.NotifyProduceRestJSON(resp, ctx)
+				outbound.NotifyProduceResponse(resp, ctx)
 			}
 		})
 	}
@@ -50,7 +50,7 @@ func UsePostController(group *gin.RouterGroup) {
 			if resp, err := postService.GetPostList(req, ctx); err != nil {
 				ctx.Error(err)
 			} else {
-				outbound.NotifyProduceRestJSON(resp, ctx)
+				outbound.NotifyProduceResponse(resp, ctx)
 			}
 
 		})
@@ -71,7 +71,7 @@ func UsePostController(group *gin.RouterGroup) {
 			if resp, err := postService.GetPostById(req, ctx); err != nil {
 				ctx.Error(err)
 			} else {
-				outbound.NotifyProduceRestJSON(resp, ctx)
+				outbound.NotifyProduceResponse(resp, ctx)
 			}
 		})
 	}
@@ -95,7 +95,7 @@ func UsePostController(group *gin.RouterGroup) {
 				})
 				return
 			} else {
-				outbound.NotifyProduceRestJSON(resp, ctx)
+				outbound.NotifyProduceResponse(resp, ctx)
 			}
 		})
 	}

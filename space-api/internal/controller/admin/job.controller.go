@@ -30,7 +30,7 @@ func UseJobController(group *gin.RouterGroup) {
 			if resp, err := taskService.CreateOrUpdateNewJob(req, ctx); err != nil {
 				ctx.Error(err)
 			} else {
-				outbound.NotifyProduceRestJSON(resp, ctx)
+				outbound.NotifyProduceResponse(resp, ctx)
 			}
 		})
 	}
@@ -46,7 +46,7 @@ func UseJobController(group *gin.RouterGroup) {
 			if resp, err := taskService.GetAvailableJobList(req, ctx); err != nil {
 				ctx.Error(err)
 			} else {
-				outbound.NotifyProduceRestJSON(resp, ctx)
+				outbound.NotifyProduceResponse(resp, ctx)
 			}
 		})
 	}
@@ -63,7 +63,7 @@ func UseJobController(group *gin.RouterGroup) {
 			if resp, err := taskService.GetRunningJobs(req, ctx); err != nil {
 				ctx.Error(err)
 			} else {
-				outbound.NotifyProduceRestJSON(resp, ctx)
+				outbound.NotifyProduceResponse(resp, ctx)
 			}
 
 		})
@@ -80,7 +80,7 @@ func UseJobController(group *gin.RouterGroup) {
 			if resp, err := taskService.RunJobImmediately(req, ctx); err != nil {
 				ctx.Error(err)
 			} else {
-				outbound.NotifyProduceRestJSON(resp, ctx)
+				outbound.NotifyProduceResponse(resp, ctx)
 			}
 
 		})
@@ -98,7 +98,7 @@ func UseJobController(group *gin.RouterGroup) {
 			if resp, err := taskService.DeleteRunningJobs(req, ctx); err != nil {
 				ctx.Error(err)
 			} else {
-				outbound.NotifyProduceRestJSON(resp, ctx)
+				outbound.NotifyProduceResponse(resp, ctx)
 			}
 		})
 	}

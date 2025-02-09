@@ -16,7 +16,7 @@ func UsePerformanceMonitorController(group *gin.RouterGroup) {
 			if resp, err := pefService.GetStatus(); err != nil {
 				ctx.Error(err)
 			} else {
-				outbound.NotifyProduceRestJSON(resp, ctx)
+				outbound.NotifyProduceResponse(resp, ctx)
 			}
 		})
 	}

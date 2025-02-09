@@ -12,7 +12,7 @@ type (
 	}
 
 	GetSocialMediaDetailReq struct {
-		Id int64 `uri:"id" json:"id"`
+		Id int64 `uri:"id" json:"id" yaml:"id" xml:"id" toml:"id"`
 	}
 
 	GetSocialMediaDetailResp struct {

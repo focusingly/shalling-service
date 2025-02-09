@@ -7,7 +7,6 @@ type (
 		JobName     string `json:"jobName"`
 		Description string `json:"description"`
 	}
-
 	CreateOrUpdateJobReq struct {
 		DBRecordID  int64  `json:"dbRecordID"`
 		JobFuncName string `json:"jobFuncName"`
@@ -19,12 +18,12 @@ type (
 
 	GetAvailableJobListReq  struct{}
 	GetAvailableJobListResp struct {
-		List []*RegisteredJob `json:"list"`
+		List []*RegisteredJob `json:"list" yaml:"list" xml:"list" toml:"list"`
 	}
 
 	GetRunningJobListReq  struct{}
 	GetRunningJobListResp struct {
-		List []*model.CronJob `json:"list"`
+		List []*model.CronJob `json:"list" yaml:"list" xml:"list" toml:"list"`
 	}
 
 	DeleteRunningJobListReq struct {
@@ -34,7 +33,7 @@ type (
 	}
 
 	RunJobReq struct {
-		JobID int64 `json:"jobID"`
+		JobID int64 `json:"jobID" yaml:"jobID" xml:"jobID" toml:"jobID"`
 	}
 	RunJobResp struct{}
 )

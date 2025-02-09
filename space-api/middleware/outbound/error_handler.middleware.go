@@ -13,38 +13,37 @@ func UseErrorHandler() gin.HandlerFunc {
 		defer func() {
 			isPanic := false
 			// 捕获 panic
-			err := recover()
-			if err != nil {
+			catchErr := recover()
+			if catchErr != nil {
 				isPanic = true
 			} else {
 				if len(ctx.Errors) != 0 {
-					err = ctx.Errors[0].Err
+					catchErr = ctx.Errors[0].Err
 				}
 			}
-
-			if err == nil {
+			if catchErr == nil {
 				return
 			}
 
 			code := util.TernaryExpr(isPanic, http.StatusInternalServerError, http.StatusOK)
-			switch err := err.(type) {
+			var restErr *util.RestResult[any]
+			switch err := catchErr.(type) {
 			case error: /* 确保都是实现 error 接口的结构体的引用 */
 				switch err := err.(type) {
-				case *util.BizErr:
-					ctx.JSON(code, util.RestWithError(err.Error()))
-				case *util.LimitErr:
-					ctx.JSON(code, util.RestWithError(err.Error()))
-				case *util.AuthErr:
-					ctx.JSON(code, util.RestWithError(err.Error()))
+				case *util.BizErr,
+					*util.LimitErr,
+					*util.AuthErr:
+					restErr = util.RestWithError(err.Error())
 				case *util.FatalErr:
-					ctx.JSON(code, util.RestWithError("服务内部错误, 请稍后重试或联系站长修复"))
+					restErr = util.RestWithError("服务内部错误, 请稍后重试或联系站长修复")
 				default:
-					ctx.JSON(code, util.RestWithError("未知的错误: "+err.Error()))
+					restErr = util.RestWithError("未知的错误")
 				}
 			default: /* 非 error 对象 */
-				ctx.JSON(code, util.RestWithError("未知错误, 请稍后重试"))
+				restErr = util.RestWithError("未知错误, 请稍后重试")
 			}
-
+			// 根据请求头返回响应格式
+			handleProduce(code, restErr, ctx)
 			ctx.Abort()
 		}()
 

@@ -24,6 +24,11 @@
           "default": 0,
           "$comment": "雪花节点的机器编号"
         },
+        "staticDir": {
+          "type": "string",
+          "default": ".local",
+          "$comment": "本地存储的静态资源文件目录"
+        },
         "maxUserActive": {
           "type": "integer",
           "minimum": 1,
@@ -153,25 +158,9 @@
           "$comment": "加密盐"
         },
         "expired": {
-          "type": "object",
-          "properties": {
-            "unit": {
-              "type": "string",
-              "enum": [
-                "second",
-                "minute",
-                "hour",
-                "day"
-              ],
-              "default": "day",
-              "$comment": "时间单位"
-            },
-            "value": {
-              "type": "integer",
-              "$comment": "时长"
-            }
-          },
-          "$comment": "颁发 token 的默认有效时间"
+          "type": "string",
+          "default": "15d",
+          "$comment": "颁发 token 的默认有效时间, 支持的单位: s, m, h, d"
         }
       }
     }

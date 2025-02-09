@@ -7,14 +7,10 @@ import (
 )
 
 func UseServerResponseHintMiddleware() gin.HandlerFunc {
-	v := conf.GetProjectViper()
-	appConf := &conf.AppConf{}
-	if err := v.UnmarshalKey("app", appConf); err != nil {
-		panic(err)
-	}
+	hint := conf.ProjectConf.GetAppConf().ServerHint
 
 	return func(ctx *gin.Context) {
-		ctx.Header("Server", appConf.ServerHint)
+		ctx.Header("Server", hint)
 		ctx.Next()
 	}
 }

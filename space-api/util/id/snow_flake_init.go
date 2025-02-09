@@ -10,7 +10,8 @@ import (
 var node *snowflake.Node
 
 func init() {
-	nodeCreated, err := snowflake.NewNode(int64(conf.GetProjectViper().GetInt("app.nodeID")))
+	appConf := conf.ProjectConf.GetAppConf()
+	nodeCreated, err := snowflake.NewNode(appConf.NodeID)
 	if err != nil {
 		log.Fatal("could not get the id generator: ", err)
 	} else {

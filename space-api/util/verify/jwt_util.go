@@ -2,7 +2,6 @@ package verify
 
 import (
 	"fmt"
-	"log"
 	"space-api/conf"
 	"space-api/constants"
 	"space-api/util/ptr"
@@ -15,10 +14,7 @@ import (
 var _jwtConf = conf.JwtConf{}
 
 func init() {
-	err := conf.GetProjectViper().UnmarshalKey("jwtConf", &_jwtConf)
-	if err != nil {
-		log.Fatal(err)
-	}
+	_jwtConf = *conf.ProjectConf.GetJwtConf()
 }
 
 type TokenParsedBizClaims struct {

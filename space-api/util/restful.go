@@ -60,3 +60,11 @@ func TernaryExpr[T any](condition bool, val1, val2 T) T {
 
 	return val2
 }
+
+func GetOrFallback[T any](producer func() (T, error), fallback T) T {
+	if p, e := producer(); e != nil {
+		return fallback
+	} else {
+		return p
+	}
+}

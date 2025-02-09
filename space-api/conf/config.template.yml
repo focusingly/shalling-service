@@ -30,6 +30,4 @@ oauth2Conf:
     scopes: ["<your conf>"]
 jwtConf:
   salt: "<your conf>"
-  expired:
-    unit: day
-    value: 15
+  expired: "15d"

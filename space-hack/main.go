@@ -75,7 +75,7 @@ func genBizCodes() {
 }
 
 func genExtraCodes() {
-	db := db.GetExtraHelperDB()
+	db := db.GetExtraDB()
 	extraBizTbs := model.GetExtraHelperMigrateTables()
 	db.AutoMigrate(extraBizTbs...)
 	g := gen.NewGenerator(gen.Config{

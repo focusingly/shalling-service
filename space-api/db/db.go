@@ -14,17 +14,12 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-var bizDB *gorm.DB
-var extraHelperDB *gorm.DB
-
-type DB struct {
-	DbType string `yaml:"dbType"`
-	Dsn    string `yaml:"dsn"`
-	Mark   string `yaml:"mark"`
-}
+var _bizDB *gorm.DB
+var _extraDB *gorm.DB
 
 func init() {
-	v := conf.GetProjectViper()
+	cf := conf.ProjectConf
+
 	newLogger := logger.New(
 		log.New(os.Stdout, "\r\n", log.LstdFlags), // io writer
 		logger.Config{
@@ -36,54 +31,51 @@ func init() {
 		},
 	)
 
-	var t1 DB
-	if err := v.UnmarshalKey("dataSource.db.bizDB", &t1); err != nil {
-		panic(err)
-	} else {
-		var dialect gorm.Dialector
-		switch t1.DbType {
-		case "postgres":
-			dialect = postgres.Open(t1.Dsn)
-		case "sqlite":
-			dialect = sqlite.Open(t1.Dsn)
-		default:
-			panic(fmt.Errorf("un-support database type: %s", t1.DbType))
-		}
-		if bizDB, err = gorm.Open(dialect, &gorm.Config{
-			Logger: newLogger,
-		}); err != nil {
-			panic(err)
-		}
-	}
-	bizDB.AutoMigrate(model.GetBizMigrateTables()...)
-
-	var t2 DB
-	if err := v.UnmarshalKey("dataSource.db.logDB", &t2); err != nil {
-		panic(err)
-	} else {
-		var dialect gorm.Dialector
-		switch t1.DbType {
-		case "postgres":
-			dialect = postgres.Open(t2.Dsn)
-		case "sqlite":
-			dialect = sqlite.Open(t2.Dsn)
-		default:
-			panic(fmt.Errorf("un-support database type: %s", t2.DbType))
-		}
-		if extraHelperDB, err = gorm.Open(dialect, &gorm.Config{
-			Logger: newLogger,
-		}); err != nil {
-			panic(err)
-		}
+	var dialect1 gorm.Dialector
+	bizConf := cf.GetBizDBConf()
+	switch bizConf.DBType {
+	case "postgres":
+		dialect1 = postgres.Open(bizConf.Dsn)
+	case "sqlite":
+		dialect1 = sqlite.Open(bizConf.Dsn)
+	default:
+		panic(fmt.Errorf("un-support database type: %s", bizConf.DBType))
 	}
 
-	extraHelperDB.AutoMigrate(model.GetExtraHelperMigrateTables()...)
+	if db, err := gorm.Open(dialect1, &gorm.Config{
+		Logger: newLogger,
+	}); err != nil {
+		panic(err)
+	} else {
+		_bizDB = db
+		db.AutoMigrate(model.GetBizMigrateTables()...)
+	}
+
+	var dialect gorm.Dialector
+	extraConf := cf.GetExtraDBConf()
+	switch extraConf.DBType {
+	case "postgres":
+		dialect = postgres.Open(extraConf.Dsn)
+	case "sqlite":
+		dialect = sqlite.Open(extraConf.Dsn)
+	default:
+		panic(fmt.Errorf("un-support database type: %s", extraConf.DBType))
+	}
+	if db, err := gorm.Open(dialect, &gorm.Config{
+		Logger: newLogger,
+	}); err != nil {
+		panic(err)
+	} else {
+		_extraDB = db
+		_extraDB.AutoMigrate(model.GetExtraHelperMigrateTables()...)
+	}
+
 }
 
 func GetBizDB() *gorm.DB {
-	return bizDB
+	return _bizDB
 }
 
-func GetExtraHelperDB() *gorm.DB {
-	return extraHelperDB
+func GetExtraDB() *gorm.DB {
+	return _extraDB
 }

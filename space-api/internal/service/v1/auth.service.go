@@ -23,8 +23,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/github"
-	"golang.org/x/oauth2/google"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -82,53 +80,17 @@ var (
 	githubOauth2Config, googleOauth2Config *oauth2.Config
 	// 本地缓存空间
 	_authCache = auth.GetMiddlewareUsingCacheSpace()
-	_jwtConf   = &conf.JwtConf{}
-	_appConf   = &conf.AppConf{}
+	_jwtConf   = conf.ProjectConf.GetJwtConf()
+	_appConf   = conf.ProjectConf.GetAppConf()
 )
 
-func init() {
-	v := conf.GetProjectViper()
-	githubOauth2Config = &oauth2.Config{
-		ClientID:     v.GetString("oauth2Conf.github.clientId"),
-		ClientSecret: v.GetString("oauth2Conf.github.clientSecret"),
-		Endpoint:     github.Endpoint,
-		RedirectURL:  v.GetString("oauth2Conf.github.redirectUrl"),
-		Scopes:       v.GetStringSlice("oauth2Conf.github.scopes"),
-	}
-	googleOauth2Config = &oauth2.Config{
-		ClientID:     v.GetString("oauth2Conf.google.clientId"),
-		ClientSecret: v.GetString("oauth2Conf.google.clientSecret"),
-		Endpoint:     google.Endpoint,
-		RedirectURL:  v.GetString("oauth2Conf.google.redirectUrl"),
-		Scopes:       v.GetStringSlice("oauth2Conf.google.scopes"),
-	}
-	if err := v.UnmarshalKey("app", _appConf); err != nil {
-		panic(err)
-	}
-
-	if err := v.UnmarshalKey("jwtConf", _jwtConf); err != nil {
-		panic(err)
-	}
-	if _jwtConf.Expired.Value <= 0 {
-		panic(fmt.Errorf("require a  positive value, but got: %d", _jwtConf.Expired.Value))
-	}
-	switch _jwtConf.Expired.Unit {
-	case "second",
-		"minute",
-		"hour",
-		"day":
-		return
-	default:
-		panic(fmt.Errorf("un-support time unit: %s", _jwtConf.Expired.Unit))
-	}
+type _authService struct {
 }
 
-type oauth2Service struct{}
-
-var DefaultAuthService *oauth2Service
+var DefaultAuthService = &_authService{}
 
 // AdminLogin 后台管理员登录
-func (*oauth2Service) AdminLogin(req *dto.AdminLoginReq, ctx *gin.Context) (resp *dto.AdminLoginResp, err error) {
+func (*_authService) AdminLogin(req *dto.AdminLoginReq, ctx *gin.Context) (resp *dto.AdminLoginResp, err error) {
 	var localUser *model.LocalUser
 	var token string
 	var newLoginSession *model.UserLoginSession
@@ -174,18 +136,6 @@ func (*oauth2Service) AdminLogin(req *dto.AdminLoginReq, ctx *gin.Context) (resp
 			// 淘汰末尾数据
 			updates = updates[:_appConf.MaxUserActive-1]
 		}
-		var d time.Duration
-		exp := _jwtConf.Expired
-		switch exp.Unit {
-		case "second":
-			d = time.Second * time.Duration(exp.Value)
-		case "minute":
-			d = time.Minute * time.Duration(exp.Value)
-		case "hour":
-			d = time.Hour * time.Duration(exp.Value)
-		case "day":
-			d = time.Hour * 24 * time.Duration(exp.Value)
-		}
 
 		ipAddr := inbound.GetRealIpWithContext(ctx)
 		ua := inbound.GetUserAgentFromContext(ctx)
@@ -201,7 +151,7 @@ func (*oauth2Service) AdminLogin(req *dto.AdminLoginReq, ctx *gin.Context) (resp
 			IpU32Val:   &to32Ip,
 			IpAddress:  &ipAddr,
 			IpSource:   &ipSource,
-			ExpiredAt:  time.Now().Add(d).UnixMilli(),
+			ExpiredAt:  time.Now().Add(_jwtConf.ParsedExpTime).UnixMilli(),
 			UserType:   constants.LocalUser,
 			Useragent:  ua.Useragent,
 			ClientName: ua.ClientName,
@@ -261,7 +211,7 @@ func (*oauth2Service) AdminLogin(req *dto.AdminLoginReq, ctx *gin.Context) (resp
 	return
 }
 
-func (*oauth2Service) GetOauth2LoginGrantURL(req *dto.GetLoginURLReq, ctx *gin.Context) (resp dto.GetLoginURLResp, err error) {
+func (*_authService) GetOauth2LoginGrantURL(req *dto.GetLoginURLReq, ctx *gin.Context) (resp dto.GetLoginURLResp, err error) {
 	state := uuid.NewString()
 	ttl := time.Minute * 5 / time.Second
 	// 设置过期
@@ -284,7 +234,7 @@ func (*oauth2Service) GetOauth2LoginGrantURL(req *dto.GetLoginURLReq, ctx *gin.C
 	return
 }
 
-func (*oauth2Service) VerifyGithubCallback(ctx *gin.Context) (resp *model.OAuth2User, err error) {
+func (*_authService) VerifyGithubCallback(ctx *gin.Context) (resp *model.OAuth2User, err error) {
 	grantCode := ctx.DefaultQuery("code", "")
 	state := ctx.DefaultQuery("state", "")
 	// 判断授权码
@@ -402,7 +352,7 @@ func (*oauth2Service) VerifyGithubCallback(ctx *gin.Context) (resp *model.OAuth2
 	return
 }
 
-func (*oauth2Service) GetGoogleLoginURL(ctx *gin.Context) (val string, err error) {
+func (*_authService) GetGoogleLoginURL(ctx *gin.Context) (val string, err error) {
 	state := uuid.NewString()
 	if err = _authCache.Set(state, &empty{}, performance.Second(time.Minute*5/time.Second)); err != nil {
 		return
@@ -411,7 +361,7 @@ func (*oauth2Service) GetGoogleLoginURL(ctx *gin.Context) (val string, err error
 	return
 }
 
-func (*oauth2Service) VerifyGoogleCallback(ctx *gin.Context) (resp *model.OAuth2User, err error) {
+func (*_authService) VerifyGoogleCallback(ctx *gin.Context) (resp *model.OAuth2User, err error) {
 	grantCode := ctx.DefaultQuery("code", "")
 	state := ctx.DefaultQuery("state", "")
 	// 基本校验
@@ -490,7 +440,7 @@ func (*oauth2Service) VerifyGoogleCallback(ctx *gin.Context) (resp *model.OAuth2
 	return
 }
 
-func (*oauth2Service) Logout(ctx *gin.Context) (resp *empty, err error) {
+func (*_authService) Logout(ctx *gin.Context) (resp *empty, err error) {
 	exitsSession, e := auth.GetCurrentLoginSession(ctx)
 	if e != nil {
 		err = util.CreateAuthErr("无效凭据", e)

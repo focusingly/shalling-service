@@ -38,6 +38,9 @@ vendor/
 vendor/
 Godeps/
 
+# Temp Test Files
+.local
+
 # Build directories
 bin/
 build/

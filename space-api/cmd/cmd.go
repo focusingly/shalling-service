@@ -51,6 +51,7 @@ func Run() {
 
 	middlewares := []gin.HandlerFunc{
 		outbound.UseErrorHandler(),
+		inbound.UseUploadFileLimitMiddleware(constants.MemoryByteSize(appConf.ParsedUploadSize)),
 		outbound.UseServerResponseHintMiddleware(),
 		outbound.UseRestProduceHandler(),
 		inbound.UseUseragentParserMiddleware(),
@@ -71,12 +72,6 @@ func Run() {
 	})
 
 	apiRouteGroup := engine.Group("/v1/api")
-	apiRouteGroup.GET("/", func(ctx *gin.Context) {
-		ctx.JSON(200, []any{
-			inbound.GetUserAgentFromContext(ctx),
-			inbound.GetRealIpWithContext(ctx),
-		})
-	})
 	controller.RegisterAllControllers(apiRouteGroup)
 
 	effect.InvokeInit()

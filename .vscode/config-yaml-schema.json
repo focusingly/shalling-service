@@ -40,6 +40,11 @@
           "default": "Asia/Shanghai",
           "$comment": "服务器时区设置"
         },
+        "globalUploadSize": {
+          "type": "string",
+          "default": "32mb",
+          "$comment": "全局默认的 post 请求的最大上传文件大小, 默认解析处理单位: byte, kb, mb, gb"
+        },
         "salt": {
           "type": "string",
           "$comment": "用于本地数据库密码加密的盐值"

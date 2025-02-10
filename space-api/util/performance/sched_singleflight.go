@@ -1,6 +1,7 @@
-package util
+package performance
 
 import (
+	"space-api/util"
 	"sync"
 	"time"
 )
@@ -21,7 +22,7 @@ type (
 	}
 )
 
-var GoexitCalledError error = &BizErr{
+var GoexitCalledError error = &util.BizErr{
 	Msg: "runtime.Goexit() called",
 }
 

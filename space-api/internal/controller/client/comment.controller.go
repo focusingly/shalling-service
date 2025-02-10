@@ -6,6 +6,7 @@ import (
 	"space-api/middleware/auth"
 	"space-api/middleware/outbound"
 	"space-api/util"
+	"space-api/util/performance"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -18,7 +19,7 @@ func UseCommentController(routeGroup *gin.RouterGroup) {
 	// 根评论分页公开查询
 	{
 		// 对根分页进行缓存
-		var rootCachedGroup = &util.Group[*dto.GetRootCommentPagesResp]{}
+		var rootCachedGroup = &performance.Group[*dto.GetRootCommentPagesResp]{}
 		commentsGroup.GET("/list", func(ctx *gin.Context) {
 			cachedKey := ctx.Request.RequestURI
 
@@ -47,7 +48,7 @@ func UseCommentController(routeGroup *gin.RouterGroup) {
 	// 子分页评论公开查询
 	{
 		// 对子分页进行缓存
-		var subCachedGroup = &util.Group[*dto.GetSubCommentPagesResp]{}
+		var subCachedGroup = &performance.Group[*dto.GetSubCommentPagesResp]{}
 		commentsGroup.GET("/list/sub", func(ctx *gin.Context) {
 			cachedKey := ctx.Request.RequestURI
 

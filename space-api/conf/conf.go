@@ -20,13 +20,15 @@ import (
 type (
 	// AppConf 应用程序基本配置
 	AppConf struct {
-		Port           uint   `yaml:"port" json:"port" xml:"port" toml:"port"`
-		ServerHint     string `yaml:"serverHint" json:"serverHint" xml:"serverHint" toml:"serverHint"`
-		Salt           string `yaml:"salt" json:"salt" xml:"salt" toml:"salt"`
-		MaxUserActive  int    `yaml:"maxUserActive" json:"maxUserActive" xml:"maxUserActive" toml:"maxUserActive"`
-		ServerTimezone string `yaml:"serverTimezone" json:"serverTimezone" xml:"serverTimezone" toml:"serverTimezone"`
-		NodeID         int64
-		StaticDir      string `json:"staticDir" yaml:"staticDir" xml:"staticDir" toml:"staticDir"`
+		Port             uint                     `yaml:"port" json:"port" xml:"port" toml:"port"`
+		ServerHint       string                   `yaml:"serverHint" json:"serverHint" xml:"serverHint" toml:"serverHint"`
+		Salt             string                   `yaml:"salt" json:"salt" xml:"salt" toml:"salt"`
+		MaxUserActive    int                      `yaml:"maxUserActive" json:"maxUserActive" xml:"maxUserActive" toml:"maxUserActive"`
+		ServerTimezone   string                   `yaml:"serverTimezone" json:"serverTimezone" xml:"serverTimezone" toml:"serverTimezone"`
+		NodeID           int64                    `json:"nodeID" yaml:"nodeID" xml:"nodeID" toml:"nodeID"`
+		StaticDir        string                   `json:"staticDir" yaml:"staticDir" xml:"staticDir" toml:"staticDir"`
+		GlobalUploadSize string                   `json:"globalUploadSize" yaml:"globalUploadSize" xml:"globalUploadSize" toml:"globalUploadSize"`
+		ParsedUploadSize constants.MemoryByteSize `json:"parsedUploadSize" yaml:"parsedUploadSize" xml:"parsedUploadSize" toml:"parsedUploadSize"`
 	}
 
 	// Oauth2 认证配置
@@ -85,6 +87,8 @@ var ProjectConf = &_confScr{
 			}
 			return p, e
 		}, "./"), ".space-store", "files"),
+		GlobalUploadSize: "32m",
+		ParsedUploadSize: constants.MB * 32, // 全局的最大本地文件上传大小, 32 MB
 	},
 	jwtConf: JwtConf{
 		Salt:          uuid.NewString(),
@@ -192,6 +196,38 @@ func init() {
 
 	if e := v.UnmarshalKey("app", &ProjectConf.appConf); e != nil {
 		log.Fatal("set config error: ", e)
+	} else {
+		cf := &ProjectConf.appConf
+		units := []string{"byte", "kb", "mb", "gb"}
+		matched := "byte"
+		if !slices.ContainsFunc(units, func(u string) bool {
+			t := strings.HasSuffix(
+				strings.ToLower(cf.GlobalUploadSize),
+				u,
+			)
+			if t {
+				matched = u
+			}
+			return t
+		}) {
+			log.Fatal("un-support file unit size: ", cf.GlobalUploadSize)
+		} else {
+			sub := cf.GlobalUploadSize[:len(cf.GlobalUploadSize)-len(matched)]
+			if u, e := strconv.ParseInt(sub, 10, 64); e != nil || u <= 0 {
+				log.Fatal("illegal file size: ", cf.GlobalUploadSize)
+			} else {
+				switch matched {
+				case "byte":
+					cf.ParsedUploadSize = constants.Byte * constants.MemoryByteSize(u)
+				case "kb":
+					cf.ParsedUploadSize = constants.KB * constants.MemoryByteSize(u)
+				case "mb":
+					cf.ParsedUploadSize = constants.MB * constants.MemoryByteSize(u)
+				case "gb":
+					cf.ParsedUploadSize = constants.GB * constants.MemoryByteSize(u)
+				}
+			}
+		}
 	}
 
 	if e := v.UnmarshalKey("dataSource.db.bizDB", &ProjectConf.bizDBConf); e != nil {

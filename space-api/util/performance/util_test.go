@@ -1,4 +1,4 @@
-package util_test
+package performance_test
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"space-api/constants"
 	"space-api/util"
+	"space-api/util/performance"
 	"sync"
 	"testing"
 	"time"
@@ -22,7 +23,7 @@ func TestSchedSingleflight(t *testing.T) {
 	logger.SetFlags(0)
 
 	t.Run("Test-Normal", func(t *testing.T) {
-		var group util.Group[int]
+		var group performance.Group[int]
 		var wg sync.WaitGroup
 		logger.SetPrefix(constants.CYAN)
 
@@ -50,7 +51,7 @@ func TestSchedSingleflight(t *testing.T) {
 	})
 
 	t.Run("Test-ErrorHandle", func(t *testing.T) {
-		var group util.Group[struct{}]
+		var group performance.Group[struct{}]
 		var wg sync.WaitGroup
 
 		const itCount = 10
@@ -83,7 +84,7 @@ func TestSchedSingleflightPanicHandle(t *testing.T) {
 	logger.SetFlags(0)
 
 	t.Run("Handle-Panic", func(t *testing.T) {
-		var g util.Group[struct{}]
+		var g performance.Group[struct{}]
 		for i := 0; i < 20; i++ {
 			func(i int) {
 				defer func() {

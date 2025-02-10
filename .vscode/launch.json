@@ -11,6 +11,9 @@
             "mode": "debug",
             "hideSystemGoroutines": false,
             "showGlobalVariables": true,
+            "args": [
+                "-c=./conf/config.yml"
+            ],
             "program": "${workspaceFolder}/space-api/main.go"
         },
         {

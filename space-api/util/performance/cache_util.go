@@ -29,6 +29,13 @@ func init() {
 	})
 }
 
+func NewCache(maxSize constants.MemoryByteSize) *JsonCache {
+	return (*JsonCache)(&bizCache{
+		instance:  freecache.NewCache(int(maxSize)),
+		namespace: "",
+	})
+}
+
 // Group 返回新的命名空间存储
 func (jc *JsonCache) Group(namespace string) *JsonCache {
 	return &JsonCache{

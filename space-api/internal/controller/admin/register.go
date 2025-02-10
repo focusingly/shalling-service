@@ -12,4 +12,5 @@ func RegisterAllAdminControllers(group *gin.RouterGroup) {
 	UseFriendLinkController(adminGroup)
 	UseMenuController(adminGroup)
 	UsePerformanceMonitorController(adminGroup)
+	UseUserController(adminGroup)
 }

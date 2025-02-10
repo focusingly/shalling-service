@@ -97,7 +97,7 @@ func (s *_authService) updateUserLoginSession(user *boData, bizTx *biz.Query, ct
 		loginSessionTx := tx.UserLoginSession
 		// 获取用户所有已经登录的会话信息
 		existsSessions, e := loginSessionTx.WithContext(ctx).
-			Where(loginSessionTx.UserId.Eq(user.UserID)).
+			Where(loginSessionTx.UserID.Eq(user.UserID)).
 			Find()
 		if e != nil {
 			return util.CreateBizErr("设置会话信息失败", e)
@@ -134,7 +134,7 @@ func (s *_authService) updateUserLoginSession(user *boData, bizTx *biz.Query, ct
 			BaseColumn: model.BaseColumn{
 				ID: id.GetSnowFlakeNode().Generate().Int64(),
 			},
-			UserId:     user.UserID,
+			UserID:     user.UserID,
 			UUID:       uuid.NewString(),
 			IpU32Val:   &to32Ip,
 			IpAddress:  &ipAddr,

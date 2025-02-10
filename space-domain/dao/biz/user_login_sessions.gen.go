@@ -32,7 +32,7 @@ func newUserLoginSession(db *gorm.DB, opts ...gen.DOOption) userLoginSession {
 	_userLoginSession.CreatedAt = field.NewInt64(tableName, "created_at")
 	_userLoginSession.UpdatedAt = field.NewInt64(tableName, "updated_at")
 	_userLoginSession.Hide = field.NewInt(tableName, "hide")
-	_userLoginSession.UserId = field.NewInt64(tableName, "user_id")
+	_userLoginSession.UserID = field.NewInt64(tableName, "user_id")
 	_userLoginSession.UUID = field.NewString(tableName, "uuid")
 	_userLoginSession.IpU32Val = field.NewUint32(tableName, "ip_u32_val")
 	_userLoginSession.IpAddress = field.NewString(tableName, "ip_address")
@@ -57,7 +57,7 @@ type userLoginSession struct {
 	CreatedAt  field.Int64
 	UpdatedAt  field.Int64
 	Hide       field.Int
-	UserId     field.Int64
+	UserID     field.Int64
 	UUID       field.String
 	IpU32Val   field.Uint32
 	IpAddress  field.String
@@ -88,7 +88,7 @@ func (u *userLoginSession) updateTableName(table string) *userLoginSession {
 	u.CreatedAt = field.NewInt64(table, "created_at")
 	u.UpdatedAt = field.NewInt64(table, "updated_at")
 	u.Hide = field.NewInt(table, "hide")
-	u.UserId = field.NewInt64(table, "user_id")
+	u.UserID = field.NewInt64(table, "user_id")
 	u.UUID = field.NewString(table, "uuid")
 	u.IpU32Val = field.NewUint32(table, "ip_u32_val")
 	u.IpAddress = field.NewString(table, "ip_address")
@@ -132,7 +132,7 @@ func (u *userLoginSession) fillFieldMap() {
 	u.fieldMap["created_at"] = u.CreatedAt
 	u.fieldMap["updated_at"] = u.UpdatedAt
 	u.fieldMap["hide"] = u.Hide
-	u.fieldMap["user_id"] = u.UserId
+	u.fieldMap["user_id"] = u.UserID
 	u.fieldMap["uuid"] = u.UUID
 	u.fieldMap["ip_u32_val"] = u.IpU32Val
 	u.fieldMap["ip_address"] = u.IpAddress

@@ -40,7 +40,7 @@ type (
 	// UserLoginSession 表示登录会话信息
 	UserLoginSession struct {
 		BaseColumn `json:"baseColumn" yaml:"baseColumn" xml:"baseColumn" toml:"baseColumn"`
-		UserId     int64   `gorm:"type:bigint;not null;comment:用户的 ID" json:"userId" yaml:"userId" xml:"userId" toml:"userId"`
+		UserID     int64   `gorm:"type:bigint;not null;comment:用户的 ID" json:"userID" yaml:"userID" xml:"userID" toml:"userID"`
 		UUID       string  `gorm:"type:varchar(255);not null;comment:在额外的缓存中用于标识 key, 也对应 token 中设置的 uuid" json:"uuid" yaml:"uuid" xml:"uuid" toml:"uuid"`
 		IpU32Val   *uint32 `gorm:"type:int;null;comment:ipv4 地址的 uint32 表示值" json:"ipU32Val" yaml:"ipU32Val" xml:"ipU32Val" toml:"ipU32Val"`
 		IpAddress  *string `gorm:"type:varchar(255);null;comment:ip 地址表示字符串" json:"ipAddress" yaml:"ipAddress" xml:"ipAddress" toml:"ipAddress"`

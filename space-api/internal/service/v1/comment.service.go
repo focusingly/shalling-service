@@ -38,7 +38,7 @@ func (*commentService) createCommentDirect(req *dto.CreateCommentReq, ctx *gin.C
 			oauthUser, e := oauthUserTx.WithContext(ctx).
 				Select(oauthUserTx.Username, oauthUserTx.AvatarURL, oauthUserTx.HomepageLink).
 				Where(
-					oauthUserTx.ID.Eq(loginSession.UserId),
+					oauthUserTx.ID.Eq(loginSession.UserID),
 				).
 				Take()
 			if e != nil {
@@ -54,7 +54,7 @@ func (*commentService) createCommentDirect(req *dto.CreateCommentReq, ctx *gin.C
 			localUserTx := tx.LocalUser
 			localUser, e := localUserTx.WithContext(ctx).
 				Select(localUserTx.DisplayName, localUserTx.AvatarURL, localUserTx.HomepageLink).
-				Where(localUserTx.ID.Eq(loginSession.UserId)).
+				Where(localUserTx.ID.Eq(loginSession.UserID)).
 				Take()
 			if e != nil {
 				return e

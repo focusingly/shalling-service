@@ -63,7 +63,7 @@ func UseJwtAuthHandler() gin.HandlerFunc {
 					ctx.Abort()
 					return
 				}
-				f, e := biz.LocalUser.WithContext(ctx).Where(biz.LocalUser.ID.Eq(user.ID)).Take()
+				f, e := biz.LocalUser.WithContext(ctx).Where(biz.LocalUser.ID.Eq(user.UserID)).Take()
 				// TODO 暂时设置为只支持使用本地的 admin 用户进行操作, 后续视情况添加 RBAC 管理
 				if e != nil || !(f.IsAdmin > 0) {
 					ctx.Error(&util.AuthErr{

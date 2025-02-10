@@ -142,6 +142,7 @@ type (
 		Category      string `gorm:"type:varchar(255);not null;comment:文件归类名称" json:"category" yaml:"category" xml:"category" toml:"category"`
 		ChecksumType  string `gorm:"varchar(255);not null;comment:校验类型" json:"checksumType" yaml:"checksumType" xml:"checksumType" toml:"checksumType"`
 		Checksum      string `gorm:"type:text;not null;comment:校验和" json:"checksum" yaml:"checksum" xml:"checksum" toml:"checksum"`
+		PubAvailable  int    `gorm:"type:smallint;not null;default:0;comment:是否允许对外的公开访问(默认不允许: 0)" json:"pubAvailable" yaml:"pubAvailable" xml:"pubAvailable" toml:"pubAvailable"`
 	}
 
 	// 使用 OSS3 的相关服务存储记录
@@ -154,6 +155,7 @@ type (
 		VisitURL     string `gorm:"type:text;not null;comment:oss存储上的相对路径" json:"visitURL" yaml:"visitURL" xml:"visitURL" toml:"visitURL"`
 		ChecksumType string `gorm:"varchar(255);not null;comment:校验类型" json:"checksumType" yaml:"checksumType" xml:"checksumType" toml:"checksumType"`
 		Checksum     string `gorm:"type:text;not null;comment:校验和" json:"checksum" yaml:"checksum" xml:"checksum" toml:"checksum"`
+		PubAvailable int    `gorm:"type:smallint;not null;default:0;comment:是否允许对外的公开访问(默认不允许: 0)" json:"pubAvailable" yaml:"pubAvailable" xml:"pubAvailable" toml:"pubAvailable"`
 	}
 
 	// 菜单组

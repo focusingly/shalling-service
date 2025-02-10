@@ -39,6 +39,7 @@ func newFileRecord(db *gorm.DB, opts ...gen.DOOption) fileRecord {
 	_fileRecord.Category = field.NewString(tableName, "category")
 	_fileRecord.ChecksumType = field.NewString(tableName, "checksum_type")
 	_fileRecord.Checksum = field.NewString(tableName, "checksum")
+	_fileRecord.PubAvailable = field.NewInt(tableName, "pub_available")
 
 	_fileRecord.fillFieldMap()
 
@@ -60,6 +61,7 @@ type fileRecord struct {
 	Category      field.String
 	ChecksumType  field.String
 	Checksum      field.String
+	PubAvailable  field.Int
 
 	fieldMap map[string]field.Expr
 }
@@ -87,6 +89,7 @@ func (f *fileRecord) updateTableName(table string) *fileRecord {
 	f.Category = field.NewString(table, "category")
 	f.ChecksumType = field.NewString(table, "checksum_type")
 	f.Checksum = field.NewString(table, "checksum")
+	f.PubAvailable = field.NewInt(table, "pub_available")
 
 	f.fillFieldMap()
 
@@ -113,7 +116,7 @@ func (f *fileRecord) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (f *fileRecord) fillFieldMap() {
-	f.fieldMap = make(map[string]field.Expr, 11)
+	f.fieldMap = make(map[string]field.Expr, 12)
 	f.fieldMap["id"] = f.ID
 	f.fieldMap["created_at"] = f.CreatedAt
 	f.fieldMap["updated_at"] = f.UpdatedAt
@@ -125,6 +128,7 @@ func (f *fileRecord) fillFieldMap() {
 	f.fieldMap["category"] = f.Category
 	f.fieldMap["checksum_type"] = f.ChecksumType
 	f.fieldMap["checksum"] = f.Checksum
+	f.fieldMap["pub_available"] = f.PubAvailable
 }
 
 func (f fileRecord) clone(db *gorm.DB) fileRecord {

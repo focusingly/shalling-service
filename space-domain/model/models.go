@@ -34,6 +34,7 @@ type (
 		AvatarURL      *string  `gorm:"type:text;null;comment:用户的头像链接" json:"avatarURL" yaml:"avatarURL" xml:"avatarURL" toml:"avatarURL"`
 		HomepageLink   *string  `gorm:"type:text;null;comment:用户的主页链接" json:"homepageLink" yaml:"homepageLink" xml:"homepageLink" toml:"homepageLink"`
 		Scopes         []string `gorm:"type:text;null;serializer:json;comment:oauth2 申请的权限范围" json:"scopes" yaml:"scopes" xml:"scopes" toml:"scopes"`
+		Enable         int      `gorm:"type:smallint;default:1;not null;comment:用户是否启用" json:"enable" yaml:"enable" xml:"enable" toml:"enable"`
 	}
 
 	// UserLoginSession 表示登录会话信息

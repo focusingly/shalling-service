@@ -31,7 +31,7 @@ func UseAuthController(group *gin.RouterGroup) {
 
 	// 处理 oauth2 相关的登录/认证
 	{
-		oauth2LoginGroup := group.Group("/oauth2/login")
+		oauth2LoginGroup := group.Group("/oauth2/url")
 		// 获取登录链接
 		oauth2LoginGroup.GET("/url", func(ctx *gin.Context) {
 			req := &dto.GetLoginURLReq{}
@@ -45,6 +45,23 @@ func UseAuthController(group *gin.RouterGroup) {
 			} else {
 				outbound.NotifyProduceResponse(resp, ctx)
 			}
+		})
+
+		// 解析登录
+		oauth2LoginGroup.POST("/login", func(ctx *gin.Context) {
+			req := &dto.OauthLoginCallbackReq{}
+
+			if e := ctx.ShouldBindBodyWithJSON(req); e != nil {
+				ctx.Error(util.CreateBizErr("参数错误: "+e.Error(), e))
+				return
+			}
+
+			if resp, err := authService.HandleOauthLogin(req, ctx); err != nil {
+				ctx.Error(err)
+			} else {
+				outbound.NotifyProduceResponse(resp, ctx)
+			}
+
 		})
 	}
 

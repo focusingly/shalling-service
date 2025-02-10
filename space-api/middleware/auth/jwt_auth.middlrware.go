@@ -22,7 +22,7 @@ var _jwtRandMark = uuid.NewString()
 
 var _authCacheGroup = performance.DefaultJsonCache.Group("auth")
 
-func GetMiddlewareUsingCacheSpace() *performance.JsonCache {
+func GetMiddlewareRelativeAuthCache() *performance.JsonCache {
 	return _authCacheGroup
 }
 

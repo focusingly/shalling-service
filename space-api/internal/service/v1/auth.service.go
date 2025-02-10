@@ -26,8 +26,6 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-type empty struct{}
-
 type (
 	GithubPub struct {
 		Login             string    `json:"login"`
@@ -215,7 +213,7 @@ func (*_authService) GetOauth2LoginGrantURL(req *dto.GetLoginURLReq, ctx *gin.Co
 	state := uuid.NewString()
 	ttl := time.Minute * 5 / time.Second
 	// 设置过期
-	err = _authCache.Set(state, new(empty), performance.Second(ttl))
+	err = _authCache.Set(state, new(performance.Empty), performance.Second(ttl))
 	if err != nil {
 		err = util.CreateBizErr("设置校验状态失败: "+err.Error(), err)
 		return
@@ -250,7 +248,7 @@ func (*_authService) VerifyGithubCallback(ctx *gin.Context) (resp *model.OAuth2U
 
 	// 判断 state
 	// 判断缓存里的情况
-	if err = _authCache.GetAndDel(state, &empty{}); err != nil {
+	if err = _authCache.GetAndDel(state, &performance.Empty{}); err != nil {
 		return
 	}
 
@@ -354,7 +352,7 @@ func (*_authService) VerifyGithubCallback(ctx *gin.Context) (resp *model.OAuth2U
 
 func (*_authService) GetGoogleLoginURL(ctx *gin.Context) (val string, err error) {
 	state := uuid.NewString()
-	if err = _authCache.Set(state, &empty{}, performance.Second(time.Minute*5/time.Second)); err != nil {
+	if err = _authCache.Set(state, &performance.Empty{}, performance.Second(time.Minute*5/time.Second)); err != nil {
 		return
 	}
 	val = googleOauth2Config.AuthCodeURL(state)
@@ -374,7 +372,7 @@ func (*_authService) VerifyGoogleCallback(ctx *gin.Context) (resp *model.OAuth2U
 		}
 		return
 	}
-	if err = _authCache.GetAndDel(state, &empty{}); err != nil {
+	if err = _authCache.GetAndDel(state, &performance.Empty{}); err != nil {
 		err = &util.AuthErr{
 			BizErr: util.BizErr{
 				Msg:    "凭据校验失败",
@@ -440,7 +438,7 @@ func (*_authService) VerifyGoogleCallback(ctx *gin.Context) (resp *model.OAuth2U
 	return
 }
 
-func (*_authService) Logout(ctx *gin.Context) (resp *empty, err error) {
+func (*_authService) Logout(ctx *gin.Context) (resp *performance.Empty, err error) {
 	exitsSession, e := auth.GetCurrentLoginSession(ctx)
 	if e != nil {
 		err = util.CreateAuthErr("无效凭据", e)

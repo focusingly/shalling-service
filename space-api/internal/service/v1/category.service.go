@@ -106,6 +106,7 @@ func (c *categoryService) GetCategoryWithAllPosts(req *dto.GetCategoryWithPostsR
 		return
 	}
 	postTx := biz.Post
+	postTx.Columns()
 	postList, err := postTx.WithContext(ctx).
 		Select(
 			postTx.ID,
@@ -116,6 +117,7 @@ func (c *categoryService) GetCategoryWithAllPosts(req *dto.GetCategoryWithPostsR
 			postTx.AuthorId,
 			// postTx.Content, // 减少数据携带量
 			postTx.WordCount,
+			postTx.Snippet,
 			postTx.ReadTime,
 			postTx.Category,
 			postTx.Tags,
@@ -140,10 +142,27 @@ func (c *categoryService) GetCategoryWithAllPosts(req *dto.GetCategoryWithPostsR
 	return
 }
 
-// GetCategoryList 获取所有的分类信息
-func (c *categoryService) GetCategoryList(req *dto.GetCategoryListReq, ctx *gin.Context) (resp *dto.GetCategoryListResp, err error) {
+// GetAllCategories 获取所有的分类信息
+func (c *categoryService) GetAllCategories(req *dto.GetCategoryListReq, ctx *gin.Context) (resp *dto.GetCategoryListResp, err error) {
 	catTx := biz.Category
 	list, err := catTx.WithContext(ctx).Find()
+	if err != nil {
+		err = util.CreateBizErr("查询分类列表失败: "+err.Error(), err)
+		return
+	}
+	resp = &dto.GetCategoryListResp{
+		List: list,
+	}
+
+	return
+}
+
+// GetAllCategories 获取所有可见的分类信息
+func (c *categoryService) GetAllVisibleCategories(req *dto.GetCategoryListReq, ctx *gin.Context) (resp *dto.GetCategoryListResp, err error) {
+	catTx := biz.Category
+	list, err := catTx.WithContext(ctx).
+		Where(catTx.Hide.Eq(0)).
+		Find()
 	if err != nil {
 		err = util.CreateBizErr("查询分类列表失败: "+err.Error(), err)
 		return
@@ -174,6 +193,7 @@ func (c *categoryService) GetCategoryWithVisiblePosts(req *dto.GetCategoryWithPo
 			// postTx.Content, // 减少数据携带量
 			postTx.WordCount,
 			postTx.ReadTime,
+			postTx.Snippet,
 			postTx.Category,
 			postTx.Tags,
 			postTx.LastPubTime,

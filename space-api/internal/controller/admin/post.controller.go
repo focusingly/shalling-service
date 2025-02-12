@@ -47,7 +47,7 @@ func UsePostController(group *gin.RouterGroup) {
 				return
 			}
 
-			if resp, err := postService.GetPostList(req, ctx); err != nil {
+			if resp, err := postService.GetAllPostList(req, ctx); err != nil {
 				ctx.Error(err)
 			} else {
 				outbound.NotifyProduceResponse(resp, ctx)

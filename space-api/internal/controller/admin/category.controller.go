@@ -56,7 +56,7 @@ func UseCategoryController(group *gin.RouterGroup) {
 				ctx.Error(util.CreateBizErr("参数错误: "+err.Error(), err))
 				return
 			}
-			resp, err := categoryService.GetCategoryList(req, ctx)
+			resp, err := categoryService.GetAllCategories(req, ctx)
 			if err != nil {
 				ctx.Error(err)
 			} else {

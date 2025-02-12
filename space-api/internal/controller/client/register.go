@@ -7,7 +7,7 @@ import (
 func RegisterAllClientComments(group *gin.RouterGroup) {
 	clientGroup := group.Group("/client")
 
-	UsePostsController(clientGroup)
+	IndexController(clientGroup)
 	UseCommentController(clientGroup)
 	UsePubStaticFilesController(clientGroup)
 }

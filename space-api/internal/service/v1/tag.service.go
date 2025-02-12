@@ -153,9 +153,55 @@ func (*tagService) GetTagDetailById(req *dto.GetTagDetailReq, ctx *gin.Context) 
 	return
 }
 
-func (*tagService) GetTagPageList(req *dto.GetTagPageListReq, ctx *gin.Context) (resp *dto.GetTagPageListResp, err error) {
+func (*tagService) GetAnyTagPages(req *dto.GetTagPageListReq, ctx *gin.Context) (resp *dto.GetTagPageListResp, err error) {
 	tagOp := biz.Tag
 	list, count, err := tagOp.WithContext(ctx).FindByPage(req.Normalize())
+	if err != nil {
+		return nil, &util.BizErr{
+			Reason: err,
+			Msg:    "查询失败" + err.Error(),
+		}
+	}
+
+	return &dto.GetTagPageListResp{
+		PageList: model.PageList[*model.Tag]{
+			List:  list,
+			Page:  int64(*req.Page),
+			Size:  int64(*req.Size),
+			Total: count,
+		},
+	}, nil
+}
+
+func (*tagService) GetVisiblePostByTagName(req *dto.GetTagPageListReq, ctx *gin.Context) (resp *dto.GetTagPageListResp, err error) {
+	tagOp := biz.Tag
+
+	list, count, err := tagOp.WithContext(ctx).
+		Where(tagOp.Hide.Eq(0)).
+		FindByPage(req.Normalize())
+	if err != nil {
+		return nil, &util.BizErr{
+			Reason: err,
+			Msg:    "查询失败" + err.Error(),
+		}
+	}
+
+	return &dto.GetTagPageListResp{
+		PageList: model.PageList[*model.Tag]{
+			List:  list,
+			Page:  int64(*req.Page),
+			Size:  int64(*req.Size),
+			Total: count,
+		},
+	}, nil
+}
+
+func (*tagService) GetVisibleTagPages(req *dto.GetTagPageListReq, ctx *gin.Context) (resp *dto.GetTagPageListResp, err error) {
+	tagOp := biz.Tag
+
+	list, count, err := tagOp.WithContext(ctx).
+		Where(tagOp.Hide.Eq(0)).
+		FindByPage(req.Normalize())
 	if err != nil {
 		return nil, &util.BizErr{
 			Reason: err,

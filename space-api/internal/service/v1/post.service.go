@@ -67,6 +67,7 @@ func (*postService) CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.
 				ReadTime:     req.ReadTime,
 				Category:     req.Category,
 				Tags:         req.Tags,
+				Snippet:      req.Snippet,
 				LastPubTime:  req.LastPubTime,
 				Weight:       req.Weight,
 				Views:        req.Views,
@@ -94,29 +95,35 @@ func (*postService) CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.
 				LastPubTime:  req.LastPubTime,
 				Weight:       req.Weight,
 				Views:        req.Views,
+				Snippet:      req.Snippet,
 				UpVote:       req.UpVote,
 				DownVote:     req.DownVote,
 				AllowComment: req.AllowComment,
 			}
-			if _, err := postOp.WithContext(ctx).Where(postOp.ID.Eq(postId)).Select(
-				postOp.ID,
-				postOp.CreatedAt,
-				postOp.UpdatedAt,
-				postOp.Hide,
-				postOp.Title,
-				postOp.AuthorId,
-				postOp.Content,
-				postOp.WordCount,
-				postOp.ReadTime,
-				postOp.Category,
-				postOp.Tags,
-				postOp.LastPubTime,
-				postOp.Weight,
-				postOp.Views,
-				postOp.UpVote,
-				postOp.DownVote,
-				postOp.AllowComment,
-			).Updates(t); err != nil {
+
+			_, err := postOp.WithContext(ctx).
+				Where(postOp.ID.Eq(postId)).
+				Select(
+					postOp.ID,
+					postOp.Hide,
+					postOp.Snippet,
+					postOp.Title,
+					postOp.AuthorId,
+					postOp.Content,
+					postOp.WordCount,
+					postOp.ReadTime,
+					postOp.Category,
+					postOp.Tags,
+					postOp.LastPubTime,
+					postOp.Weight,
+					postOp.Views,
+					postOp.Snippet,
+					postOp.UpVote,
+					postOp.DownVote,
+					postOp.AllowComment,
+				).
+				Updates(t)
+			if err != nil {
 				return err
 			}
 		}
@@ -234,8 +241,8 @@ func (*postService) CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.
 	return
 }
 
-// GetPostList 获取文章分页的信息(不包括正文内容)
-func (*postService) GetPostList(req *dto.GetPostPageListReq, ctx *gin.Context) (resp *dto.GetPostPageListResp, err error) {
+// GetAllPostList 获取所有文章分页的信息(不包括正文内容)
+func (*postService) GetAllPostList(req *dto.GetPostPageListReq, ctx *gin.Context) (resp *dto.GetPostPageListResp, err error) {
 	postOp := biz.Post
 
 	result, count, err := postOp.
@@ -247,6 +254,7 @@ func (*postService) GetPostList(req *dto.GetPostPageListReq, ctx *gin.Context) (
 			postOp.Title,
 			postOp.AuthorId,
 			postOp.WordCount,
+			postOp.Snippet,
 			postOp.ReadTime,
 			postOp.Category,
 			postOp.Tags,
@@ -276,9 +284,76 @@ func (*postService) GetPostList(req *dto.GetPostPageListReq, ctx *gin.Context) (
 	}, nil
 }
 
+// GetVisiblePostList 获取可见文章分页的信息(不包括正文内容)
+func (*postService) GetVisiblePostList(req *dto.GetPostPageListReq, ctx *gin.Context) (resp *dto.GetPostPageListResp, err error) {
+	postOp := biz.Post
+
+	// 只允许可见的文章
+	result, count, err := postOp.
+		WithContext(ctx).
+		Where(postOp.Hide.Eq(0)).
+		Select(postOp.ID,
+			postOp.CreatedAt,
+			postOp.UpdatedAt,
+			postOp.Hide,
+			postOp.Title,
+			postOp.AuthorId,
+			// postOp.Content,
+			postOp.Snippet,
+			postOp.WordCount,
+			postOp.ReadTime,
+			postOp.Category,
+			postOp.Tags,
+			postOp.LastPubTime,
+			postOp.Weight,
+			postOp.Views,
+			postOp.UpVote,
+			postOp.DownVote,
+			postOp.AllowComment,
+		).
+		Order(postOp.CreatedAt.Distinct()).
+		FindByPage(req.Normalize())
+
+	if err != nil {
+		return nil, &util.BizErr{
+			Msg:    "查询错误",
+			Reason: err,
+		}
+	}
+
+	return &dto.GetPostPageListResp{
+		PageList: model.PageList[*model.Post]{
+			List:  result,
+			Page:  int64(*req.Page),
+			Size:  int64(*req.Size),
+			Total: count,
+		},
+	}, nil
+}
+
 // GetPostById 根据文章 ID 获取全量的文章信息
 func (*postService) GetPostById(req *dto.GetPostDetailReq, ctx *gin.Context) (resp *dto.GetPostDetailResp, err error) {
-	val, err := biz.Post.WithContext(ctx).Where(biz.Post.ID.Eq(req.Id)).Take()
+	val, err := biz.Post.WithContext(ctx).Where(biz.Post.ID.Eq(req.PostID)).Take()
+	if err != nil {
+		return nil, &util.BizErr{
+			Msg:    "查找文章失败",
+			Reason: err,
+		}
+	}
+
+	return &dto.GetPostDetailResp{
+		Post: *val,
+	}, nil
+}
+
+// GetVisiblePostById 根据文章 ID 获取可见的全量的文章信息
+func (*postService) GetVisiblePostById(req *dto.GetPostDetailReq, ctx *gin.Context) (resp *dto.GetPostDetailResp, err error) {
+	val, err := biz.Post.WithContext(ctx).
+		Where(
+			biz.Post.ID.Eq(req.PostID),
+			biz.Post.Hide.Eq(0),
+		).
+		Take()
 	if err != nil {
 		return nil, &util.BizErr{
 			Msg:    "查找文章失败",
@@ -306,4 +381,68 @@ func (*postService) DeletePostByIdList(req *dto.DeletePostByIdListReq, ctx *gin.
 	}
 
 	return &dto.DeletePostByIdListResp{}, nil
+}
+
+func (*postService) GetVisiblePostsByTagName(req *dto.GetPostByTagNameReq, ctx *gin.Context) (resp *dto.GetPostByTagNameResp, err error) {
+	tagOp := biz.Tag
+	// 找到匹配的标签
+	tag, err := tagOp.WithContext(ctx).
+		Where(tagOp.TagName.Eq(req.TagName), tagOp.Hide.Eq(0)).
+		Take()
+	if err != nil {
+		err = util.CreateBizErr("没有相关的标签", err)
+		return
+	}
+
+	tagPostOp := biz.PostTagRelation
+	postOp := biz.Post
+
+	// select post.* from postTagRelation left join post on post.id.eq postTagRelation.post_id
+	// where post.hide = 0
+	postsList := []*model.Post{}
+	err = tagPostOp.WithContext(ctx).
+		Select(
+			postOp.ID,
+			postOp.CreatedAt,
+			postOp.UpdatedAt,
+			postOp.Hide,
+			postOp.Title,
+			postOp.AuthorId,
+			// postOp.Content,省略文章内容, 减少传输
+			postOp.WordCount,
+			postOp.ReadTime,
+			postOp.Snippet,
+			postOp.Category,
+			postOp.Tags,
+			postOp.LastPubTime,
+			postOp.Weight,
+			postOp.Views,
+			postOp.UpVote,
+			postOp.DownVote,
+			postOp.Lang,
+			postOp.AllowComment,
+		).
+		LeftJoin(
+			postOp,
+			postOp.ID.EqCol(tagPostOp.PostId),
+		).
+		Where(postOp.Hide.Eq(0)).
+		Scan(&postsList)
+	if err != nil {
+		err = util.CreateBizErr("查找数据失败", err)
+		return
+	}
+	resp = &dto.GetPostByTagNameResp{
+		Tag:   tag,
+		Posts: postsList,
+	}
+
+	return
+}
+
+// SearchPostByGlobal 根据关键词进行公开文章的全文搜索
+func (*postService) SearchPostByGlobal(req *dto.GlobalSearchReq, ctx *gin.Context) (resp *dto.GlobalSearchResp, err error) {
+
+	resp = &dto.GlobalSearchResp{}
+	return
 }

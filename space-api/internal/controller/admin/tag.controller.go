@@ -26,7 +26,7 @@ func UseTagController(group *gin.RouterGroup) {
 
 				return
 			}
-			if val, err := service.GetTagPageList(req, ctx); err != nil {
+			if val, err := service.GetAnyTagPages(req, ctx); err != nil {
 				ctx.Error(err)
 			} else {
 				ctx.JSON(http.StatusOK, util.RestWithSuccess(val))

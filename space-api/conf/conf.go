@@ -45,6 +45,7 @@ type (
 		ParsedExpTime time.Duration `json:"parsedExpTime" yaml:"parsedExpTime" xml:"parsedExpTime" toml:"parsedExpTime"`
 	}
 
+	// 数据库配置
 	DatabaseConf struct {
 		DBName string `json:"dbName" yaml:"dbName" xml:"dbName" toml:"dbName"`
 		DBType string `json:"dbType" yaml:"dbType" xml:"dbType" toml:"dbType"`
@@ -62,75 +63,76 @@ type _confScr struct {
 	extraDBConf    DatabaseConf
 }
 
-var _defaultStore = path.Join(util.GetOrFallback(os.UserHomeDir, "./"), ".space-store")
-
-var ProjectConf = &_confScr{
-	appConf: AppConf{
-		NodeID:         1,
-		Port:           uint(8088),
-		ServerHint:     "Shalling Space",
-		Salt:           uuid.NewString(),
-		MaxUserActive:  3,
-		ServerTimezone: "",
-		// 设置默认路径
-		StaticDir: path.Join(util.GetOrFallback(func() (string, error) {
-			p, e := os.UserHomeDir()
-			if e != nil {
-				t := fmt.Sprintf(
-					"%sGet Default User Home Dir Fail, Use A fallback value %s replaced%s",
-					constants.RED,
-					constants.BG_CYAN,
-					constants.RESET,
-				)
-				fmt.Println(t)
-			}
-			return p, e
-		}, "./"), ".space-store", "files"),
-		GlobalUploadSize: "32m",
-		ParsedUploadSize: constants.MB * 32, // 全局的最大本地文件上传大小, 32 MB
-	},
-	jwtConf: JwtConf{
-		Salt:          uuid.NewString(),
-		Expired:       "15d",
-		ParsedExpTime: time.Hour * 24 * 15,
-	},
-	bizDBConf: DatabaseConf{
-		DBName: "bizDB",
-		DBType: "sqlite",
-		Dsn: path.Join(util.GetOrFallback(func() (string, error) {
-			p, e := os.UserHomeDir()
-			if e != nil {
-				t := fmt.Sprintf(
-					"%sGet Default User Home Dir Fail, Use A fallback value %s replaced%s",
-					constants.RED,
-					constants.BG_CYAN,
-					constants.RESET,
-				)
-				fmt.Println(t)
-			}
-			return p, e
-		}, "./"), ".space-store", "db", "biz-db.sqlite"),
-		Mark: "biz db",
-	},
-	extraDBConf: DatabaseConf{
-		DBName: "extraDB",
-		DBType: "sqlite",
-		Dsn: path.Join(util.GetOrFallback(func() (string, error) {
-			p, e := os.UserHomeDir()
-			if e != nil {
-				t := fmt.Sprintf(
-					"%sGet Default User Home Dir Fail, Use A fallback value %s replaced%s",
-					constants.RED,
-					constants.BG_CYAN,
-					constants.RESET,
-				)
-				fmt.Println(t)
-			}
-			return p, e
-		}, "./"), ".space-store", "db", "extra-db.sqlite"),
-		Mark: "extra db(for log, config...)",
-	},
-}
+var (
+	_defaultStore = path.Join(util.GetOrFallback(os.UserHomeDir, "./"), ".space-store")
+	ProjectConf   = &_confScr{
+		appConf: AppConf{
+			NodeID:         1,
+			Port:           uint(8088),
+			ServerHint:     "Shalling Space",
+			Salt:           uuid.NewString(),
+			MaxUserActive:  3,
+			ServerTimezone: "",
+			// 设置默认路径
+			StaticDir: path.Join(util.GetOrFallback(func() (string, error) {
+				p, e := os.UserHomeDir()
+				if e != nil {
+					t := fmt.Sprintf(
+						"%sGet Default User Home Dir Fail, Use A fallback value %s replaced%s",
+						constants.RED,
+						constants.BG_CYAN,
+						constants.RESET,
+					)
+					fmt.Println(t)
+				}
+				return p, e
+			}, "./"), ".space-store", "files"),
+			GlobalUploadSize: "32m",
+			ParsedUploadSize: constants.MB * 32, // 全局的最大本地文件上传大小, 32 MB
+		},
+		jwtConf: JwtConf{
+			Salt:          uuid.NewString(),
+			Expired:       "15d",
+			ParsedExpTime: time.Hour * 24 * 15,
+		},
+		bizDBConf: DatabaseConf{
+			DBName: "bizDB",
+			DBType: "sqlite",
+			Dsn: path.Join(util.GetOrFallback(func() (string, error) {
+				p, e := os.UserHomeDir()
+				if e != nil {
+					t := fmt.Sprintf(
+						"%sGet Default User Home Dir Fail, Use A fallback value %s replaced%s",
+						constants.RED,
+						constants.BG_CYAN,
+						constants.RESET,
+					)
+					fmt.Println(t)
+				}
+				return p, e
+			}, "./"), ".space-store", "db", "biz-db.sqlite"),
+			Mark: "biz db",
+		},
+		extraDBConf: DatabaseConf{
+			DBName: "extraDB",
+			DBType: "sqlite",
+			Dsn: path.Join(util.GetOrFallback(func() (string, error) {
+				p, e := os.UserHomeDir()
+				if e != nil {
+					t := fmt.Sprintf(
+						"%sGet Default User Home Dir Fail, Use A fallback value %s replaced%s",
+						constants.RED,
+						constants.BG_CYAN,
+						constants.RESET,
+					)
+					fmt.Println(t)
+				}
+				return p, e
+			}, "./"), ".space-store", "db", "extra-db.sqlite"),
+			Mark: "extra db(for log, config...)",
+		},
+	}
+)
 
 func (c *_confScr) GetAppConf() *AppConf {
 	return &c.appConf
@@ -157,9 +159,14 @@ func (c *_confScr) GetExtraDBConf() *DatabaseConf {
 
 func init() {
 	cfLoc, _ := GetParsedArgs()
+	// 直接使用默认配置
+	if cfLoc == "" {
+		return
+	}
+
 	v := viper.New()
 	ext := path.Ext(cfLoc)
-	if len(ext) < 3 || !strings.HasPrefix(ext, ".") {
+	if len(ext) < 2 || !strings.HasPrefix(ext, ".") {
 		log.Fatal("un-known extension")
 	}
 	v.SetConfigType(ext[1:])

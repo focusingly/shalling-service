@@ -1,9 +1,8 @@
 package main
 
 import (
-	"space-domain/model"
-
 	"space-api/db"
+	"space-domain/model"
 
 	"gorm.io/gen"
 )
@@ -66,7 +65,6 @@ func genBizCodes() {
 		Mode:              gen.WithDefaultQuery | gen.WithQueryInterface,
 	})
 	g.UseDB(db)
-
 	g.ApplyBasic(
 		bizTbs...,
 	)

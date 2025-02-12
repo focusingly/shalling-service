@@ -1,7 +1,11 @@
 package outbound
 
 import (
+	"fmt"
+	"log"
 	"net/http"
+	"runtime/debug"
+	"space-api/constants"
 	"space-api/util"
 
 	"github.com/gin-gonic/gin"
@@ -14,6 +18,10 @@ func UseErrorHandler() gin.HandlerFunc {
 			isPanic := false
 			// 捕获 panic
 			catchErr := recover()
+			if catchErr != nil {
+				l := fmt.Sprintf("%s%s%s", constants.RED, string(debug.Stack()), constants.RESET)
+				log.Println(l)
+			}
 			if catchErr != nil {
 				isPanic = true
 			} else {

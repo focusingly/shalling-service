@@ -23,16 +23,19 @@ type _staticFileService struct {
 	cache *performance.JsonCache
 }
 
-const cacheControlExpired = time.Hour * 24 * 15 / time.Second
+const pubCacheControlExpired = time.Hour * 24 * 15
+const adminCacheControlExpired = time.Minute * 1
 
 var (
 	DefaultStaticFileService = &_staticFileService{
 		cache: performance.NewCache(constants.MB * 4),
 	}
-	// 设置静态资源缓存时间为 15 天
-	cacheControlHeader = fmt.Sprintf("public, max-age=%d, immutable", cacheControlExpired)
-	appConf            = conf.ProjectConf.GetAppConf()
-	staticDirPrefix    = path.Clean(appConf.StaticDir)
+	// 公开静态资源缓存时间为 15 天
+	pubCacheControlHeader = fmt.Sprintf("public, max-age=%d, immutable", pubCacheControlExpired/time.Second)
+	// 管理员静态资源缓存时间为 2 分钟
+	adminCacheControlHeader = fmt.Sprintf("public, max-age=%d, immutable", adminCacheControlExpired/time.Second)
+	appConf                 = conf.ProjectConf.GetAppConf()
+	staticDirPrefix         = path.Clean(appConf.StaticDir)
 )
 
 func (s *_staticFileService) ExposeInnerCacher() *performance.JsonCache {
@@ -55,7 +58,7 @@ func (s *_staticFileService) IsPubVisible(locationName string) bool {
 	if err != nil {
 		return false
 	} else {
-		s.cache.Set(locationName, &performance.Empty{}, performance.Second(cacheControlExpired))
+		s.cache.Set(locationName, &performance.Empty{}, performance.Second(pubCacheControlExpired))
 		return true
 	}
 }
@@ -114,11 +117,11 @@ func (s *_staticFileService) HandlePubVisit(rawFileParam string, ctx *gin.Contex
 	ctx.Header("ETag", etag)
 
 	// 设置旧平台/代理兼容性过期时间
-	expiresTime := time.Now().Add(time.Hour * 24 * 15).Format(http.TimeFormat)
+	expiresTime := time.Now().Add(pubCacheControlExpired).Format(http.TimeFormat)
 	ctx.Header("Expires", expiresTime)
 
 	// 设置 Cache-Control 头，启用强缓存
-	ctx.Header("Cache-Control", cacheControlHeader)
+	ctx.Header("Cache-Control", pubCacheControlHeader)
 
 	// 设置 Last-Modified 头
 	ctx.Header("Last-Modified", modifiedTime.Format(http.TimeFormat))
@@ -135,13 +138,13 @@ func (s *_staticFileService) InvalidateCache(locationName string) {
 	s.cache.Delete(locationName)
 }
 
-// HandleAllVisit 处理所有的静态资源, 并且不设置缓存策略(包括未公开的, 适合于管理员使用)
+// HandleAllVisit 处理所有的静态资源(包括未公开的, 适合于管理员使用), 并且设置较短的缓存策略
 func (s *_staticFileService) HandleAllVisit(rawFileParam string, ctx *gin.Context) {
 	// 获取请求的文件路径
 	// 使用 path.Clean 清理路径, 防止路径跳跃比如 ../)
-	cleanPath := path.Clean(rawFileParam)
+	cleanFileName := path.Clean(rawFileParam)
 	// 确保路径仍然在静态目录内
-	fullPath := path.Join(appConf.StaticDir, cleanPath)
+	fullPath := path.Join(appConf.StaticDir, cleanFileName)
 	if !strings.HasPrefix(fullPath, staticDirPrefix) {
 		ctx.Status(http.StatusNotFound)
 		return
@@ -153,6 +156,40 @@ func (s *_staticFileService) HandleAllVisit(rawFileParam string, ctx *gin.Contex
 		ctx.Status(http.StatusNotFound)
 		return
 	}
+
+	// 协商缓存：设置 ETag 和 Last-Modified
+	modifiedTime := fileInfo.ModTime()
+	if match := ctx.GetHeader("If-Modified-Since"); match != "" {
+		// 客户端缓存未过期，返回 304 Not Modified
+		clientModifiedTime, err := time.Parse(http.TimeFormat, match)
+		if err == nil && modifiedTime.Before(clientModifiedTime.Add(time.Second)) {
+			ctx.Status(http.StatusNotModified)
+			return
+		}
+	}
+
+	// 生成本地 Etag
+	etag := generateCRC32ETag(fullPath)
+	// 检查 Etag
+	if match := ctx.GetHeader("If-None-Match"); match != "" && match == etag {
+		// 客户端缓存未过期，返回 304 Not Modified
+		ctx.Status(http.StatusNotModified)
+		return
+	}
+
+	// 设置 ETag 头
+	ctx.Header("ETag", etag)
+
+	// 设置旧平台/代理兼容性过期时间
+	expiresTime := time.Now().Add(adminCacheControlExpired).Format(http.TimeFormat)
+	ctx.Header("Expires", expiresTime)
+
+	// 设置 Cache-Control 头，启用强缓存
+	ctx.Header("Cache-Control", adminCacheControlHeader)
+
+	// 设置 Last-Modified 头
+	ctx.Header("Last-Modified", modifiedTime.Format(http.TimeFormat))
+
 	// 设置文件标识
 	if m := mime.TypeByExtension(path.Ext(rawFileParam)); m != "" {
 		ctx.Header("Content-Type", m)

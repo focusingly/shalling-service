@@ -28,7 +28,8 @@ var DefaultLogService = &_logService{}
 
 func (*_logService) GetLogPages(req *dto.GetLogPagesReq, ctx *gin.Context) (resp *dto.GetLogPagesResp, err error) {
 	logOp := extra.LogInfo
-	condList, err := query.ResolveCondList(logOp.TableName(), req.Conditions)
+	condList, err := query.ParseCondList(logOp.TableName(), req.Conditions)
+
 	if err != nil {
 		err = util.CreateBizErr("参数错误: "+err.Error(), err)
 		return
@@ -85,7 +86,7 @@ func (*_logService) DeleteLogsByCondition(req *dto.DeleteLogReq, ctx *gin.Contex
 	err = extra.Q.Transaction(func(tx *extra.Query) error {
 		logOp := tx.LogInfo
 
-		p, e := query.ResolveCondList(logOp.TableName(), req.Conditions)
+		p, e := query.ParseCondList(logOp.TableName(), req.Conditions)
 		if e != nil {
 			err = util.CreateBizErr("参数错误: "+err.Error(), err)
 			return e

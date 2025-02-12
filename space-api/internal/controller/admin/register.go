@@ -13,4 +13,6 @@ func RegisterAllAdminControllers(group *gin.RouterGroup) {
 	UseMenuController(adminGroup)
 	UsePerformanceMonitorController(adminGroup)
 	UseUserController(adminGroup)
+	UseLogController(adminGroup)
+	UseUploadController(adminGroup)
 }

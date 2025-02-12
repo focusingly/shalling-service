@@ -61,12 +61,33 @@ func VerifyAndGetParsedBizClaims(tokenStr string) (parsedClaims *TokenParsedBizC
 		err = fmt.Errorf("can't convert jwt claims")
 		return
 	} else {
+
+		iss, err := cl.GetIssuer()
+		if err != nil {
+			return nil, err
+		}
+		sub, err := cl.GetSubject()
+		if err != nil {
+			return nil, err
+		}
+		exp, err := cl.GetExpirationTime()
+		if err != nil {
+			return nil, err
+		}
+		iat, err := cl.GetIssuedAt()
+		if err != nil {
+			return nil, err
+		}
+		aud := []string{}
+		for _, a := range cl["aud"].([]any) {
+			aud = append(aud, a.(string))
+		}
 		parsedClaims = &TokenParsedBizClaims{
-			Iss:      cl["iss"].(string),
-			Sub:      cl["sub"].(string),
-			Aud:      cl["sub"].([]string),
-			Exp:      cl["exp"].(int),
-			Iat:      cl["iat"].(int),
+			Iss:      iss,
+			Sub:      sub,
+			Aud:      aud,
+			Exp:      int(exp.Unix()),
+			Iat:      int(iat.Unix()),
 			Jti:      cl["jti"].(string),
 			UUID:     cl["uuid"].(string),
 			UserType: cl["userType"].(constants.UserType),

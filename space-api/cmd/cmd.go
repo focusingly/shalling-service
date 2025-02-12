@@ -2,78 +2,49 @@ package cmd
 
 import (
 	"fmt"
-	"log"
-	"os"
 	"space-api/conf"
 	"space-api/constants"
-	"space-api/db"
-	"space-api/effect"
 	"space-api/internal/controller"
-	"space-api/middleware/auth"
-	"space-api/middleware/inbound"
-	"space-api/middleware/outbound"
 	"space-api/util"
-	"space-domain/dao/biz"
-	"space-domain/dao/extra"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
 func Run() {
-	useDebug := false
-	for _, arg := range os.Args {
-		if arg == "-use-debug" {
-			useDebug = true
-			continue
-		}
-	}
-
-	biz.SetDefault(db.GetBizDB())
-	extra.SetDefault(db.GetExtraDB())
-
-	gin.SetMode(util.TernaryExpr(useDebug, gin.DebugMode, gin.ReleaseMode))
+	_, isDebug := conf.GetParsedArgs()
+	gin.SetMode(util.TernaryExpr(isDebug, gin.DebugMode, gin.ReleaseMode))
 	gin.ForceConsoleColor()
 	engine := gin.New()
-	engine.MaxMultipartMemory = int64(constants.MB * 8)
 
-	appConf := conf.ProjectConf.GetAppConf()
+	engine.MaxMultipartMemory = int64(constants.MB * 32) // 设置表单处理占用的最内存大小
+	appConf := conf.ProjectConf.GetAppConf()             // 应用配置
 
-	// TODO 时区设置, 暂不设置, 统一全部直接使用 unix 时间戳; 数据格式化由客户端自己解析
-	// 定时任务的时区直接遵循服务器所设置的时区
-	if appConf.ServerTimezone != "" {
-		if tz, err := time.LoadLocation(appConf.ServerTimezone); err != nil {
-			log.Fatal("获取时区失败: ", err)
-		} else {
-			time.Local = tz
-		}
-	}
+	setTimeZone()                          // 设置时区(如果有指定的话)
+	setDataSource()                        // 设置分库数据源
+	engine.Use(getMiddlewares(appConf)...) // 应用全局中间件
 
-	middlewares := []gin.HandlerFunc{
-		outbound.UseErrorHandler(),
-		inbound.UseUploadFileLimitMiddleware(constants.MemoryByteSize(appConf.ParsedUploadSize)),
-		outbound.UseServerResponseHintMiddleware(),
-		outbound.UseRestProduceHandler(),
-		inbound.UseUseragentParserMiddleware(),
-		inbound.UseExtractIPv4Middleware(),
-		auth.UseJwtAuthHandler(),
-	}
-
-	if useDebug {
-		middlewares = append(middlewares, gin.Logger())
-	}
-	engine.Use(middlewares...)
-
+	// 处理未知请求方法
 	engine.NoMethod(func(ctx *gin.Context) {
-		ctx.Error(&util.BizErr{Msg: "不存在的方法: " + ctx.Request.Method})
+		ctx.Error(util.CreateBizErr(
+			"未知的请求方法: "+ctx.Request.Method,
+			fmt.Errorf("unknown request method: %s", ctx.Request.Method),
+		))
 	})
+	// 处理未注册路由
 	engine.NoRoute(func(ctx *gin.Context) {
-		ctx.Error(&util.BizErr{Msg: "不存在的请求资源: " + ctx.Request.URL.String()})
+		ctx.Error(util.CreateBizErr(
+			"未知的请求资源: "+ctx.Request.RequestURI,
+			fmt.Errorf("unknown request uri resource: %s", ctx.Request.RequestURI),
+		))
 	})
 
+	// 版本控制
 	apiRouteGroup := engine.Group("/v1/api")
-	controller.RegisterAllControllers(apiRouteGroup)
+	// debug 测试示例路由
+	useDebugController(engine.Group("/debug"))
 
-	effect.InvokeInit()
+	controller.RegisterAllControllers(apiRouteGroup)
+	prepareStartup() // 设置项目初始化数据
+
 	engine.Run(fmt.Sprintf(":%d", appConf.Port))
 }

@@ -1,7 +1,6 @@
 package conf
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -157,30 +156,7 @@ func (c *_confScr) GetExtraDBConf() *DatabaseConf {
 }
 
 func init() {
-
-	var cfLoc string
-	flag.StringVar(&cfLoc, "c", "", "the project option config")
-	flag.Parse()
-	if strings.TrimSpace(cfLoc) == "" {
-		t := fmt.Sprintf(
-			"%snot config set, service use default configuration%s",
-			constants.BG_CYAN,
-			constants.RESET,
-		)
-		fmt.Println(t)
-		if err := os.MkdirAll(_defaultStore, os.ModePerm); err != nil {
-			log.Fatal("create default store error: ", err)
-		}
-		if err := os.MkdirAll(path.Join(_defaultStore, "db"), os.ModePerm); err != nil {
-			log.Fatal("create store error: ", err)
-		}
-		if err := os.MkdirAll(path.Join(_defaultStore, "files"), os.ModePerm); err != nil {
-			log.Fatal("create store error: ", err)
-		}
-
-		return
-	}
-
+	cfLoc, _ := GetParsedArgs()
 	v := viper.New()
 	ext := path.Ext(cfLoc)
 	if len(ext) < 3 || !strings.HasPrefix(ext, ".") {

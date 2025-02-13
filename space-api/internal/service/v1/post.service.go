@@ -1,25 +1,34 @@
 package service
 
 import (
+	"context"
 	"slices"
 	"space-api/dto"
 	"space-api/middleware/auth"
 	"space-api/util"
 	"space-api/util/arr"
 	"space-api/util/id"
+	"space-api/util/performance"
 	"space-domain/dao/biz"
 	"space-domain/model"
 	"strings"
 
+	"github.com/bytedance/gopkg/util/gopool"
 	"github.com/gin-gonic/gin"
 )
 
-type postService struct{}
+type postService struct {
+	searchService *_searchService
+	executor      gopool.Pool
+}
 
-var DefaultPostService = &postService{}
+var DefaultPostService = &postService{
+	searchService: DefaultGlobalSearchService,
+	executor:      performance.DefaultTaskRunner,
+}
 
 // CreateOrUpdatePost 创建/更新文章, 取决于是否存在已有的文章
-func (*postService) CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.Context) (resp *dto.UpdateOrCreatePostResp, err error) {
+func (s *postService) CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.Context) (resp *dto.UpdateOrCreatePostResp, err error) {
 	// 被创建/更新的 文章的 ID
 	var postId int64 = 0
 
@@ -228,15 +237,20 @@ func (*postService) CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.
 		Where(biz.Q.Post.ID.Eq(postId)).
 		Take()
 	if err != nil {
-		return nil, &util.BizErr{
-			Reason: err,
-			Msg:    "更新/创建文章失败: " + err.Error(),
-		}
-	} else {
-		resp = &dto.UpdateOrCreatePostResp{
-			Post: *post,
-		}
+		err = util.CreateBizErr("更新/创建文章失败", err)
+		return
 	}
+	resp = &dto.UpdateOrCreatePostResp{
+		Post: *post,
+	}
+
+	s.executor.Go(func() {
+		if resp.Hide != 0 {
+			s.searchService.DeletePostSearchIndex([]int64{postId}, context.Background())
+		} else {
+			s.searchService.UpdatePostSearchIndex(post)
+		}
+	})
 
 	return
 }
@@ -367,7 +381,7 @@ func (*postService) GetVisiblePostById(req *dto.GetPostDetailReq, ctx *gin.Conte
 }
 
 // GetPostById 根据文章 ID 获取全量的文章信息
-func (*postService) DeletePostByIdList(req *dto.DeletePostByIdListReq, ctx *gin.Context) (resp *dto.DeletePostByIdListResp, err error) {
+func (s *postService) DeletePostByIdList(req *dto.DeletePostByIdListReq, ctx *gin.Context) (resp *dto.DeletePostByIdListResp, err error) {
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		_, err = tx.Post.WithContext(ctx).Where(tx.Post.ID.In(req.IdList...)).Delete()
 		return err
@@ -379,6 +393,11 @@ func (*postService) DeletePostByIdList(req *dto.DeletePostByIdListReq, ctx *gin.
 			Reason: err,
 		}
 	}
+
+	// 清空相关的全文搜索索引
+	s.executor.Go(func() {
+		s.searchService.DeletePostSearchIndex(req.IdList, context.Background())
+	})
 
 	return &dto.DeletePostByIdListResp{}, nil
 }
@@ -437,12 +456,5 @@ func (*postService) GetVisiblePostsByTagName(req *dto.GetPostByTagNameReq, ctx *
 		Posts: postsList,
 	}
 
-	return
-}
-
-// SearchPostByGlobal 根据关键词进行公开文章的全文搜索
-func (*postService) SearchPostByGlobal(req *dto.GlobalSearchReq, ctx *gin.Context) (resp *dto.GlobalSearchResp, err error) {
-
-	resp = &dto.GlobalSearchResp{}
 	return
 }

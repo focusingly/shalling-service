@@ -4,6 +4,7 @@ import (
 	"space-api/conf"
 	"space-api/dto"
 	"space-api/internal/service/v1"
+	"space-api/middleware/outbound"
 	"space-api/util"
 
 	"github.com/gin-gonic/gin"
@@ -32,5 +33,19 @@ func useDebugController(group *gin.RouterGroup) {
 		}
 
 		service.DefaultLogService.DumLogsStream(req, ctx)
+	})
+
+	group.GET("/search/index", func(ctx *gin.Context) {
+		req := &dto.GetSearchIndexPagesReq{}
+		if e := ctx.ShouldBindQuery(req); e != nil {
+			ctx.Error(util.CreateBizErr("参数错误: "+e.Error(), e))
+			return
+		}
+
+		if resp, err := service.DefaultGlobalSearchService.GetPostSearchIndexPages(req, ctx); err != nil {
+			ctx.Error(err)
+		} else {
+			outbound.NotifyProduceResponse(resp, ctx)
+		}
 	})
 }

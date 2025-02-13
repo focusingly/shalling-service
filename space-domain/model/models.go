@@ -209,6 +209,17 @@ type (
 		ConfVal    string `gorm:"type:text;comment;null;comment:配置值" json:"confVal" yaml:"confVal" xml:"confVal" toml:"confVal"`
 		Category   string `gorm:"type:varchar(255);not null;comment:类型" json:"category" yaml:"category" xml:"category" toml:"category"`
 	}
+
+	// Sqlite3KeywordDoc sqlite3 虚拟表配置
+	Sqlite3KeywordDoc struct {
+		PostID          int64  `gorm:"column:post_id" json:"postID" yaml:"postID" xml:"postID" toml:"postID"`
+		TileSplit       string `gorm:"column:title_split" json:"tileSplit" yaml:"tileSplit" xml:"tileSplit" toml:"tileSplit"`
+		ContentSplit    string `gorm:"column:content_split" json:"contentSplit" yaml:"contentSplit" xml:"contentSplit" toml:"contentSplit"`
+		Weight          int    `gorm:"column:weight" json:"weight" yaml:"weight" xml:"weight" toml:"weight"`
+		PostUpdatedAt   int64  `gorm:"column:post_updated_at" json:"postUpdatedAt" yaml:"postUpdatedAt" xml:"postUpdatedAt" toml:"postUpdatedAt"`
+		RecordCreatedAt int64  `gorm:"column:record_created_at" json:"recordCreatedAt" yaml:"recordCreatedAt" xml:"recordCreatedAt" toml:"recordCreatedAt"`
+		RecordUpdatedAt int64  `gorm:"column:record_updated_at" json:"recordUpdatedAt" yaml:"recordUpdatedAt" xml:"recordUpdatedAt" toml:"recordUpdatedAt"`
+	}
 )
 
 // Extra tables

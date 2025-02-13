@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"log"
+	"space-api/conf"
 	"space-api/db"
 	"space-api/util/encrypt"
 	"space-domain/dao/biz"
@@ -26,5 +27,14 @@ func prepareStartup() {
 		if e != nil {
 			log.Fatal("create default user failed", e)
 		}
+	}
+
+	switch db.GetBizDB().Dialector.Name() {
+	case
+		"sqlite3",
+		"sqlite":
+		// 创建关键词索引表
+		// 如果使用 vscode 的 debug 配置, 请添加 "buildFlags": ["--tags=fts5"] 选项以启用支持
+		db.GetBizDB().Exec( /* sql */ conf.Sqlite3CreateDocIndexSQLStr)
 	}
 }

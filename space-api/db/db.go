@@ -56,7 +56,7 @@ func init() {
 	switch extraConf.DBType {
 	case "postgres":
 		dialect = postgres.Open(extraConf.Dsn)
-	case "sqlite":
+	case "sqlite", "sqlite3":
 		dialect = sqlite.Open(extraConf.Dsn)
 	default:
 		panic(fmt.Errorf("un-support database type: %s", extraConf.DBType))

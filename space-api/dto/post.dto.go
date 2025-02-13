@@ -57,13 +57,4 @@ type (
 		Tag   *model.Tag    `json:"tag" yaml:"tag" xml:"tag" toml:"tag"`
 		Posts []*model.Post `json:"posts" yaml:"posts" xml:"posts" toml:"posts"`
 	}
-
-	// 全文检索
-	GlobalSearchReq struct {
-		Keyword string `form:"keyword" json:"keyword" yaml:"keyword" xml:"keyword" toml:"keyword"`
-	}
-
-	GlobalSearchResp struct {
-		model.PageList[*model.Post]
-	}
 )

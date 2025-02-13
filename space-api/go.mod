@@ -4,6 +4,7 @@ go 1.24.0
 
 require (
 	github.com/bwmarrin/snowflake v0.3.0
+	github.com/bytedance/gopkg v0.1.1
 	github.com/chai2010/webp v1.1.1
 	github.com/coocood/freecache v1.2.4
 	github.com/dineshgowda24/browser v1.1.0

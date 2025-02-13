@@ -13,7 +13,10 @@
             "showGlobalVariables": true,
             "args": [
                 "-c=./conf/config.yml",
-                "-use-debug=true"
+                "-use-debug=true",
+            ],
+            "buildFlags": [
+                "--tags=fts5 jsoniter",
             ],
             "program": "${workspaceFolder}/space-api/main.go"
         },

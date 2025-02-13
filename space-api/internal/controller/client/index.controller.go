@@ -180,6 +180,7 @@ func IndexController(group *gin.RouterGroup) {
 
 	// 公开文章的全文搜索实现
 	{
+		searchService := service.DefaultGlobalSearchService
 		indexController.GET("/post/search", func(ctx *gin.Context) {
 			cachedKey := ctx.Request.RequestURI
 			resp, _, err := cachedGroup.Do(cachedKey, func() (value any, err error) {
@@ -188,8 +189,7 @@ func IndexController(group *gin.RouterGroup) {
 					err = util.CreateBizErr("参数错误: "+err.Error(), err)
 					return
 				}
-
-				if resp, err := postService.SearchPostByGlobal(req, ctx); err != nil {
+				if resp, err := searchService.SearchKeywordPages(req, ctx); err != nil {
 					return nil, err
 				} else {
 					return resp, nil

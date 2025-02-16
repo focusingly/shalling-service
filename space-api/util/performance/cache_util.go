@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"space-api/constants"
 	"space-api/util/ptr"
+	"strconv"
 	"strings"
 
 	"github.com/coocood/freecache"
@@ -18,16 +19,7 @@ type bizCache struct {
 type JsonCache bizCache
 type Second = int
 
-var DefaultJsonCache *JsonCache
-
-func init() {
-	maxBfSize := constants.MB * 16
-	cacheInstance := freecache.NewCache(int(maxBfSize))
-	DefaultJsonCache = (*JsonCache)(&bizCache{
-		instance:  cacheInstance,
-		namespace: "",
-	})
-}
+var DefaultJsonCache *JsonCache = NewCache(constants.MB * 16)
 
 func NewCache(maxSize constants.MemoryByteSize) *JsonCache {
 	return (*JsonCache)(&bizCache{
@@ -143,25 +135,28 @@ func (jc *JsonCache) GetAndDel(key string, receiverPtr any) (err error) {
 }
 
 // GetAndIncr 先获取再更新一个整数记录, 如果不存在, 那么进行创建
-func (jc *JsonCache) GetAndIncr(key string, inc int, ttl Second) (count int, err error) {
+func (jc *JsonCache) GetAndIncr(key string, inc int64, ttl Second) (count int64, err error) {
 	key = jc.namespace + key
+
 	_, _, err = jc.instance.Update(
 		ptr.String2Bytes(key),
 		func(value []byte, found bool) (newValue []byte, replace bool, expireSeconds int) {
-			var intVal int
-			if err := json.Unmarshal(value, &intVal); err != nil {
-				panic(err)
-			}
-			count = intVal
-			intVal++
-
-			if bf, err := json.Marshal(intVal); err != nil {
-				panic(err)
-			} else {
-				newValue = bf
-			}
 			replace = true
 			expireSeconds = ttl
+
+			// 未找到值
+			if !found {
+				count = 0
+				newValue = ptr.String2Bytes(fmt.Sprintf("%d", inc))
+				return
+			} else {
+				parsedInt, err := strconv.ParseInt(ptr.Bytes2String(value), 10, 64)
+				if err != nil {
+					panic(err)
+				}
+				count = parsedInt
+				newValue = ptr.String2Bytes(fmt.Sprintf("%d", inc+parsedInt))
+			}
 
 			return
 		})
@@ -170,28 +165,42 @@ func (jc *JsonCache) GetAndIncr(key string, inc int, ttl Second) (count int, err
 }
 
 // IncAndGet 先更新再获取一个整数记录, 如果不存在, 那么进行创建
-func (jc *JsonCache) IncAndGet(key string, inc int, ttl Second) (count int, err error) {
+func (jc *JsonCache) IncAndGet(key string, inc int64, ttl Second) (count int64, err error) {
 	key = jc.namespace + key
+
 	_, _, err = jc.instance.Update(
 		ptr.String2Bytes(key),
 		func(value []byte, found bool) (newValue []byte, replace bool, expireSeconds int) {
-			var intVal int
-			if err := json.Unmarshal(value, &intVal); err != nil {
-				panic(err)
-			}
-			intVal++
-			count = intVal
-
-			if bf, err := json.Marshal(intVal); err != nil {
-				panic(err)
-			} else {
-				newValue = bf
-			}
+			// 进行替换
 			replace = true
 			expireSeconds = ttl
+			// 未找到值
+			if !found {
+				count = inc
+				newValue = ptr.String2Bytes(fmt.Sprintf("%d", inc))
+				return
+			} else {
+				parsedInt, err := strconv.ParseInt(ptr.Bytes2String(value), 10, 64)
+				if err != nil {
+					panic(err)
+				}
+				count = parsedInt + inc
+				newValue = ptr.String2Bytes(fmt.Sprintf("%d", count))
+			}
 
 			return
 		})
+
+	return
+}
+
+func (jc *JsonCache) GetInt64(key string) (count int64, err error) {
+	key = jc.namespace + key
+	val, err := jc.instance.Get(ptr.String2Bytes(key))
+	if err != nil {
+		return
+	}
+	count, err = strconv.ParseInt(ptr.Bytes2String(val), 10, 64)
 
 	return
 }

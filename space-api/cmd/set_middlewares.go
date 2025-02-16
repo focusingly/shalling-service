@@ -6,6 +6,7 @@ import (
 	"space-api/middleware/auth"
 	"space-api/middleware/inbound"
 	"space-api/middleware/outbound"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -15,12 +16,14 @@ func getMiddlewares(appConf *conf.AppConf) []gin.HandlerFunc {
 
 	middlewares := []gin.HandlerFunc{
 		outbound.UseErrorHandler(),
-		inbound.UseUploadFileLimitMiddleware(constants.MemoryByteSize(appConf.ParsedUploadSize)),
 		outbound.UseServerResponseHintMiddleware(),
 		outbound.UseRestProduceHandler(),
+
+		inbound.UseUploadFileLimitMiddleware(constants.MemoryByteSize(appConf.ParsedUploadSize)),
 		inbound.UseUseragentParserMiddleware(),
 		inbound.UseExtractIPv4Middleware(),
 		auth.UseJwtAuthHandler(),
+		inbound.UseReqRateLimitMiddleware(time.Second*16, 32),
 	}
 
 	if useDebug {

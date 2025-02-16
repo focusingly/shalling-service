@@ -42,7 +42,9 @@ func UseJwtAuthHandler() gin.HandlerFunc {
 		switch {
 		// 所有的后台服务都要求使用管理员权限
 		case strings.HasPrefix(p, AdminPath):
-			if user, err := GetCurrentLoginSession(ctx); err != nil {
+			user, err := GetCurrentLoginSession(ctx)
+			switch {
+			case err != nil:
 				ctx.Error(&util.AuthErr{
 					BizErr: util.BizErr{
 						Msg:    "获取用户凭据失败, 请先登录",
@@ -51,31 +53,24 @@ func UseJwtAuthHandler() gin.HandlerFunc {
 				})
 				ctx.Abort()
 				return
-			} else {
-				if user.UserType != constants.LocalUser {
-					ctx.Error(&util.AuthErr{
-						BizErr: util.BizErr{
-							Msg:    "当前用户类型不支持此操作",
-							Reason: fmt.Errorf("un-support user, want%s, but current is:%s", constants.LocalUser, user.UserType),
-						},
-					})
-					// 不需要后续流程
-					ctx.Abort()
-					return
-				}
-				f, e := biz.LocalUser.WithContext(ctx).Where(biz.LocalUser.ID.Eq(user.UserID)).Take()
-				// TODO 暂时设置为只支持使用本地的 admin 用户进行操作, 后续视情况添加 RBAC 管理
-				if e != nil || !(f.IsAdmin > 0) {
-					ctx.Error(&util.AuthErr{
-						BizErr: util.BizErr{
-							Msg:    "仅限管理员用户进行操作",
-							Reason: fmt.Errorf("permission required admin"),
-						},
-					})
-					// 不需要后续流程
-					ctx.Abort()
-					return
-				}
+			case user.UserType == constants.LocalUser:
+				ctx.Error(&util.AuthErr{
+					BizErr: util.BizErr{
+						Msg:    "当前用户类型不支持此操作",
+						Reason: fmt.Errorf("un-support user, want%s, but current is:%s", constants.LocalUser, user.UserType),
+					},
+				})
+				// 不需要后续流程
+				ctx.Abort()
+				return
+			case user.UserType == constants.Admin:
+				// pass .....
+			default:
+				ctx.Error(util.CreateAuthErr(
+					"未知的用户类型: "+user.UserType,
+					fmt.Errorf("unknown user: %s", user.UserType),
+				))
+				ctx.Abort()
 			}
 		default:
 			// pass....

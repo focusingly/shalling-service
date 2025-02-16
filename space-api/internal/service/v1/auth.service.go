@@ -216,7 +216,7 @@ func (s *_authService) AdminLogin(req *dto.AdminLoginReq, ctx *gin.Context) (res
 
 		loginSession, e := s.updateUserLoginSession(&boData{
 			UserID:   findUser.ID,
-			UserType: constants.LocalUser,
+			UserType: constants.Admin,
 		}, tx, ctx)
 		if e != nil {
 			return e

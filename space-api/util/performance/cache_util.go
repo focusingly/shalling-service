@@ -39,20 +39,24 @@ func (jc *JsonCache) Group(namespace string) *JsonCache {
 // Set 设置值, 如果 ttl <=0, 那么表示永不过期
 func (jc *JsonCache) Set(key string, val any, ttl ...Second) error {
 	key = jc.namespace + key
+	var expireLeaves int
+	if expire, e := jc.instance.TTL([]byte(key)); e == nil {
+		expireLeaves = int(expire)
+	}
+	switch len(ttl) {
+	case 0:
+	case 1:
+		expireLeaves = ttl[0]
+	default:
+		panic(fmt.Errorf("ttl expect 0 or zero param, but got: %d", len(ttl)))
+	}
 
-	le := len(ttl)
 	bf, err := json.Marshal(val)
 	if err != nil {
 		return err
 	}
-	switch {
-	case le == 0:
-		return jc.instance.Set(ptr.String2Bytes(key), bf, 0)
-	case le == 1:
-		return jc.instance.Set(ptr.String2Bytes(key), bf, ttl[0])
-	default:
-		return fmt.Errorf("want 0 or 1 ttl arg, but got: %d", le)
-	}
+
+	return jc.instance.Set(ptr.String2Bytes(key), bf, expireLeaves)
 }
 
 func (jc *JsonCache) Get(key string, receivePointer any) error {
@@ -72,22 +76,22 @@ func (jc *JsonCache) Delete(key string) bool {
 	return jc.instance.Del(ptr.String2Bytes(key))
 }
 
-// ClearAll 清空缓存, 如果是根命名空间, 那么会清空所有的缓存, 如果是具体的命名空间, 那么会通过遍历逐一删除(不是原子操作)
+// ClearAll 清空根命名空间缓存
 func (jc *JsonCache) ClearAll() {
-	if jc.namespace == "" {
-		jc.instance.Clear()
-	} else {
-		it := jc.instance.NewIterator()
-		entry := it.Next()
-		for {
-			if entry == nil {
-				break
-			}
-			if strings.HasPrefix(ptr.Bytes2String(entry.Key), jc.namespace) {
-				jc.instance.Del(entry.Key)
-			}
-		}
+	jc.instance.Clear()
+}
 
+// ClearGroupCache 清空所属命名空间下的所有缓存, 会通过遍历逐一删除(不是原子操作)
+func (jc *JsonCache) ClearGroupCache() {
+	it := jc.instance.NewIterator()
+	entry := it.Next()
+	for {
+		if entry == nil {
+			break
+		}
+		if strings.HasPrefix(ptr.Bytes2String(entry.Key), jc.namespace) {
+			jc.instance.Del(entry.Key)
+		}
 	}
 }
 
@@ -135,14 +139,27 @@ func (jc *JsonCache) GetAndDel(key string, receiverPtr any) (err error) {
 }
 
 // GetAndIncr 先获取再更新一个整数记录, 如果不存在, 那么进行创建
-func (jc *JsonCache) GetAndIncr(key string, inc int64, ttl Second) (count int64, err error) {
+func (jc *JsonCache) GetAndIncr(key string, inc int64, ttl ...Second) (count int64, err error) {
 	key = jc.namespace + key
+	var expireLeaves int
+
+	if expire, e := jc.instance.TTL([]byte(key)); e == nil {
+		expireLeaves = int(expire)
+	}
+
+	switch len(ttl) {
+	case 0:
+	case 1:
+		expireLeaves = ttl[0]
+	default:
+		panic(fmt.Errorf("ttl expect 0 or zero param, but got: %d", len(ttl)))
+	}
 
 	_, _, err = jc.instance.Update(
 		ptr.String2Bytes(key),
 		func(value []byte, found bool) (newValue []byte, replace bool, expireSeconds int) {
 			replace = true
-			expireSeconds = ttl
+			expireSeconds = expireLeaves
 
 			// 未找到值
 			if !found {
@@ -152,7 +169,7 @@ func (jc *JsonCache) GetAndIncr(key string, inc int64, ttl Second) (count int64,
 			} else {
 				parsedInt, err := strconv.ParseInt(ptr.Bytes2String(value), 10, 64)
 				if err != nil {
-					panic(err)
+					panic(fmt.Errorf("already exists key in using: %s", err.Error()))
 				}
 				count = parsedInt
 				newValue = ptr.String2Bytes(fmt.Sprintf("%d", inc+parsedInt))
@@ -165,15 +182,28 @@ func (jc *JsonCache) GetAndIncr(key string, inc int64, ttl Second) (count int64,
 }
 
 // IncAndGet 先更新再获取一个整数记录, 如果不存在, 那么进行创建
-func (jc *JsonCache) IncAndGet(key string, inc int64, ttl Second) (count int64, err error) {
+func (jc *JsonCache) IncAndGet(key string, inc int64, ttl ...Second) (count int64, err error) {
 	key = jc.namespace + key
+	var expireLeaves int
+
+	if expire, e := jc.instance.TTL([]byte(key)); e == nil {
+		expireLeaves = int(expire)
+	}
+
+	switch len(ttl) {
+	case 0:
+	case 1:
+		expireLeaves = ttl[0]
+	default:
+		panic(fmt.Errorf("ttl expect 0 or zero param, but got: %d", len(ttl)))
+	}
 
 	_, _, err = jc.instance.Update(
 		ptr.String2Bytes(key),
 		func(value []byte, found bool) (newValue []byte, replace bool, expireSeconds int) {
 			// 进行替换
 			replace = true
-			expireSeconds = ttl
+			expireSeconds = expireLeaves
 			// 未找到值
 			if !found {
 				count = inc
@@ -182,7 +212,7 @@ func (jc *JsonCache) IncAndGet(key string, inc int64, ttl Second) (count int64, 
 			} else {
 				parsedInt, err := strconv.ParseInt(ptr.Bytes2String(value), 10, 64)
 				if err != nil {
-					panic(err)
+					panic(fmt.Errorf("already exists key in using: %s", err.Error()))
 				}
 				count = parsedInt + inc
 				newValue = ptr.String2Bytes(fmt.Sprintf("%d", count))

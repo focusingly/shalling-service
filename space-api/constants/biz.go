@@ -5,6 +5,7 @@ type UserType = string
 
 const (
 	LocalUser  UserType = "local"
+	Admin      UserType = "admin"
 	GithubUser UserType = "github"
 	GoogleUser UserType = "google"
 )

@@ -11,14 +11,17 @@ import (
 )
 
 func prepareStartup() {
-	q := biz.Q.ReplaceDB(db.GetBizDB())
-	_, err := q.LocalUser.WithContext(context.TODO()).Where(q.LocalUser.IsAdmin.Gt(0)).Take()
+	query := biz.Q.ReplaceDB(db.GetBizDB())
+	_, err := query.LocalUser.
+		WithContext(context.TODO()).
+		Where(query.LocalUser.IsAdmin.Neq(0)).
+		Take()
 	if err != nil {
 		hashedPass, e := encrypt.EncryptPasswordByBcrypt("12345678")
 		if e != nil {
 			log.Fatal("init default password failed", e)
 		}
-		e = q.LocalUser.WithContext(context.TODO()).Create(&model.LocalUser{
+		e = query.LocalUser.WithContext(context.TODO()).Create(&model.LocalUser{
 			Username:    "shalling-admin233",
 			DisplayName: "Shalling's Space",
 			Password:    hashedPass,
@@ -35,6 +38,6 @@ func prepareStartup() {
 		"sqlite":
 		// 创建关键词索引表
 		// 如果使用 vscode 的 debug 配置, 请添加 "buildFlags": ["--tags=fts5"] 选项以启用支持
-		db.GetBizDB().Exec( /* sql */ conf.Sqlite3CreateDocIndexSQLStr)
+		db.GetBizDB().Exec(conf.Sqlite3CreateDocIndexSQLStr)
 	}
 }

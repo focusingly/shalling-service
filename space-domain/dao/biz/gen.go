@@ -17,6 +17,7 @@ import (
 
 var (
 	Q                = new(Query)
+	BlockIPRecord    *blockIPRecord
 	Category         *category
 	CloudFn          *cloudFn
 	Comment          *comment
@@ -37,6 +38,7 @@ var (
 
 func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	*Q = *Use(db, opts...)
+	BlockIPRecord = &Q.BlockIPRecord
 	Category = &Q.Category
 	CloudFn = &Q.CloudFn
 	Comment = &Q.Comment
@@ -58,6 +60,7 @@ func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 	return &Query{
 		db:               db,
+		BlockIPRecord:    newBlockIPRecord(db, opts...),
 		Category:         newCategory(db, opts...),
 		CloudFn:          newCloudFn(db, opts...),
 		Comment:          newComment(db, opts...),
@@ -80,6 +83,7 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 type Query struct {
 	db *gorm.DB
 
+	BlockIPRecord    blockIPRecord
 	Category         category
 	CloudFn          cloudFn
 	Comment          comment
@@ -103,6 +107,7 @@ func (q *Query) Available() bool { return q.db != nil }
 func (q *Query) clone(db *gorm.DB) *Query {
 	return &Query{
 		db:               db,
+		BlockIPRecord:    q.BlockIPRecord.clone(db),
 		Category:         q.Category.clone(db),
 		CloudFn:          q.CloudFn.clone(db),
 		Comment:          q.Comment.clone(db),
@@ -133,6 +138,7 @@ func (q *Query) WriteDB() *Query {
 func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 	return &Query{
 		db:               db,
+		BlockIPRecord:    q.BlockIPRecord.replaceDB(db),
 		Category:         q.Category.replaceDB(db),
 		CloudFn:          q.CloudFn.replaceDB(db),
 		Comment:          q.Comment.replaceDB(db),
@@ -153,6 +159,7 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 }
 
 type queryCtx struct {
+	BlockIPRecord    IBlockIPRecordDo
 	Category         ICategoryDo
 	CloudFn          ICloudFnDo
 	Comment          ICommentDo
@@ -173,6 +180,7 @@ type queryCtx struct {
 
 func (q *Query) WithContext(ctx context.Context) *queryCtx {
 	return &queryCtx{
+		BlockIPRecord:    q.BlockIPRecord.WithContext(ctx),
 		Category:         q.Category.WithContext(ctx),
 		CloudFn:          q.CloudFn.WithContext(ctx),
 		Comment:          q.Comment.WithContext(ctx),

@@ -12,7 +12,7 @@
             "hideSystemGoroutines": true,
             "showGlobalVariables": true,
             "args": [
-                "-c=./conf/config.yml",
+                "-c=./config.yml",
                 "-use-debug=true",
             ],
             "buildFlags": [

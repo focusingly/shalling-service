@@ -51,6 +51,29 @@
         }
       }
     },
+    "email": {
+      "type": "object",
+      "$comment": "邮件配置",
+      "properties": {
+        "host": {
+          "type": "string",
+          "$comment": "主机地址"
+        },
+        "username": {
+          "type": "string",
+          "$comment": "账账户"
+        },
+        "password": {
+          "$comment": "密码",
+          "type": "string"
+        },
+        "port": {
+          "type": "integer",
+          "default":587,
+          "$comment": "端口"
+        }
+      }
+    },
     "dataSource": {
       "type": "object",
       "properties": {

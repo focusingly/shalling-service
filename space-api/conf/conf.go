@@ -30,6 +30,13 @@ type (
 		ParsedUploadSize constants.MemoryByteSize `json:"parsedUploadSize" yaml:"parsedUploadSize" xml:"parsedUploadSize" toml:"parsedUploadSize"`
 	}
 
+	MailConf struct {
+		Host     string `json:"host" yaml:"host" xml:"host" toml:"host"`
+		Username string `json:"username" yaml:"username" xml:"username" toml:"username"`
+		Password string `json:"password" yaml:"password" xml:"password" toml:"password"`
+		Port     int    `json:"port" yaml:"port" xml:"port" toml:"port"`
+	}
+
 	// Oauth2 认证配置
 	Oauth2Conf struct {
 		EndPoint     string   `json:"endPoint" yaml:"endPoint" xml:"endPoint" toml:"endPoint"`
@@ -58,6 +65,7 @@ type _confScr struct {
 	appConf        AppConf
 	githubAuthConf *Oauth2Conf
 	googleAuthConf *Oauth2Conf
+	mailConf       *MailConf
 	jwtConf        JwtConf
 	bizDBConf      DatabaseConf
 	extraDBConf    DatabaseConf
@@ -137,6 +145,11 @@ var (
 func (c *_confScr) GetAppConf() *AppConf {
 	return &c.appConf
 }
+
+func (c *_confScr) GetMailConf() *MailConf {
+	return c.mailConf
+}
+
 func (c *_confScr) GetJwtConf() *JwtConf {
 	return &c.jwtConf
 }
@@ -173,8 +186,15 @@ func init() {
 	baseName := path.Base(cfLoc)
 	v.SetConfigName(baseName[:len(baseName)-len(ext)])
 	v.AddConfigPath(path.Dir(cfLoc))
+
 	if e := v.ReadInConfig(); e != nil {
 		log.Fatal("read config error: ", e)
+	}
+
+	if v.Get("email") != nil {
+		if e := v.UnmarshalKey("email", &ProjectConf.mailConf); e != nil {
+			log.Fatal("set mail config err: ", e)
+		}
 	}
 
 	if e := v.UnmarshalKey("app", &ProjectConf.appConf); e != nil {

@@ -164,7 +164,7 @@ func (d *_localUploadService) Upload(ctx *gin.Context, maxSize ...constants.Memo
 // 设置图象转码任务的并行度, 防止 webp 转码耗 CPU
 var _jobParallelControl = make(chan performance.Empty, 1)
 
-// UploadImage2Webp 上传图片并进行转码
+// UploadImage2Webp 上传图片并转码为 webp 格式
 func (d *_localUploadService) UploadImage2Webp(ctx *gin.Context, maxSize ...constants.MemoryByteSize) (resp *model.FileRecord, err error) {
 	i := len(maxSize)
 	switch {
@@ -181,6 +181,8 @@ func (d *_localUploadService) UploadImage2Webp(ctx *gin.Context, maxSize ...cons
 		)
 		return
 	}
+
+	// 令牌机制用于控制并行的图片处理
 	_jobParallelControl <- performance.Empty{}
 	defer func() {
 		<-_jobParallelControl

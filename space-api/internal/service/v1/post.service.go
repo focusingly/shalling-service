@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"slices"
+	"space-api/constants"
 	"space-api/dto"
 	"space-api/middleware/auth"
 	"space-api/util"
@@ -20,11 +22,13 @@ import (
 type postService struct {
 	searchService *_searchService
 	executor      gopool.Pool
+	visitCache    *performance.JsonCache
 }
 
 var DefaultPostService = &postService{
 	searchService: DefaultGlobalSearchService,
 	executor:      performance.DefaultTaskRunner,
+	visitCache:    performance.NewCache(constants.MB * 4),
 }
 
 // CreateOrUpdatePost 创建/更新文章, 取决于是否存在已有的文章
@@ -360,9 +364,60 @@ func (*postService) GetPostById(req *dto.GetPostDetailReq, ctx *gin.Context) (re
 	}, nil
 }
 
+func (s *postService) SyncPubPostViews(ctx context.Context) (err error) {
+	err = biz.Q.Transaction(func(tx *biz.Query) error {
+		bizTx := tx.Post
+
+		// 找到所有公开的文章, 和缓存的访问数量进行对比/同步
+		list, e := bizTx.WithContext(ctx).
+			Select(bizTx.ID, bizTx.Views).
+			Where(bizTx.Hide.Eq(0)).
+			Find()
+		if e != nil {
+			return e
+		}
+
+		// 逐条更新文章的访问量
+		for _, post := range list {
+			key := fmt.Sprintf("%d", post.ID)
+			fallbackViews := util.TernaryExpr(post.Views != nil, *post.Views, 0)
+
+			cachedCount, cachedErr := s.visitCache.GetInt64(key)
+			switch {
+			case cachedErr != nil:
+				s.visitCache.Set(key, fallbackViews, 0)
+			case fallbackViews > cachedCount:
+				s.visitCache.Set(key, fallbackViews, 0)
+			default:
+				// 更新缓存访问数到数据库当中
+				if _, e = bizTx.WithContext(ctx).
+					Where(bizTx.ID.Eq(post.ID)).
+					Update(bizTx.Views, cachedCount); e != nil {
+					return e
+				}
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		err = util.CreateBizErr("同步页面访问数失败: "+err.Error(), err)
+	}
+
+	return
+}
+
+func (s *postService) ClearPubViewsCache() {
+	s.visitCache.ClearAll()
+}
+
+func (s *postService) ExpirePubViewsCacheByID(postID int64) {
+	s.visitCache.Delete(fmt.Sprintf("%d", postID))
+}
+
 // GetVisiblePostById 根据文章 ID 获取可见的全量的文章信息
-func (*postService) GetVisiblePostById(req *dto.GetPostDetailReq, ctx *gin.Context) (resp *dto.GetPostDetailResp, err error) {
-	val, err := biz.Post.WithContext(ctx).
+func (p *postService) GetVisiblePostById(req *dto.GetPostDetailReq, ctx *gin.Context) (resp *dto.GetPostDetailResp, err error) {
+	pubPost, err := biz.Post.WithContext(ctx).
 		Where(
 			biz.Post.ID.Eq(req.PostID),
 			biz.Post.Hide.Eq(0),
@@ -375,8 +430,26 @@ func (*postService) GetVisiblePostById(req *dto.GetPostDetailReq, ctx *gin.Conte
 		}
 	}
 
+	// 更新访问量
+	var fallbackViewCount = util.TernaryExpr(pubPost.Views != nil, *pubPost.Views, 1)
+	key := fmt.Sprintf("%d", pubPost.ID)
+	getViews, e := p.visitCache.IncAndGet(key, 1, 0)
+
+	// 处理访问量合法性
+	switch {
+	case e != nil:
+		p.visitCache.Set(key, fallbackViewCount)
+		getViews = fallbackViewCount
+	case fallbackViewCount > getViews: // 判断缓存的计数值是否比数据库记录值低, 如果更低, 那么需要使用数据库提供的
+		p.visitCache.Set(key, fallbackViewCount+1)
+		getViews = fallbackViewCount
+	default:
+	}
+
+	pubPost.Views = &getViews
+
 	return &dto.GetPostDetailResp{
-		Post: *val,
+		Post: *pubPost,
 	}, nil
 }
 

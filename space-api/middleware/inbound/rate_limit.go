@@ -3,7 +3,9 @@ package inbound
 import (
 	"fmt"
 	"space-api/constants"
+	"space-api/internal/service/v1/blocking"
 	"space-api/middleware/auth"
+
 	"space-api/util"
 	"space-api/util/performance"
 	"time"
@@ -13,21 +15,28 @@ import (
 
 func UseReqRateLimitMiddleware(d time.Duration, maxReq int) gin.HandlerFunc {
 	cache := performance.NewCache(constants.MB * 4)
+	blockingService := blocking.DefaultIPBlockingService
 
 	return func(ctx *gin.Context) {
+		// 管理员忽略任务访问基数限制
+		user, e := auth.GetCurrentLoginSession(ctx)
+		if e == nil && user.UserType == constants.Admin {
+			ctx.Next()
+			return
+		}
+
 		ip := GetRealIpWithContext(ctx)
+		// 如果在黑名单中, 直接不进行任何操作, 返回
+		if blockingService.IpInBlockingList(ip) {
+			ctx.Abort()
+			return
+		}
+
 		count, err := cache.GetInt64(ip)
 
 		// 此前不存在访问或者访问已经重置
 		if err != nil {
 			cache.IncAndGet(ip, 1, performance.Second(d/time.Second))
-			ctx.Next()
-			return
-		}
-
-		// 管理员忽略任务访问基数限制
-		user, e := auth.GetCurrentLoginSession(ctx)
-		if e == nil && user.UserType == constants.Admin {
 			ctx.Next()
 			return
 		}

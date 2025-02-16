@@ -1,7 +1,6 @@
 package dto
 
 import (
-	"slices"
 	"space-api/dto/query"
 	"space-api/util/performance"
 	"space-domain/model"
@@ -24,9 +23,3 @@ type (
 		Format string `form:"format" uri:"format" json:"format" yaml:"format" xml:"format" toml:"format"` // 导出格式
 	}
 )
-
-func init() {
-	slices.CompactFunc([]int{1, 2}, func(a, b int) bool {
-		return a == b
-	})
-}

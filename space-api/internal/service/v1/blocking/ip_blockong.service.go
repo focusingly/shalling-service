@@ -9,7 +9,6 @@ import (
 	"space-api/util/performance"
 	"space-domain/dao/biz"
 	"space-domain/model"
-	"time"
 
 	"golang.org/x/net/context"
 	"gorm.io/gen"
@@ -24,12 +23,37 @@ var DefaultIPBlockingService = &_ipBlockingService{
 	cache: *performance.NewCache(constants.MB * 4),
 }
 
-func (s *_ipBlockingService) AddBlockingIP(ip string, timeout ...time.Duration) {
-	s.cache.Set(ip, 1)
-}
+func (s *_ipBlockingService) AddBlockingIP(req *dto.AddBlockingIPReq, ctx context.Context) (resp *dto.AddBlockingIPResp, err error) {
+	err = biz.Q.Transaction(func(tx *biz.Query) error {
+		ipTx := tx.BlockIPRecord
+		_, e := ipTx.WithContext(ctx).
+			Where(ipTx.IPAddr.Eq(req.IPAddr)).
+			Take()
 
-func (s *_ipBlockingService) RemoveBlockingIP(ip string) {
-	s.cache.Delete(ip)
+		// 不存在, 进行创建
+		if e != nil {
+			e = ipTx.WithContext(ctx).Create(&model.BlockIPRecord{
+				IPAddr:      req.IPAddr,
+				IPSource:    req.IPSource,
+				UserAgent:   req.UserAgent,
+				LastRequest: req.LastRequest,
+			})
+
+			if e != nil {
+				return e
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		err = util.CreateBizErr("添加阻止 IP 失败", err)
+		return
+	}
+	resp = &dto.AddBlockingIPResp{}
+	s.cache.Set(req.IPAddr, 1)
+
+	return
 }
 
 func (s *_ipBlockingService) IpInBlockingList(ip string) bool {
@@ -153,7 +177,7 @@ func (s *_ipBlockingService) SyncBlockingRecordInCache(ctx context.Context) (err
 	}
 	s.cache.ClearAll()
 	for _, ipRecord := range list {
-		s.AddBlockingIP(ipRecord.IPAddr)
+		s.cache.Set(ipRecord.IPAddr, 1)
 	}
 
 	return

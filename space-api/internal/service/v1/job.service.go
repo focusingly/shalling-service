@@ -78,18 +78,18 @@ func (j *_jobWrapper) Run() {
 		var logInfo *model.LogInfo
 		if fatalErr := recover(); fatalErr != nil {
 			logInfo = &model.LogInfo{
-				LogType:    constants.TaskExecute,
+				LogType:    string(constants.TaskExecute),
 				Message:    j.taskName + ": 任务执行失败",
-				Level:      constants.Fatal,
+				Level:      string(constants.Fatal),
 				CostTime:   cost,
 				StackTrace: ptr.ToPtr(ptr.Bytes2String(debug.Stack())),
 				CreatedAt:  now,
 			}
 		} else {
 			logInfo = &model.LogInfo{
-				LogType:   constants.TaskExecute,
+				LogType:   string(constants.TaskExecute),
 				Message:   j.taskName + ": 任务执行成功",
-				Level:     constants.Trace,
+				Level:     string(constants.Trace),
 				CostTime:  cost,
 				CreatedAt: now,
 			}

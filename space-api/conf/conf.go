@@ -59,6 +59,21 @@ type (
 		Dsn    string `json:"dsn" yaml:"dsn" xml:"dsn" toml:"dsn"`
 		Mark   string `json:"mark" yaml:"mark" xml:"mark" toml:"mark"`
 	}
+
+	CloudflareConf struct {
+		AccountID string `json:"accountID" yaml:"accountID" xml:"accountID" toml:"accountID"`
+		ApiKey    string `json:"apiKey" yaml:"apiKey" xml:"apiKey" toml:"apiKey"`
+		Email     string `json:"email" yaml:"email" xml:"email" toml:"email"`
+	}
+
+	S3Conf struct {
+		AccountID       string `json:"accountID" yaml:"accountID" xml:"accountID" toml:"accountID"`
+		AccessKeyID     string `json:"accessKeyID" yaml:"accessKeyID" xml:"accessKeyID" toml:"accessKeyID"`
+		AccessKeySecret string `json:"accessKeySecret" yaml:"accessKeySecret" xml:"accessKeySecret" toml:"accessKeySecret"`
+		Token           string `json:"token" yaml:"token" xml:"token" toml:"token"`
+		BucketName      string `json:"bucketName" yaml:"bucketName" xml:"bucketName" toml:"bucketName"`
+		EndPoint        string `json:"endPoint" yaml:"endPoint" xml:"endPoint" toml:"endPoint"`
+	}
 )
 
 type _confScr struct {
@@ -66,6 +81,8 @@ type _confScr struct {
 	githubAuthConf *Oauth2Conf
 	googleAuthConf *Oauth2Conf
 	mailConf       *MailConf
+	cloudflareConf *CloudflareConf
+	s3Conf         *S3Conf
 	jwtConf        JwtConf
 	bizDBConf      DatabaseConf
 	extraDBConf    DatabaseConf
@@ -150,6 +167,14 @@ func (c *_confScr) GetMailConf() *MailConf {
 	return c.mailConf
 }
 
+func (c *_confScr) GetCloudflareConf() *CloudflareConf {
+	return c.cloudflareConf
+}
+
+func (c *_confScr) GetS3Conf() *S3Conf {
+	return c.s3Conf
+}
+
 func (c *_confScr) GetJwtConf() *JwtConf {
 	return &c.jwtConf
 }
@@ -194,6 +219,18 @@ func init() {
 	if v.Get("email") != nil {
 		if e := v.UnmarshalKey("email", &ProjectConf.mailConf); e != nil {
 			log.Fatal("set mail config err: ", e)
+		}
+	}
+
+	if v.Get("cloudflare") != nil {
+		if e := v.UnmarshalKey("cloudflare", &ProjectConf.cloudflareConf); e != nil {
+			log.Fatal("set cloudflare config err: ", e)
+		}
+	}
+
+	if v.Get("s3") != nil {
+		if e := v.UnmarshalKey("s3", &ProjectConf.s3Conf); e != nil {
+			log.Fatal("set s3 storage config err: ", e)
 		}
 	}
 

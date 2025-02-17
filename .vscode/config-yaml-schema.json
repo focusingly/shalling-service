@@ -4,73 +4,121 @@
   "properties": {
     "app": {
       "type": "object",
-      "$comment": "整体配置",
+      "description": "整体配置",
       "properties": {
         "port": {
           "type": "integer",
           "minimum": 0,
           "maximum": 65535,
           "default": 8088,
-          "$comment": "启动端口号"
+          "description": "启动端口号"
         },
         "serverHint": {
           "type": "string",
           "default": "Shalling Server",
-          "$comment": "http 返回的 Server 默认响应头"
+          "description": "http 返回的 Server 默认响应头"
         },
         "nodeID": {
           "type": "integer",
           "minimum": 0,
           "default": 0,
-          "$comment": "雪花节点的机器编号"
+          "description": "雪花节点的机器编号"
         },
         "staticDir": {
           "type": "string",
           "default": ".local",
-          "$comment": "本地存储的静态资源文件目录"
+          "description": "本地存储的静态资源文件目录"
         },
         "maxUserActive": {
           "type": "integer",
           "minimum": 1,
           "default": 3,
-          "$comment": "单个用户允许登录的最大会话数(同时登录个数)"
+          "description": "单个用户允许登录的最大会话数(同时登录个数)"
         },
         "serverTimezone": {
           "type": "string",
           "default": "Asia/Shanghai",
-          "$comment": "服务器时区设置"
+          "description": "服务器时区设置"
         },
         "globalUploadSize": {
           "type": "string",
           "default": "32mb",
-          "$comment": "全局默认的 post 请求的最大上传文件大小, 默认解析处理单位: byte, kb, mb, gb"
+          "description": "全局默认的 post 请求的最大上传文件大小, 默认解析处理单位: byte, kb, mb, gb"
         },
         "salt": {
           "type": "string",
-          "$comment": "用于本地数据库密码加密的盐值"
+          "description": "用于本地数据库密码加密的盐值"
         }
       }
     },
     "email": {
       "type": "object",
-      "$comment": "邮件配置",
+      "description": "邮件配置",
       "properties": {
         "host": {
           "type": "string",
-          "$comment": "主机地址"
+          "description": "主机地址"
         },
         "username": {
           "type": "string",
-          "$comment": "账账户"
+          "description": "登录账户"
         },
         "password": {
-          "$comment": "密码",
+          "description": "密码",
           "type": "string"
         },
         "port": {
           "type": "integer",
-          "default":587,
-          "$comment": "端口"
+          "default": 587,
+          "description": "端口"
+        }
+      }
+    },
+    "cloudflare": {
+      "type": "object",
+      "description": "cloudflare api 访问凭据",
+      "properties": {
+        "accountID": {
+          "type": "string",
+          "description": "账户 ID"
+        },
+        "email": {
+          "type": "string",
+          "description": "账户登录邮箱"
+        },
+        "apiKey": {
+          "type": "string",
+          "description": "账户凭据"
+        }
+      }
+    },
+    "s3": {
+      "type": "object",
+      "description": "s3兼容存储访问凭据",
+      "properties": {
+        "bucketName": {
+          "type": "string",
+          "description": "桶名称"
+        },
+        "accountID": {
+          "type": "string",
+          "description": "账户 ID"
+        },
+        "accessKeyID": {
+          "type": "string",
+          "description": "访问密钥 ID"
+        },
+        "accessKeySecret": {
+          "type": "string",
+          "description": "访问密钥 "
+        },
+        "token": {
+          "type": "string",
+          "description": "cloudflare cli 操作使用的 token"
+        },
+        "endPoint": {
+          "type": "string",
+          "$comment": "使用的特定管辖权断点"
         }
       }
     },
@@ -80,7 +128,7 @@
         "skipModelMigrate": {
           "type": "boolean",
           "default": false,
-          "$comment": "启动程序的时候是否跳过模型的合并"
+          "description": "启动程序的时候是否跳过模型的合并"
         },
         "db": {
           "type": "object",
@@ -95,23 +143,23 @@
                   "postgres"
                 ],
                 "default": "sqlite",
-                "$comment": "数据库类型"
+                "description": "数据库类型"
               },
               "dsn": {
                 "type": "string",
-                "$comment": "数据库连接 URL"
+                "description": "数据库连接 URL"
               },
               "mark": {
                 "type": "string",
-                "$comment": "备注"
+                "description": "备注"
               }
             }
           },
-          "$comment": "数据库类型"
+          "description": "数据库类型"
         },
         "redis": {
           "type": "object",
-          "$comment": "redis 连接配置",
+          "description": "redis 连接配置",
           "propertyNames": true,
           "additionalProperties": {
             "type": "object",
@@ -119,44 +167,44 @@
               "host": {
                 "type": "string",
                 "default": "localhost",
-                "$comment": "主机地址"
+                "description": "主机地址"
               },
               "password": {
                 "type": "string",
-                "$comment": "密码"
+                "description": "密码"
               },
               "port": {
                 "type": "integer",
                 "minimum": 0,
                 "maximum": 65535,
                 "default": 6379,
-                "$comment": "端口"
+                "description": "端口"
               },
               "dbNum": {
                 "type": "integer",
                 "default": 0,
-                "$comment": "选择的数据库"
+                "description": "选择的数据库"
               }
             }
           }
         }
       },
-      "$comment": "数据源配置"
+      "description": "数据源配置"
     },
     "oauth2Conf": {
       "type": "object",
-      "$comment": "oauth2 的配置选项",
+      "description": "oauth2 的配置选项",
       "additionalProperties": {
         "type": "object",
-        "$comment": "oauth2 平台配置",
+        "description": "oauth2 平台配置",
         "properties": {
           "clientId": {
             "type": "string",
-            "$comment": "客户端 ID"
+            "description": "客户端 ID"
           },
           "clientSecret": {
             "type": "string",
-            "$comment": "客户端凭据"
+            "description": "客户端凭据"
           },
           "endPoint": {
             "type": "string",
@@ -164,31 +212,31 @@
               "github",
               "google"
             ],
-            "$comment": "接入平台"
+            "description": "接入平台"
           },
           "redirectUrl": {
             "type": "string",
-            "$comment": "平台认证之后重定向的 URL 链接"
+            "description": "平台认证之后重定向的 URL 链接"
           },
           "scopes": {
             "type": "array",
-            "$comment": "申请的权限范围"
+            "description": "申请的权限范围"
           }
         }
       }
     },
     "jwtConf": {
       "type": "object",
-      "$comment": "JWT 配置",
+      "description": "JWT 配置",
       "properties": {
         "salt": {
           "type": "string",
-          "$comment": "加密盐"
+          "description": "加密盐"
         },
         "expired": {
           "type": "string",
           "default": "15d",
-          "$comment": "颁发 token 的默认有效时间, 支持的单位: s, m, h, d"
+          "description": "颁发 token 的默认有效时间, 支持的单位: s, m, h, d"
         }
       }
     }

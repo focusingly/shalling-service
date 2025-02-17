@@ -11,20 +11,21 @@ const (
 )
 
 // LogLevel 自定义收集的日志级别
-type LogLevel = string
+type LogLevel string
 
 const (
-	Trace UserType = "trace"
-	Info  UserType = "info"
-	Warn  UserType = "warn"
-	Error UserType = "error"
-	Fatal UserType = "fatal"
+	Trace LogLevel = "trace"
+	Info  LogLevel = "info"
+	Warn  LogLevel = "warn"
+	Error LogLevel = "error"
+	Fatal LogLevel = "fatal"
 )
 
 // LogType 自定义的日志类型
-type LogType = string
+type LogType string
 
 const (
-	APIRequest  LogType = "apiRequest"
-	TaskExecute LogType = "taskExecute"
+	APIRequest   LogType = "apiRequest"
+	TaskExecute  LogType = "taskExecute"
+	RequestLimit LogType = "requestLimit"
 )

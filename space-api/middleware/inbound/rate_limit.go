@@ -1,7 +1,9 @@
 package inbound
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"space-api/constants"
 	"space-api/internal/service/v1/blocking"
 	"space-api/middleware/auth"
@@ -16,6 +18,10 @@ import (
 func UseReqRateLimitMiddleware(d time.Duration, maxReq int) gin.HandlerFunc {
 	cache := performance.NewCache(constants.MB * 4)
 	blockingService := blocking.DefaultIPBlockingService
+
+	if err := blockingService.SyncBlockingRecordInCache(context.Background()); err != nil {
+		log.Fatal("init blocking ip list failure", err)
+	}
 
 	return func(ctx *gin.Context) {
 		// 管理员忽略任务访问基数限制

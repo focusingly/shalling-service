@@ -6,15 +6,27 @@ import (
 	"net/http"
 	"runtime/debug"
 	"space-api/constants"
+	"space-api/middleware/inbound"
 	"space-api/util"
+	"space-api/util/ip"
+	"space-api/util/performance"
+	"space-api/util/ptr"
+	"space-domain/dao/extra"
+	"space-domain/model"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
 func UseErrorHandler() gin.HandlerFunc {
+	runner := performance.DefaultTaskRunner
+
 	return func(ctx *gin.Context) {
+		startTime := time.Now().UnixMilli()
+
 		// 具体的错误捕获处理
 		defer func() {
+			costTime := time.Now().UnixMilli() - startTime
 			isPanic := false
 			// 捕获 panic
 			catchErr := recover()
@@ -33,26 +45,67 @@ func UseErrorHandler() gin.HandlerFunc {
 				return
 			}
 
+			ipv4Str := inbound.GetRealIpWithContext(ctx)
+			userDetail := inbound.GetUserAgentFromContext(ctx)
+			source, e := ip.GetIpSearcher().SearchByStr(ipv4Str)
+
+			logInfo := &model.LogInfo{
+				LogType: string(constants.APIRequest),
+				// Message:       "",
+				Level:         string(constants.Error),
+				CostTime:      costTime,
+				RequestMethod: &ctx.Request.Method,
+				RequestURI:    &ctx.Request.RequestURI,
+				StackTrace: util.TernaryExpr(isPanic, ptr.ToPtr(
+					ptr.Bytes2String(debug.Stack()),
+				), nil),
+				IPAddr:    &ipv4Str,
+				IPSource:  util.TernaryExpr(e != nil, nil, &source),
+				Useragent: &userDetail.Useragent,
+				CreatedAt: time.Now().UnixMilli(),
+			}
+
 			code := util.TernaryExpr(isPanic, http.StatusInternalServerError, http.StatusOK)
 			var restErr *util.RestResult[any]
 			switch err := catchErr.(type) {
 			case error: /* 确保都是实现 error 接口的结构体的引用 */
 				switch err := err.(type) {
-				case *util.BizErr,
-					*util.LimitErr,
-					*util.AuthErr:
+				case *util.BizErr:
 					restErr = util.RestWithError(err.Error())
+					logInfo.Message = err.Msg + err.Reason.Error()
+
+				case *util.AuthErr:
+					restErr = util.RestWithError(err.Error())
+					logInfo.Message = err.Msg + err.Reason.Error()
+
+				case *util.LimitErr:
+					restErr = util.RestWithError(err.Error())
+					logInfo.LogType = string(constants.RequestLimit)
+					logInfo.Message = err.Msg + err.Reason.Error()
+
 				case *util.FatalErr:
 					restErr = util.RestWithError("服务内部错误, 请稍后重试或联系站长修复")
+					logInfo.Level = string(constants.Fatal)
+					logInfo.Message = err.Msg + err.Reason.Error()
+
 				default:
 					restErr = util.RestWithError("未知的错误")
+					logInfo.Level = string(constants.Fatal)
 				}
 			default: /* 非 error 对象 */
 				restErr = util.RestWithError("未知错误, 请稍后重试")
+				logInfo.Level = string(constants.Fatal)
+				logInfo.Message = fmt.Sprintf("%#v", err)
 			}
+
 			// 根据请求头返回响应格式
 			handleProduce(code, restErr, ctx)
 			ctx.Abort()
+
+			// 异步写入日志
+			runner.Go(func() {
+				extra.LogInfo.WithContext(ctx).Create(logInfo)
+			})
 		}()
 
 		ctx.Next()

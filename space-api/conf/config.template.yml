@@ -5,6 +5,10 @@ app:
   salt: "<your conf>"
   maxUserActive: 3
   nodeID: 1
+  globalUploadSize: "32mb"
+  notifyEmail: "<your conf>"
+  serverTimezone: "<your conf>"
+  staticDir: "<your conf>"
 dataSource:
   db:
     bizDB:
@@ -15,6 +19,23 @@ dataSource:
       dbType: sqlite
       dsn: "<your conf>"
       mark: "<your conf>"
+cloudflare:
+  accountID: "<your conf>"
+  apiKey: "<your conf>"
+  email: "<your conf>"
+email:
+  port: 587
+  host: "<your conf>"
+  password: "<your conf>"
+  username: "<your conf>"
+s3:
+  accessKeyID: "<your conf>"
+  accessKeySecret: "<your conf>"
+  accountID: "<your conf>"
+  bucketName: "<your conf>"
+  endPoint: "<your conf[optional]>"
+  linkedDomain: "<your conf[optional]>"
+  token: "<your conf[optional]>"
 oauth2Conf:
   github:
     endPoint: github

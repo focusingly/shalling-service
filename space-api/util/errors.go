@@ -6,7 +6,7 @@ type (
 	// 通用业务错误标识
 	BizErr struct {
 		Msg    string
-		Reason any
+		Reason error
 	}
 
 	// 限流错误标识
@@ -35,13 +35,13 @@ func (b *BizErr) Error() string {
 	return b.Msg
 }
 
-func CreateBizErr(msg string, reason any) *BizErr {
+func CreateBizErr(msg string, reason error) *BizErr {
 	return &BizErr{
 		Msg:    msg,
 		Reason: reason,
 	}
 }
-func CreateAuthErr(msg string, reason any) *AuthErr {
+func CreateAuthErr(msg string, reason error) *AuthErr {
 	return &AuthErr{
 		BizErr: BizErr{
 			Msg:    msg,
@@ -49,7 +49,7 @@ func CreateAuthErr(msg string, reason any) *AuthErr {
 		},
 	}
 }
-func CreateLimitErr(msg string, reason any) *LimitErr {
+func CreateLimitErr(msg string, reason error) *LimitErr {
 	return &LimitErr{
 		BizErr: BizErr{
 			Msg:    msg,
@@ -58,7 +58,7 @@ func CreateLimitErr(msg string, reason any) *LimitErr {
 	}
 }
 
-func CreateFatalErr(msg string, reason any) *FatalErr {
+func CreateFatalErr(msg string, reason error) *FatalErr {
 	return &FatalErr{
 		BizErr: BizErr{
 			Msg:    msg,

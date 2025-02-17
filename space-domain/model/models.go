@@ -205,7 +205,7 @@ type (
 	// 被阻止的 IP 列表
 	BlockIPRecord struct {
 		BaseColumn  `json:"baseColumn" yaml:"baseColumn" xml:"baseColumn" toml:"baseColumn"`
-		IPAddr      string `gorm:"type:varchar(255);null;comment:ip 地址" json:"ipAddr" yaml:"ipAddr" xml:"ipAddr" toml:"ipAddr"`
+		IPAddr      string `gorm:"type:varchar(255);unique;not null;comment:ip 地址" json:"ipAddr" yaml:"ipAddr" xml:"ipAddr" toml:"ipAddr"`
 		IPSource    string `gorm:"type:varchar(255);null;comment:ip 来源" json:"ipSource" yaml:"ipSource" xml:"ipSource" toml:"ipSource"`
 		UserAgent   string `gorm:"type:varchar(255);null;comment:用户代理标识" json:"userAgent" yaml:"userAgent" xml:"userAgent" toml:"userAgent"`
 		LastRequest int64  `gorm:"type:bigint;comment:最后一次请求的时间" json:"lastRequest" yaml:"lastRequest" xml:"lastRequest" toml:"lastRequest"`

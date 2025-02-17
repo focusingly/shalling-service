@@ -10,8 +10,22 @@ import (
 	"gorm.io/gen/field"
 )
 
+type Operation string
+
+const (
+	Eq      Operation = "="
+	Neq     Operation = "!="
+	Gt      Operation = ">"
+	Gte     Operation = ">="
+	Lt      Operation = "<"
+	Lte     Operation = "<="
+	In      Operation = "in"
+	Like    Operation = "like"
+	IsNull  Operation = "isNull"
+	NotNull Operation = "notNull"
+)
+
 type (
-	Operation string
 
 	// 查找条件
 	WhereCond struct {
@@ -125,16 +139,3 @@ func ParseCondList(tableName string, list []*WhereCond) (parsedCond []gen.Condit
 func (o Operation) String() string {
 	return string(o)
 }
-
-const (
-	Eq      Operation = "="
-	Neq     Operation = "!="
-	Gt      Operation = ">"
-	Gte     Operation = ">="
-	Lt      Operation = "<"
-	Lte     Operation = "<="
-	In      Operation = "in"
-	Like    Operation = "like"
-	IsNull  Operation = "isNull"
-	NotNull Operation = "notNull"
-)

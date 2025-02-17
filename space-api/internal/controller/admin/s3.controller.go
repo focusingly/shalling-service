@@ -47,7 +47,7 @@ func UseS3Controller(group *gin.RouterGroup) {
 		})
 	}
 
-	// 同步信息到数据库当中
+	// 展示数据库中的缓存信息
 	{
 		s3Group.POST("/list", func(ctx *gin.Context) {
 			req := &dto.GetS3ObjectPagesReq{}

@@ -258,7 +258,7 @@ func init() {
 			if u, e := strconv.ParseInt(sub, 10, 64); e != nil || u <= 0 {
 				log.Fatal("illegal file size: ", cf.GlobalUploadSize)
 			} else {
-				switch matched {
+				switch strings.ToLower(matched) {
 				case "byte":
 					cf.ParsedUploadSize = constants.Byte * constants.MemoryByteSize(u)
 				case "kb":

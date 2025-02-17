@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"space-api/constants"
 	"space-api/internal/service/v1"
 	"space-api/middleware/outbound"
 
@@ -13,7 +14,8 @@ func UseUploadController(group *gin.RouterGroup) {
 
 	// 上传普通的文件, 如果携带 MD5 并匹配通过, 那么跳过重复保存
 	uploadGroup.POST("/", func(ctx *gin.Context) {
-		if resp, err := uploadService.Upload(ctx); err != nil {
+		if resp, err := uploadService.
+			Upload(ctx, constants.MB*1024); err != nil {
 			ctx.Error(err)
 		} else {
 			outbound.NotifyProduceResponse(resp, ctx)

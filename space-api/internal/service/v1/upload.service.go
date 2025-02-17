@@ -51,36 +51,38 @@ func (d *_localUploadService) Upload(ctx *gin.Context, maxSize ...constants.Memo
 		return
 	}
 
-	formMD5 := ctx.Request.FormValue("md5")
+	formPartFile, e := ctx.FormFile("file")
+	if e != nil {
+		err = util.CreateBizErr("获取文件失败:"+e.Error(), e)
+		return
+	}
+	formMD5, _ := ctx.GetPostForm("md5")
+
 	fileOp := biz.FileRecord
 	// 是否已经存在文件, 存在的情况下直接返回存储的相对路径
 	if formMD5 != "" {
-		f, e := fileOp.WithContext(ctx).Where(fileOp.Checksum.Eq(formMD5)).Take()
+		f, e := fileOp.WithContext(ctx).
+			Where(fileOp.Checksum.Eq(formMD5)).
+			Take()
 		if e == nil {
 			resp = f
 			return
 		}
 	}
 
-	file, e := ctx.FormFile("file")
-	if e != nil {
-		err = util.CreateBizErr("获取文件失败:"+e.Error(), e)
-		return
-	}
-
-	formFile, e := file.Open()
+	formFile, e := formPartFile.Open()
 	if e != nil {
 		err = util.CreateBizErr("读取文件流失败", e)
+		return
 	} else {
 		defer formFile.Close()
 	}
 
 	cf := conf.ProjectConf.GetAppConf()
 	// 在数据库中的存储的相对位置名称
-	var location = uuid.NewString() + path.Ext(file.Filename)
+	var location = strings.ReplaceAll(uuid.NewString(), "-", "") + path.Ext(formPartFile.Filename)
 	// 实际写入文件系统的位置
 	var fsWritePath = path.Join(cf.StaticDir, location)
-
 	// 创建文件
 	writeFile, e := os.Create(fsWritePath)
 	if e != nil {
@@ -113,9 +115,9 @@ func (d *_localUploadService) Upload(ctx *gin.Context, maxSize ...constants.Memo
 		BaseColumn: model.BaseColumn{
 			ID: id.GetSnowFlakeNode().Generate().Int64(),
 		},
-		FileName:      file.Filename,
+		FileName:      formPartFile.Filename,
 		LocalLocation: location,
-		Extension:     path.Ext(file.Filename),
+		Extension:     path.Ext(formPartFile.Filename),
 		FileSize:      realSize,
 		Category:      strings.TrimSpace(ctx.Request.FormValue("cat")),
 		ChecksumType:  "md5",
@@ -203,7 +205,7 @@ func (d *_localUploadService) UploadImage2Webp(ctx *gin.Context, maxSize ...cons
 
 	cf := conf.ProjectConf.GetAppConf()
 	// 存储在数据库记录里的相对位置名称
-	location := uuid.NewString() + ".webp"
+	location := strings.ReplaceAll(uuid.NewString(), "-", "") + ".webp"
 	// 实际写入文件系统的位置
 	fsWritePath := path.Join(cf.StaticDir, location)
 

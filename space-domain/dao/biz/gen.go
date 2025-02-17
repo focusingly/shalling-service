@@ -31,6 +31,7 @@ var (
 	Post             *post
 	PostTagRelation  *postTagRelation
 	PubSocialMedia   *pubSocialMedia
+	S3ObjectRecord   *s3ObjectRecord
 	ServiceConf      *serviceConf
 	Tag              *tag
 	UserLoginSession *userLoginSession
@@ -52,6 +53,7 @@ func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	Post = &Q.Post
 	PostTagRelation = &Q.PostTagRelation
 	PubSocialMedia = &Q.PubSocialMedia
+	S3ObjectRecord = &Q.S3ObjectRecord
 	ServiceConf = &Q.ServiceConf
 	Tag = &Q.Tag
 	UserLoginSession = &Q.UserLoginSession
@@ -74,6 +76,7 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 		Post:             newPost(db, opts...),
 		PostTagRelation:  newPostTagRelation(db, opts...),
 		PubSocialMedia:   newPubSocialMedia(db, opts...),
+		S3ObjectRecord:   newS3ObjectRecord(db, opts...),
 		ServiceConf:      newServiceConf(db, opts...),
 		Tag:              newTag(db, opts...),
 		UserLoginSession: newUserLoginSession(db, opts...),
@@ -97,6 +100,7 @@ type Query struct {
 	Post             post
 	PostTagRelation  postTagRelation
 	PubSocialMedia   pubSocialMedia
+	S3ObjectRecord   s3ObjectRecord
 	ServiceConf      serviceConf
 	Tag              tag
 	UserLoginSession userLoginSession
@@ -121,6 +125,7 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		Post:             q.Post.clone(db),
 		PostTagRelation:  q.PostTagRelation.clone(db),
 		PubSocialMedia:   q.PubSocialMedia.clone(db),
+		S3ObjectRecord:   q.S3ObjectRecord.clone(db),
 		ServiceConf:      q.ServiceConf.clone(db),
 		Tag:              q.Tag.clone(db),
 		UserLoginSession: q.UserLoginSession.clone(db),
@@ -152,6 +157,7 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 		Post:             q.Post.replaceDB(db),
 		PostTagRelation:  q.PostTagRelation.replaceDB(db),
 		PubSocialMedia:   q.PubSocialMedia.replaceDB(db),
+		S3ObjectRecord:   q.S3ObjectRecord.replaceDB(db),
 		ServiceConf:      q.ServiceConf.replaceDB(db),
 		Tag:              q.Tag.replaceDB(db),
 		UserLoginSession: q.UserLoginSession.replaceDB(db),
@@ -173,6 +179,7 @@ type queryCtx struct {
 	Post             IPostDo
 	PostTagRelation  IPostTagRelationDo
 	PubSocialMedia   IPubSocialMediaDo
+	S3ObjectRecord   IS3ObjectRecordDo
 	ServiceConf      IServiceConfDo
 	Tag              ITagDo
 	UserLoginSession IUserLoginSessionDo
@@ -194,6 +201,7 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		Post:             q.Post.WithContext(ctx),
 		PostTagRelation:  q.PostTagRelation.WithContext(ctx),
 		PubSocialMedia:   q.PubSocialMedia.WithContext(ctx),
+		S3ObjectRecord:   q.S3ObjectRecord.WithContext(ctx),
 		ServiceConf:      q.ServiceConf.WithContext(ctx),
 		Tag:              q.Tag.WithContext(ctx),
 		UserLoginSession: q.UserLoginSession.WithContext(ctx),

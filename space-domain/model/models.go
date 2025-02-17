@@ -148,13 +148,13 @@ type (
 	}
 
 	// 使用 OSS3 的相关服务存储记录
-	OSS3Record struct {
+	S3ObjectRecord struct {
 		BaseColumn   `json:"baseColumn" yaml:"baseColumn" xml:"baseColumn" toml:"baseColumn"`
+		ObjectKey    string `gorm:"type:text;not null;comment:对象的唯一标识" json:"objectKey" yaml:"objectKey" xml:"objectKey" toml:"objectKey"`
 		FileName     string `gorm:"type:varchar(255);not null;comment:" json:"fileName" yaml:"fileName" xml:"fileName" toml:"fileName"`
 		Extension    string `gorm:"type:varchar(255);not null;comment:" json:"extension" yaml:"extension" xml:"extension" toml:"extension"`
 		FileSize     int64  `gorm:"type:bigint;not null;comment:" json:"fileSize" yaml:"fileSize" xml:"fileSize" toml:"fileSize"`
 		BucketName   string `gorm:"type:varchar(255);not null;comment:存储的桶名称" json:"category" yaml:"bucketName" xml:"bucketName" toml:"bucketName"`
-		VisitURL     string `gorm:"type:text;not null;comment:oss存储上的相对路径" json:"visitURL" yaml:"visitURL" xml:"visitURL" toml:"visitURL"`
 		ChecksumType string `gorm:"varchar(255);not null;comment:校验类型" json:"checksumType" yaml:"checksumType" xml:"checksumType" toml:"checksumType"`
 		Checksum     string `gorm:"type:text;not null;comment:校验和" json:"checksum" yaml:"checksum" xml:"checksum" toml:"checksum"`
 		PubAvailable int    `gorm:"type:smallint;not null;default:0;comment:是否允许对外的公开访问(默认不允许: 0)" json:"pubAvailable" yaml:"pubAvailable" xml:"pubAvailable" toml:"pubAvailable"`
@@ -263,6 +263,7 @@ func GetBizMigrateTables() []any {
 		new(Post),
 		new(Tag),
 		new(PostTagRelation),
+		new(S3ObjectRecord),
 		new(Category),
 		new(Comment),
 		new(PubSocialMedia),

@@ -23,7 +23,6 @@ func init() {
 	if clfConf == nil {
 		return
 	}
-
 	client := cloudflare.NewClient(
 		option.WithAPIKey(clfConf.ApiKey),  // defaults to os.LookupEnv("CLOUDFLARE_API_KEY")
 		option.WithAPIEmail(clfConf.Email), // defaults to os.LookupEnv("CLOUDFLARE_EMAIL")
@@ -34,8 +33,8 @@ func init() {
 	}
 }
 
-// ExistsCost 返回所有已经产生了费用的项目
-func (s *_clfService) ExistsCost(ctx context.Context) (subs []*shared.Subscription, err error) {
+// GetExistsCost 返回所有已经产生了费用的项目
+func (s *_clfService) GetExistsCost(ctx context.Context) (subs []*shared.Subscription, err error) {
 	list, err := s.Accounts.
 		Subscriptions.
 		Get(ctx, accounts.SubscriptionGetParams{

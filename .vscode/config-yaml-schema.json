@@ -116,6 +116,10 @@
           "type": "string",
           "description": "cloudflare cli 操作使用的 token"
         },
+        "linkedDomain": {
+          "type": "string",
+          "description": "使用的替代域名"
+        },
         "endPoint": {
           "type": "string",
           "$comment": "使用的特定管辖权断点"

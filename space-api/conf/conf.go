@@ -73,6 +73,7 @@ type (
 		Token           string `json:"token" yaml:"token" xml:"token" toml:"token"`
 		BucketName      string `json:"bucketName" yaml:"bucketName" xml:"bucketName" toml:"bucketName"`
 		EndPoint        string `json:"endPoint" yaml:"endPoint" xml:"endPoint" toml:"endPoint"`
+		LinkedDomain    string `json:"linkedDomain" yaml:"linkedDomain" xml:"linkedDomain" toml:"linkedDomain"`
 	}
 )
 

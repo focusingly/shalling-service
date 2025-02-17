@@ -45,6 +45,10 @@
           "default": "32mb",
           "description": "全局默认的 post 请求的最大上传文件大小, 默认解析处理单位: byte, kb, mb, gb"
         },
+        "notifyEmail": {
+          "type": "string",
+          "description": "用于通知站主站点自动化任务执行信息(比如 r2 产生订阅费用)的收件邮箱"
+        },
         "salt": {
           "type": "string",
           "description": "用于本地数据库密码加密的盐值"

@@ -1,14 +1,19 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"html/template"
 	"runtime/debug"
 	"slices"
+	"space-api/conf"
 	"space-api/constants"
 	"space-api/dto"
+	"space-api/pack"
 	"space-api/util"
 	"space-api/util/arr"
+	"space-api/util/id"
 	"space-api/util/ptr"
 	"space-domain/dao/biz"
 	"space-domain/dao/extra"
@@ -18,6 +23,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/robfig/cron/v3"
+	"gopkg.in/gomail.v2"
 )
 
 type _taskService struct {
@@ -65,7 +71,10 @@ func (s *_memSyncRecord) appendJobID(rc *_taskRelationRecord) {
 	if rc == nil {
 		panic("record can't nil")
 	}
-	s.records = append(s.records, &_taskRelationRecord{})
+	s.records = append(s.records, &_taskRelationRecord{
+		entryID:    rc.entryID,
+		dbRecordID: rc.dbRecordID,
+	})
 }
 
 var _ cron.Job = (*_jobWrapper)(nil)
@@ -107,11 +116,82 @@ var (
 	// TODO 暂时只支持本地定义的方法
 	RegisterJobs = []*CustomTask{
 		{
-			FuncName: "ClearOldLogs",
+			FuncName: "clear_old_logs",
 			Task: func() {
-				fmt.Println("clear old logs...")
+				logOp := extra.LogInfo
+				sec := time.Now().AddDate(0, 0, -19).UnixMilli()
+				logOp.WithContext(context.TODO()).
+					Where(logOp.CreatedAt.Lte(sec)).
+					Delete()
 			},
-			Description: "日志清理",
+			Description: "清空 10天 之前的日志",
+		},
+		{
+			FuncName: "check_cloudflare_billings",
+			Task: func() {
+				cfService := DefaultCloudflareService
+				mailService := DefaultMailService
+				appConf := conf.ProjectConf.GetAppConf()
+				mailConf := conf.ProjectConf.GetMailConf()
+				subs, err := cfService.GetExistsCost(context.TODO())
+
+				// 获取账单信息失败
+				if err != nil {
+					t, err := template.New("cloud-flare-request-fault").Parse(string(pack.CheckBillingFaultTemplate))
+					if err != nil {
+						panic(err)
+					}
+					var bf = bytes.Buffer{}
+					if e := t.Execute(
+						&bf,
+						map[string]any{
+							"Link": "https://dash.cloudflare.com",
+							"Time": "Asia/Shanghai " + time.Now().In(time.FixedZone("CST", 8*3600)).Format("2006-01-02 15:04:05"),
+						}); e != nil {
+						panic(e)
+					}
+
+					msg := gomail.NewMessage()
+					msg.SetHeader("From", mailConf.Username)
+					msg.SetHeader("To", appConf.NotifyEmail)
+					msg.SetHeader("Subject", "获取 Cloudflare 账单信息失败, 请留意")
+					msg.SetBody("text/html", bf.String())
+					e := mailService.SendEmail(msg)
+					if e != nil {
+						panic(e)
+					}
+
+					return
+				}
+
+				if len(subs) != 0 {
+					t, err := template.New("cloud-flare-billing").Parse(string(pack.BillingSubsCostTemplate))
+					if err != nil {
+						panic(err)
+					}
+					var bf = bytes.Buffer{}
+					if e := t.Execute(
+						&bf,
+						map[string]any{
+							"Subs": subs,
+							"Time": "Asia/Shanghai " + time.Now().In(time.FixedZone("CST", 8*3600)).Format("2006-01-02 15:04:05"),
+						}); e != nil {
+						panic(e)
+					}
+
+					msg := gomail.NewMessage()
+					msg.SetHeader("From", mailConf.Username)
+					msg.SetHeader("To", appConf.NotifyEmail)
+					msg.SetHeader("Subject", "Cloudflare 的订阅产生了费用")
+					msg.SetBody("text/html", bf.String())
+					e := mailService.SendEmail(msg)
+					if e != nil {
+						panic(e)
+					}
+				}
+
+			},
+			Description: "检查 cloudflare 是否产生了扣费行为(比如 r2 超出免费额度, 并发送邮件进行提醒)",
 		},
 	}
 )
@@ -197,9 +277,12 @@ func (*_taskService) CreateOrUpdateNewJob(req *dto.CreateOrUpdateJobReq, ctx *gi
 			Take()
 		// 不存在任务, 进行新建
 		if e != nil {
+			newJobId := id.GetSnowFlakeNode().Generate().Int64()
 			e := jobTx.WithContext(ctx).Create(
 				&model.CronJob{
-					BaseColumn:  model.BaseColumn{},
+					BaseColumn: model.BaseColumn{
+						ID: newJobId,
+					},
 					JobFuncName: req.JobFuncName,
 					CronExpr:    req.CronExpr,
 					Status:      util.TernaryExpr(req.Enable == 0, "inactive", "active"),
@@ -218,7 +301,7 @@ func (*_taskService) CreateOrUpdateNewJob(req *dto.CreateOrUpdateJobReq, ctx *gi
 				// 同步到内存列表当中
 				_memJobRecords.records = append(_memJobRecords.records, &_taskRelationRecord{
 					entryID:    entryID,
-					dbRecordID: findTask.ID,
+					dbRecordID: newJobId,
 				})
 			}
 		} else {
@@ -246,27 +329,51 @@ func (*_taskService) CreateOrUpdateNewJob(req *dto.CreateOrUpdateJobReq, ctx *gi
 			if e != nil {
 				return e
 			}
+
+			// 处理内存中的记录
 			existsTaskIndex := slices.IndexFunc(_memJobRecords.records, func(rc *_taskRelationRecord) bool {
 				return rc.dbRecordID == findTask.ID
 			})
-			if existsTaskIndex == -1 {
-				return fmt.Errorf("未找到内存中的任务记录, 可能存在问题")
+
+			// 此前任务就已经在运行的状态
+			if existsTaskIndex != -1 {
+				// 存在运行的任务
+				exitsTask := _memJobRecords.records[existsTaskIndex]
+
+				// 取消掉旧任务
+				_singleScheduler.Remove(exitsTask.entryID)
+
+				// 构建新的任务列表 -> 移除掉旧任务
+				updates := slices.Delete(_memJobRecords.records, existsTaskIndex, existsTaskIndex+1)
+
+				// 需要启动新的任务情况
+				if req.Enable != 0 {
+					// 设置新的任务
+					entryID := _singleScheduler.Schedule(parsedCronExpr, createJobWrapper(newTaskRecord.FuncName, newTaskRecord.Task))
+					// 追加任务
+					updates = append(updates, &_taskRelationRecord{
+						entryID:    entryID,
+						dbRecordID: findTask.ID,
+					})
+				}
+
+				// 整体替换任务记录
+				_memJobRecords.records = updates
+			} else {
+				// 此前并无已经存在运行的任务
+
+				if req.Enable != 0 {
+					// 设置新的任务
+					entryID := _singleScheduler.Schedule(parsedCronExpr, createJobWrapper(newTaskRecord.FuncName, newTaskRecord.Task))
+
+					// 追加任务记录
+					_memJobRecords.records = append(_memJobRecords.records, &_taskRelationRecord{
+						entryID:    entryID,
+						dbRecordID: findTask.ID,
+					})
+				}
 			}
-			exitsTask := _memJobRecords.records[existsTaskIndex]
-			// 取消掉旧任务
-			_singleScheduler.Remove(exitsTask.entryID)
-			// 构建新的任务列表
-			updates := slices.Delete(_memJobRecords.records, existsTaskIndex, existsTaskIndex+1)
-			if req.Enable != 0 {
-				// 设置新的任务
-				entryID := _singleScheduler.Schedule(parsedCronExpr, createJobWrapper(newTaskRecord.FuncName, newTaskRecord.Task))
-				updates = append(updates, &_taskRelationRecord{
-					entryID:    entryID,
-					dbRecordID: findTask.ID,
-				})
-			}
-			// 替换任务记录
-			_memJobRecords.records = updates
+
 		}
 		return nil
 	})
@@ -284,7 +391,7 @@ func (*_taskService) CreateOrUpdateNewJob(req *dto.CreateOrUpdateJobReq, ctx *gi
 func (*_taskService) RunJobImmediately(req *dto.RunJobReq, ctx *gin.Context) (resp *dto.RunJobResp, err error) {
 	// 上锁
 	_memJobRecords.Lock()
-	defer _memJobRecords.Lock()
+	defer _memJobRecords.Unlock()
 
 	jobTx := biz.CronJob
 	job, err := jobTx.WithContext(ctx).

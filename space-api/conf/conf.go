@@ -28,6 +28,7 @@ type (
 		StaticDir        string                   `json:"staticDir" yaml:"staticDir" xml:"staticDir" toml:"staticDir"`
 		GlobalUploadSize string                   `json:"globalUploadSize" yaml:"globalUploadSize" xml:"globalUploadSize" toml:"globalUploadSize"`
 		ParsedUploadSize constants.MemoryByteSize `json:"parsedUploadSize" yaml:"parsedUploadSize" xml:"parsedUploadSize" toml:"parsedUploadSize"`
+		NotifyEmail      string                   `json:"notifyEmail" yaml:"notifyEmail" xml:"notifyEmail" toml:"notifyEmail"`
 	}
 
 	MailConf struct {

@@ -6,6 +6,7 @@ func RegisterAllAdminControllers(group *gin.RouterGroup) {
 	adminGroup := group.Group("/admin")
 
 	UsePostController(adminGroup)
+	UseCommentController(adminGroup)
 	UseTagController(adminGroup)
 	UseSocialMediaController(adminGroup)
 	UseJobController(adminGroup)

@@ -229,6 +229,20 @@ type (
 		RecordCreatedAt int64  `gorm:"column:record_created_at" json:"recordCreatedAt" yaml:"recordCreatedAt" xml:"recordCreatedAt" toml:"recordCreatedAt"`
 		RecordUpdatedAt int64  `gorm:"column:record_updated_at" json:"recordUpdatedAt" yaml:"recordUpdatedAt" xml:"recordUpdatedAt" toml:"recordUpdatedAt"`
 	}
+
+	UVStatistic struct {
+		BaseColumn  `json:"baseColumn" yaml:"baseColumn" xml:"baseColumn" toml:"baseColumn"`
+		VisitorHash string `gorm:"type:text;not null;comment:访问者的 hash" json:"visitorHash" yaml:"visitorHash" xml:"visitorHash" toml:"visitorHash"`
+		IP          string `gorm:"type:varchar(255);comment:访问者的 IP" json:"ip" yaml:"ip" xml:"ip" toml:"ip"`
+		IPSource    string `gorm:"type:text;comment:IP 来源" json:"ipSource" yaml:"ipSource" xml:"ipSource" toml:"ipSource"`
+		UserAgent   string `gorm:"type:text;comment:访问者的客户端标识" json:"userAgent" yaml:"userAgent" xml:"userAgent" toml:"userAgent"`
+		ClientName  string `gorm:"type:varchar(255);null;comment:客户端名称" json:"clientName" yaml:"clientName" xml:"clientName" toml:"clientName"`
+		IsMobile    int    `gorm:"type:smallint;null;comment:是否为移动端" json:"isMobile" yaml:"isMobile" xml:"isMobile" toml:"isMobile"`
+		LikeBot     int    `gorm:"type:smallint;null;comment:是否为爬虫" json:"likeBot" yaml:"likeBot" xml:"likeBot" toml:"likeBot"`
+		OS          string `gorm:"type:varchar(255);null;comment:系统名称" json:"os" yaml:"os" xml:"os" toml:"os"`
+		VisitTime   int64  `gorm:"type:bigint;comment:访问时间" json:"visitTime" yaml:"visitTime" xml:"visitTime" toml:"visitTime"`
+		VisitDate   string `gorm:"type:varchar(255);comment:访问时间格式化字符串" json:"visitDate" yaml:"visitDate" xml:"visitDate" toml:"visitDate"` // YYYY-MM-DD格式
+	}
 )
 
 // Extra tables
@@ -274,6 +288,7 @@ func GetBizMigrateTables() []any {
 		new(FriendLink),
 		new(BlockIPRecord),
 		new(ServiceConf),
+		new(UVStatistic),
 		new(CronJob),
 	}
 }

@@ -34,6 +34,7 @@ var (
 	S3ObjectRecord   *s3ObjectRecord
 	ServiceConf      *serviceConf
 	Tag              *tag
+	UVStatistic      *uVStatistic
 	UserLoginSession *userLoginSession
 )
 
@@ -56,6 +57,7 @@ func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	S3ObjectRecord = &Q.S3ObjectRecord
 	ServiceConf = &Q.ServiceConf
 	Tag = &Q.Tag
+	UVStatistic = &Q.UVStatistic
 	UserLoginSession = &Q.UserLoginSession
 }
 
@@ -79,6 +81,7 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 		S3ObjectRecord:   newS3ObjectRecord(db, opts...),
 		ServiceConf:      newServiceConf(db, opts...),
 		Tag:              newTag(db, opts...),
+		UVStatistic:      newUVStatistic(db, opts...),
 		UserLoginSession: newUserLoginSession(db, opts...),
 	}
 }
@@ -103,6 +106,7 @@ type Query struct {
 	S3ObjectRecord   s3ObjectRecord
 	ServiceConf      serviceConf
 	Tag              tag
+	UVStatistic      uVStatistic
 	UserLoginSession userLoginSession
 }
 
@@ -128,6 +132,7 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		S3ObjectRecord:   q.S3ObjectRecord.clone(db),
 		ServiceConf:      q.ServiceConf.clone(db),
 		Tag:              q.Tag.clone(db),
+		UVStatistic:      q.UVStatistic.clone(db),
 		UserLoginSession: q.UserLoginSession.clone(db),
 	}
 }
@@ -160,6 +165,7 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 		S3ObjectRecord:   q.S3ObjectRecord.replaceDB(db),
 		ServiceConf:      q.ServiceConf.replaceDB(db),
 		Tag:              q.Tag.replaceDB(db),
+		UVStatistic:      q.UVStatistic.replaceDB(db),
 		UserLoginSession: q.UserLoginSession.replaceDB(db),
 	}
 }
@@ -182,6 +188,7 @@ type queryCtx struct {
 	S3ObjectRecord   IS3ObjectRecordDo
 	ServiceConf      IServiceConfDo
 	Tag              ITagDo
+	UVStatistic      IUVStatisticDo
 	UserLoginSession IUserLoginSessionDo
 }
 
@@ -204,6 +211,7 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		S3ObjectRecord:   q.S3ObjectRecord.WithContext(ctx),
 		ServiceConf:      q.ServiceConf.WithContext(ctx),
 		Tag:              q.Tag.WithContext(ctx),
+		UVStatistic:      q.UVStatistic.WithContext(ctx),
 		UserLoginSession: q.UserLoginSession.WithContext(ctx),
 	}
 }

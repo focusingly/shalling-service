@@ -3,7 +3,7 @@ package admin
 import (
 	"log"
 	"space-api/dto"
-	"space-api/internal/service/v1"
+	"space-api/internal/service/v1/task"
 	"space-api/middleware/outbound"
 	"space-api/util"
 
@@ -11,11 +11,11 @@ import (
 )
 
 func UseJobController(group *gin.RouterGroup) {
-	taskService := service.DefaultTaskService
+	taskService := task.DefaultTaskService
 	taskGroup := group.Group("/task")
 
 	// 恢复记录
-	if err := taskService.ResumeFromDatabase(); err != nil {
+	if err := taskService.ResumeTasksFromPersistData(); err != nil {
 		log.Fatal("从数据库中恢复任务失败: ", err)
 	}
 

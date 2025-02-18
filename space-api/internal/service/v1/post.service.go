@@ -11,6 +11,7 @@ import (
 	"space-api/util/arr"
 	"space-api/util/id"
 	"space-api/util/performance"
+	"space-api/util/ptr"
 	"space-domain/dao/biz"
 	"space-domain/model"
 	"strings"
@@ -260,7 +261,7 @@ func (s *postService) CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ctx *gi
 }
 
 // GetAllPostList 获取所有文章分页的信息(不包括正文内容)
-func (*postService) GetAllPostList(req *dto.GetPostPageListReq, ctx *gin.Context) (resp *dto.GetPostPageListResp, err error) {
+func (s *postService) GetAllPostList(req *dto.GetPostPageListReq, ctx *gin.Context) (resp *dto.GetPostPageListResp, err error) {
 	postOp := biz.Post
 
 	result, count, err := postOp.
@@ -292,6 +293,10 @@ func (*postService) GetAllPostList(req *dto.GetPostPageListReq, ctx *gin.Context
 		}
 	}
 
+	for _, post := range result {
+		post.Views = ptr.ToPtr(s.GetCachedViewCountOrFallback(post, false))
+	}
+
 	return &dto.GetPostPageListResp{
 		PageList: model.PageList[*model.Post]{
 			List:  result,
@@ -302,8 +307,41 @@ func (*postService) GetAllPostList(req *dto.GetPostPageListReq, ctx *gin.Context
 	}, nil
 }
 
+// GetCachedViewCountOrFallback 获取文章在缓存中的技术值, 如果为公开访问, 那么还递增对应的缓存计数
+func (s *postService) GetCachedViewCountOrFallback(post *model.Post, isPubMode bool) int64 {
+	key := fmt.Sprintf("%d", post.ID)
+	shouldIncr := util.TernaryExpr[int64](isPubMode, 1, 0)
+
+	var fallbackViewCount = util.TernaryExpr(
+		post.Views != nil,
+		(*post.Views)+shouldIncr,
+		shouldIncr,
+	)
+
+	var getViews int64 = 0
+	var err error = nil
+
+	if isPubMode {
+		getViews, err = s.visitCache.IncAndGet(key, 1, 0)
+	} else {
+		getViews, err = s.visitCache.GetInt64(key)
+	}
+
+	// 处理访问量合法性
+	switch {
+	case
+		err != nil,                   // 缓存中不存在
+		fallbackViewCount > getViews: // 缓存中的计数值比数据库记录值低, 那么需要使用数据库提供的
+
+		s.visitCache.Set(key, fallbackViewCount)
+		getViews = fallbackViewCount
+	}
+
+	return getViews
+}
+
 // GetVisiblePostList 获取可见文章分页的信息(不包括正文内容)
-func (*postService) GetVisiblePostList(req *dto.GetPostPageListReq, ctx *gin.Context) (resp *dto.GetPostPageListResp, err error) {
+func (s *postService) GetVisiblePostList(req *dto.GetPostPageListReq, ctx *gin.Context) (resp *dto.GetPostPageListResp, err error) {
 	postOp := biz.Post
 
 	// 只允许可见的文章
@@ -339,6 +377,10 @@ func (*postService) GetVisiblePostList(req *dto.GetPostPageListReq, ctx *gin.Con
 		}
 	}
 
+	for _, post := range result {
+		post.Views = ptr.ToPtr(s.GetCachedViewCountOrFallback(post, false))
+	}
+
 	return &dto.GetPostPageListResp{
 		PageList: model.PageList[*model.Post]{
 			List:  result,
@@ -350,7 +392,7 @@ func (*postService) GetVisiblePostList(req *dto.GetPostPageListReq, ctx *gin.Con
 }
 
 // GetPostById 根据文章 ID 获取全量的文章信息
-func (*postService) GetPostById(req *dto.GetPostDetailReq, ctx *gin.Context) (resp *dto.GetPostDetailResp, err error) {
+func (s *postService) GetPostById(req *dto.GetPostDetailReq, ctx *gin.Context) (resp *dto.GetPostDetailResp, err error) {
 	val, err := biz.Post.WithContext(ctx).Where(biz.Post.ID.Eq(req.PostID)).Take()
 	if err != nil {
 		return nil, &util.BizErr{
@@ -359,19 +401,20 @@ func (*postService) GetPostById(req *dto.GetPostDetailReq, ctx *gin.Context) (re
 		}
 	}
 
+	val.Views = ptr.ToPtr(s.GetCachedViewCountOrFallback(val, false))
+
 	return &dto.GetPostDetailResp{
 		Post: *val,
 	}, nil
 }
 
-func (s *postService) SyncPubPostViews(ctx context.Context) (err error) {
+func (s *postService) SyncAllPostViews(ctx context.Context) (err error) {
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		bizTx := tx.Post
 
 		// 找到所有公开的文章, 和缓存的访问数量进行对比/同步
 		list, e := bizTx.WithContext(ctx).
 			Select(bizTx.ID, bizTx.Views).
-			Where(bizTx.Hide.Eq(0)).
 			Find()
 		if e != nil {
 			return e
@@ -407,7 +450,7 @@ func (s *postService) SyncPubPostViews(ctx context.Context) (err error) {
 	return
 }
 
-func (s *postService) ClearPubViewsCache() {
+func (s *postService) ClearPostsViewsCache() {
 	s.visitCache.ClearAll()
 }
 
@@ -416,7 +459,7 @@ func (s *postService) ExpirePubViewsCacheByID(postID int64) {
 }
 
 // GetVisiblePostById 根据文章 ID 获取可见的全量的文章信息
-func (p *postService) GetVisiblePostById(req *dto.GetPostDetailReq, ctx *gin.Context) (resp *dto.GetPostDetailResp, err error) {
+func (s *postService) GetVisiblePostById(req *dto.GetPostDetailReq, ctx *gin.Context) (resp *dto.GetPostDetailResp, err error) {
 	pubPost, err := biz.Post.WithContext(ctx).
 		Where(
 			biz.Post.ID.Eq(req.PostID),
@@ -430,23 +473,7 @@ func (p *postService) GetVisiblePostById(req *dto.GetPostDetailReq, ctx *gin.Con
 		}
 	}
 
-	// 更新访问量
-	var fallbackViewCount = util.TernaryExpr(pubPost.Views != nil, *pubPost.Views, 1)
-	key := fmt.Sprintf("%d", pubPost.ID)
-	getViews, e := p.visitCache.IncAndGet(key, 1, 0)
-
-	// 处理访问量合法性
-	switch {
-	case e != nil:
-		p.visitCache.Set(key, fallbackViewCount)
-		getViews = fallbackViewCount
-	case fallbackViewCount > getViews: // 判断缓存的计数值是否比数据库记录值低, 如果更低, 那么需要使用数据库提供的
-		p.visitCache.Set(key, fallbackViewCount+1)
-		getViews = fallbackViewCount
-	default:
-	}
-
-	pubPost.Views = &getViews
+	pubPost.Views = ptr.ToPtr(s.GetCachedViewCountOrFallback(pubPost, true))
 
 	return &dto.GetPostDetailResp{
 		Post: *pubPost,
@@ -469,13 +496,16 @@ func (s *postService) DeletePostByIdList(req *dto.DeletePostByIdListReq, ctx *gi
 
 	// 清空相关的全文搜索索引
 	s.executor.Go(func() {
+		for _, id := range req.IdList {
+			s.ExpirePubViewsCacheByID(id)
+		}
 		s.searchService.DeletePostSearchIndex(req.IdList, context.Background())
 	})
 
 	return &dto.DeletePostByIdListResp{}, nil
 }
 
-func (*postService) GetVisiblePostsByTagName(req *dto.GetPostByTagNameReq, ctx *gin.Context) (resp *dto.GetPostByTagNameResp, err error) {
+func (s *postService) GetVisiblePostsByTagName(req *dto.GetPostByTagNameReq, ctx *gin.Context) (resp *dto.GetPostByTagNameResp, err error) {
 	tagOp := biz.Tag
 	// 找到匹配的标签
 	tag, err := tagOp.WithContext(ctx).
@@ -523,6 +553,10 @@ func (*postService) GetVisiblePostsByTagName(req *dto.GetPostByTagNameReq, ctx *
 	if err != nil {
 		err = util.CreateBizErr("查找数据失败", err)
 		return
+	}
+
+	for _, post := range postsList {
+		post.Views = ptr.ToPtr(s.GetCachedViewCountOrFallback(post, false))
 	}
 	resp = &dto.GetPostByTagNameResp{
 		Tag:   tag,

@@ -83,21 +83,14 @@ func UseJwtAuthHandler() gin.HandlerFunc {
 // GetCurrentLoginSession 获取当前的凭据
 func GetCurrentLoginSession(ctx *gin.Context) (user *model.UserLoginSession, err error) {
 	if u, ok := ctx.Get(_jwtRandMark); !ok {
-		err = &util.AuthErr{
-			BizErr: util.BizErr{
-				Msg:    "无授权凭据, 请先登录",
-				Reason: fmt.Errorf("oo found login user"),
-			},
-		}
+		err = util.CreateAuthErr(
+			"无授权凭据, 请先登录",
+			fmt.Errorf("oo found login user"))
 		return
 	} else {
 		if t, ok := u.(*model.UserLoginSession); !ok {
-			err = &util.AuthErr{
-				BizErr: util.BizErr{
-					Msg:    "提取用户标识失败",
-					Reason: fmt.Errorf("extract user id failed"),
-				},
-			}
+			err = util.CreateAuthErr("提取用户标识失败",
+				fmt.Errorf("extract user id failed"))
 			return
 		} else {
 			user = t

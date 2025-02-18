@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"space-api/constants"
 	"space-api/internal/service/v1/blocking"
 	"space-api/middleware/auth"
@@ -39,7 +40,6 @@ func UseReqRateLimitMiddleware(d time.Duration, maxReq int) gin.HandlerFunc {
 		}
 
 		count, err := cache.GetInt64(ip)
-
 		// 此前不存在访问或者访问已经重置
 		if err != nil {
 			cache.IncAndGet(ip, 1, performance.Second(d/time.Second))
@@ -47,19 +47,25 @@ func UseReqRateLimitMiddleware(d time.Duration, maxReq int) gin.HandlerFunc {
 			return
 		}
 
+		count++
+		cache.Set(ip, count)
+
 		// 游客/非管理员需要进行访问限制
 		switch {
-		case count == int64(maxReq):
+		case count == int64(maxReq+1): // 第一次刚超过的时候给个提示
+			// 重设过期时间
+			cache.SetTTL(ip, performance.Second(d/time.Second))
 			ctx.Error(util.CreateLimitErr(
 				"当前 ip 访问过快, 请稍后再试",
 				fmt.Errorf("current ip request run out limit: %f/sec", float64(maxReq)/float64(d/time.Second))),
 			)
 			ctx.Abort()
-		case count > int64(maxReq):
-			// ctx.Status(http.StatusTooManyRequests)
+		case count > int64(maxReq+1): // 后续继续超过的话不响应
+			// 重设过期时间
+			cache.SetTTL(ip, performance.Second(d/time.Second))
+			ctx.Status(http.StatusTooManyRequests)
 			ctx.Abort()
 		default:
-			cache.GetAndIncr(ip, 1)
 			ctx.Next()
 		}
 	}

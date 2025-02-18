@@ -40,7 +40,6 @@ func newUVStatistic(db *gorm.DB, opts ...gen.DOOption) uVStatistic {
 	_uVStatistic.IsMobile = field.NewInt(tableName, "is_mobile")
 	_uVStatistic.LikeBot = field.NewInt(tableName, "like_bot")
 	_uVStatistic.OS = field.NewString(tableName, "os")
-	_uVStatistic.VisitTime = field.NewInt64(tableName, "visit_time")
 	_uVStatistic.VisitDate = field.NewString(tableName, "visit_date")
 
 	_uVStatistic.fillFieldMap()
@@ -64,7 +63,6 @@ type uVStatistic struct {
 	IsMobile    field.Int
 	LikeBot     field.Int
 	OS          field.String
-	VisitTime   field.Int64
 	VisitDate   field.String
 
 	fieldMap map[string]field.Expr
@@ -94,7 +92,6 @@ func (u *uVStatistic) updateTableName(table string) *uVStatistic {
 	u.IsMobile = field.NewInt(table, "is_mobile")
 	u.LikeBot = field.NewInt(table, "like_bot")
 	u.OS = field.NewString(table, "os")
-	u.VisitTime = field.NewInt64(table, "visit_time")
 	u.VisitDate = field.NewString(table, "visit_date")
 
 	u.fillFieldMap()
@@ -122,7 +119,7 @@ func (u *uVStatistic) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (u *uVStatistic) fillFieldMap() {
-	u.fieldMap = make(map[string]field.Expr, 14)
+	u.fieldMap = make(map[string]field.Expr, 13)
 	u.fieldMap["id"] = u.ID
 	u.fieldMap["created_at"] = u.CreatedAt
 	u.fieldMap["updated_at"] = u.UpdatedAt
@@ -135,7 +132,6 @@ func (u *uVStatistic) fillFieldMap() {
 	u.fieldMap["is_mobile"] = u.IsMobile
 	u.fieldMap["like_bot"] = u.LikeBot
 	u.fieldMap["os"] = u.OS
-	u.fieldMap["visit_time"] = u.VisitTime
 	u.fieldMap["visit_date"] = u.VisitDate
 }
 

@@ -147,6 +147,9 @@ func (m *UVManager) addNewRecord(visitorHash, ip, ipSource string, ua *UADetail,
 
 	// 存储到数据库
 	uvStat := model.UVStatistic{
+		BaseColumn: model.BaseColumn{
+			CreatedAt: timestamp,
+		},
 		VisitorHash: visitorHash,
 		IP:          ip,
 		IPSource:    ipSource,
@@ -155,7 +158,6 @@ func (m *UVManager) addNewRecord(visitorHash, ip, ipSource string, ua *UADetail,
 		IsMobile:    util.TernaryExpr(ua.IsMobile, 1, 0),
 		LikeBot:     util.TernaryExpr(ua.IsBot, 1, 0),
 		OS:          ua.OS,
-		VisitTime:   timestamp,
 		VisitDate:   date,
 	}
 

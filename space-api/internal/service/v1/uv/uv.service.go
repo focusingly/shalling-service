@@ -74,11 +74,11 @@ func (m *_uvService) GetUVTrend(req *dto.GetUVTrendReq, ctx context.Context) ([]
 			uvOp.VisitorHash.Distinct().Count().As("count"),
 		).
 		Where(
-			uvOp.VisitTime.Gte(startDate.UnixMilli()),
-			uvOp.VisitTime.Lte(endDate.UnixMilli()),
+			uvOp.CreatedAt.Gte(startDate.UnixMilli()),
+			uvOp.CreatedAt.Lte(endDate.UnixMilli()),
 		).
 		Group(uvOp.VisitDate).
-		Order(uvOp.VisitTime).
+		Order(uvOp.CreatedAt).
 		Scan(&results)
 
 	if err != nil {

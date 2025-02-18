@@ -240,7 +240,6 @@ type (
 		IsMobile    int    `gorm:"type:smallint;null;comment:是否为移动端" json:"isMobile" yaml:"isMobile" xml:"isMobile" toml:"isMobile"`
 		LikeBot     int    `gorm:"type:smallint;null;comment:是否为爬虫" json:"likeBot" yaml:"likeBot" xml:"likeBot" toml:"likeBot"`
 		OS          string `gorm:"type:varchar(255);null;comment:系统名称" json:"os" yaml:"os" xml:"os" toml:"os"`
-		VisitTime   int64  `gorm:"type:bigint;comment:访问时间" json:"visitTime" yaml:"visitTime" xml:"visitTime" toml:"visitTime"`
 		VisitDate   string `gorm:"type:varchar(255);comment:访问时间格式化字符串" json:"visitDate" yaml:"visitDate" xml:"visitDate" toml:"visitDate"` // YYYY-MM-DD格式
 	}
 )

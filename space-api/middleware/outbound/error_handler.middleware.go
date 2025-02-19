@@ -1,6 +1,7 @@
 package outbound
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -104,7 +105,7 @@ func UseErrorHandler() gin.HandlerFunc {
 
 			// 异步写入日志
 			runner.Go(func() {
-				extra.LogInfo.WithContext(ctx).Create(logInfo)
+				extra.LogInfo.WithContext(context.TODO()).Create(logInfo)
 			})
 		}()
 

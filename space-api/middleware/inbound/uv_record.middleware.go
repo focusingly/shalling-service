@@ -28,10 +28,10 @@ type UVManager struct {
 }
 
 // NewUVManager 创建一个新的UV管理器
-func NewUVManager(excludePath ...string) *UVManager {
+func NewUVManager(exp time.Duration, excludePath ...string) *UVManager {
 	return &UVManager{
 		ExcludePaths: excludePath,
-		CookieMaxAge: 86400, // 24小时
+		CookieMaxAge: int(exp / time.Second),
 		dailyCache:   make(map[string]map[string]bool),
 	}
 }
@@ -60,7 +60,7 @@ func (m *UVManager) CreateUVMiddleware() gin.HandlerFunc {
 			session.Set("session_id", sessionID)
 			// 设置过期时间
 			session.Options(sessions.Options{
-				MaxAge:   m.CookieMaxAge,
+				MaxAge:   m.CookieMaxAge, // 注意 cookie 使用的是 UTC 时间, 和本地时间(如北京时间)的显示存在时差
 				Secure:   true,
 				HttpOnly: true,
 				SameSite: http.SameSiteLaxMode,

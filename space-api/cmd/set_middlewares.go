@@ -30,7 +30,11 @@ func getMiddlewares(appConf *conf.AppConf) []gin.HandlerFunc {
 
 		sessions.Sessions("shalling.space", store),
 		inbound.
-			NewUVManager("/favicon.ico").
+			NewUVManager(
+				time.Hour*24,
+				"/favicon.ico",
+				"/v1/client/api/admin",
+			).
 			CreateUVMiddleware(),
 	}
 

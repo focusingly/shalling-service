@@ -10,3 +10,9 @@ var CheckBillingFaultTemplate []byte
 
 //go:embed templates/billing-detail.html
 var BillingSubsCostTemplate []byte
+
+//go:embed templates/get-system-load-fault.html
+var SystemLoadFaultTemplate []byte
+
+//go:embed templates/system-load-alert.html
+var SystemLoadAlertTemplate []byte

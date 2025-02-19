@@ -3,10 +3,12 @@ package task
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"runtime/debug"
 	"space-api/conf"
 	"space-api/constants"
 	"space-api/internal/service/v1"
+	"space-api/internal/service/v1/monitor"
 	"space-api/pack"
 	"space-api/util/ptr"
 	"space-domain/dao/biz"
@@ -209,5 +211,107 @@ var RegisterJobs = []*customTask{
 			}
 		},
 		Description: "同步文章的 PV 数据到数据库当中",
+	},
+
+	// 检查系统状态, 并在负载高时发送预警
+	{
+		FuncName: "check_system_load",
+		Task: func() {
+			mailService := service.DefaultMailService
+			appConf := conf.ProjectConf.GetAppConf()
+			mailConf := conf.ProjectConf.GetMailConf()
+			monitorService := monitor.DefaultMonitorService
+			pefStatus, err := monitorService.GetStatus()
+
+			if err != nil {
+				t, err := template.New("get-system-load-fault").Parse(string(pack.SystemLoadFaultTemplate))
+				if err != nil {
+					panic(err)
+				}
+				var bf = bytes.Buffer{}
+				if e := t.Execute(
+					&bf,
+					map[string]any{
+						"Time": "Asia/Shanghai " + time.Now().
+							In(time.FixedZone("CST", 8*3600)).
+							Format("2006-01-02 15:04:05"),
+					}); e != nil {
+					panic(e)
+				}
+
+				msg := gomail.NewMessage()
+				msg.SetHeader("From", mailConf.Username)
+				msg.SetHeader("To", appConf.NotifyEmail)
+				msg.SetHeader("Subject", "获取系统负载信息失败, 请留意")
+				msg.SetBody("text/html", bf.String())
+				e := mailService.SendEmail(msg)
+				if e != nil {
+					panic(err)
+				}
+			} else {
+				coreNum := len(pefStatus.CPUUsagePercent)
+				var usage float64
+				for _, p := range pefStatus.CPUUsagePercent {
+					usage += p
+				}
+
+				if usage >= float64(coreNum*80) || pefStatus.Memory.UsedPercent >= 80 {
+					fmt.Println(coreNum)
+					t, err := template.New("high-system-load-alert").Parse(string(pack.SystemLoadAlertTemplate))
+					if err != nil {
+						panic(err)
+					}
+					var bf = bytes.Buffer{}
+
+					infos := [][]string{
+						{
+							"CPU",
+							fmt.Sprintf("%d 核, 总峰值: %d%%", coreNum, coreNum*100),
+							fmt.Sprintf("%.2f%%", usage),
+							fmt.Sprintf("%.2f%%", float64(coreNum*100)-usage),
+							fmt.Sprintf("%.2f%%", usage/float64(coreNum*100)*100),
+						},
+						{
+							"内存",
+							fmt.Sprintf("总容量 %.2fmb", float64(pefStatus.Memory.Total)/1024/1024),
+							fmt.Sprintf("%.2fmb", float64(pefStatus.Memory.Used)/1024/1024),
+							fmt.Sprintf("%.2fmb", float64(pefStatus.Memory.Available)/1024/1024),
+							fmt.Sprintf("%.2f%%", pefStatus.Memory.UsedPercent),
+						},
+						{
+							"磁盘",
+							fmt.Sprintf("总容量 %2fmb", float64(pefStatus.DiskUsage.Total)/1024/1024),
+							fmt.Sprintf("%.2fmb", float64(pefStatus.DiskUsage.Used)/1024/1024),
+							fmt.Sprintf("%.2fmb", float64(pefStatus.DiskUsage.Free)/1024/1024),
+							fmt.Sprintf("%.2f%%", pefStatus.DiskUsage.UsedPercent),
+						},
+					}
+
+					// 除了模板
+					if e := t.Execute(
+						&bf,
+						map[string]any{
+							"Time": "Asia/Shanghai " + time.Now().
+								In(time.FixedZone("CST", 8*3600)).
+								Format("2006-01-02 15:04:05"),
+							"Infos": infos,
+						}); e != nil {
+						panic(e)
+					}
+
+					msg := gomail.NewMessage()
+					msg.SetHeader("From", mailConf.Username)
+					msg.SetHeader("To", appConf.NotifyEmail)
+					msg.SetHeader("Subject", "当前系统负载较高, 请留意")
+					msg.SetBody("text/html", bf.String())
+					e := mailService.SendEmail(msg)
+
+					if e != nil {
+						panic(err)
+					}
+				}
+			}
+		},
+		Description: "检查系统负载, 并在 CPU 整体负载h >= 80 % 或内存使用率 >=80 的情况下发送邮件预警",
 	},
 }

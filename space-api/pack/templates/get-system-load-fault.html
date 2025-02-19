@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>获取系统负载信息失败</title>
+</head>
+
+<body style="margin: 0; padding: 0; background-color: #000; color: #fff; font-family: Arial, sans-serif;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse; border: 0; border-spacing: 0;">
+        <tr>
+            <td align="center" style="padding: 20px;">
+                <table role="presentation"
+                    style="width: 100%; max-width: 600px; border-collapse: collapse; border: 1px solid #333; border-spacing: 0; background-color: #1a1a1a;">
+                    <tr>
+                        <td align="center" style="padding: 20px; font-size: 24px; font-weight: bold; color: #ff4c4c;">
+                            获取系统负载信息失败, 请留意
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding: 20px; font-size: 16px; line-height: 1.5; color: #fff;">
+                            <p style="color: #fff;">任务执行时间: {{.Time}}</p>
+                            <p style="color: #fff;">定时任务在执行系统负载检查的时候未能获取到信息, 这代表服务可能出现了问题, 请留言, 避免造成不必要的损失</p>
+                        </td>
+                    </tr>
+
+
+                    <tr>
+                        <td style="padding: 20px; font-size: 12px; color: #666;">
+                            <p>&copy; 2025 shalling.me. All rights reserved.</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+
+</html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统资源高负载提示</title>
+</head>
+
+<body style="background: rgb(29, 29, 29);">
+    <div
+        style="background-color: #333; color: #fff; padding: 20px; font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
+        <h1 style="color: #c00000; text-align: center;">系统资源负载提示</h1>
+        <p style="color: #ffffff;">这封邮件由后台定时任务检测系统负载情况较高而发出, 请留意当前系统的运行状态</p>
+        <p style="color: #ffffff;">发件时间：{{.Time}}</p>
+        <p style="color: #ffffff;">详细信息如下：</p>
+
+        <div style=" overflow: auto;">
+            <table style="width: 100%; border-collapse: collapse; margin: 20px 0; min-width: 380px;">
+                <thead>
+                    <tr>
+                        <th style="border: 1px solid #ffffff; padding: 10px; color: #ffffff;">资源</th>
+                        <th style="border: 1px solid #ffffff; padding: 10px; color: #ffffff;">容量</th>
+                        <th style="border: 1px solid #ffffff; padding: 10px; color: #ffffff;">已使用</th>
+                        <th style="border: 1px solid #ffffff; padding: 10px; color: #ffffff;">剩余</th>
+                        <th style="border: 1px solid #ffffff; padding: 10px; color: #ffffff;">使用率</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {{range $index, $info := .Infos}}
+                    <tr>
+                        {{range $t, $item := $info}}
+                        <td style="border: 1px solid #ffffff; padding: 10px; color: #ffffff;">{{$item}}</td>
+                        {{end}}
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+
+        <footer style="text-align: center; margin-top: 20px; color: #ffffff; border-top: 1px solid #ffffff;">
+            <p>© 2025 shalling.me 保留所有权利。</p>
+        </footer>
+        </footer>
+    </div>
+</body>
+
+</html>

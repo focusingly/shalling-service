@@ -7,7 +7,9 @@ import (
 	"runtime/debug"
 	"space-api/conf"
 	"space-api/constants"
+	"space-api/dto"
 	"space-api/internal/service/v1"
+	"space-api/internal/service/v1/mail"
 	"space-api/internal/service/v1/monitor"
 	"space-api/pack"
 	"space-api/util/ptr"
@@ -19,7 +21,6 @@ import (
 	"time"
 
 	"github.com/robfig/cron/v3"
-	"gopkg.in/gomail.v2"
 )
 
 type (
@@ -119,9 +120,9 @@ var RegisterJobs = []*customTask{
 		FuncName: "check_cloudflare_billings",
 		Task: func() {
 			cfService := service.DefaultCloudflareService
-			mailService := service.DefaultMailService
+			mailService := mail.DefaultMailService
 			appConf := conf.ProjectConf.GetAppConf()
-			mailConf := conf.ProjectConf.GetMailConf()
+			mailConf := conf.ProjectConf.GetPrimaryMailConf()
 			subs, err := cfService.GetExistsCost(context.TODO())
 
 			// 获取账单信息失败
@@ -140,12 +141,18 @@ var RegisterJobs = []*customTask{
 					panic(e)
 				}
 
-				msg := gomail.NewMessage()
-				msg.SetHeader("From", mailConf.Username)
-				msg.SetHeader("To", appConf.NotifyEmail)
-				msg.SetHeader("Subject", "获取 Cloudflare 账单信息失败, 请留意")
-				msg.SetBody("text/html", bf.String())
-				e := mailService.SendEmail(msg)
+				_, e := mailService.SendEmailByPrimary(&dto.SendMailReq{
+					From:    mailConf.DefaultFrom,
+					To:      []string{appConf.NotifyEmail},
+					ReplyTo: mailConf.DefaultFrom,
+					Tags: []string{
+						"账单信息", "警告",
+					},
+					Subject:  "获取 Cloudflare 账单信息失败, 请留意",
+					Body:     bf.String(),
+					BodyType: "text/html",
+					Headers:  map[string]string{},
+				})
 				if e != nil {
 					panic(e)
 				}
@@ -168,12 +175,18 @@ var RegisterJobs = []*customTask{
 					panic(e)
 				}
 
-				msg := gomail.NewMessage()
-				msg.SetHeader("From", mailConf.Username)
-				msg.SetHeader("To", appConf.NotifyEmail)
-				msg.SetHeader("Subject", "Cloudflare 的订阅产生了费用")
-				msg.SetBody("text/html", bf.String())
-				e := mailService.SendEmail(msg)
+				_, e := mailService.SendEmailByPrimary(&dto.SendMailReq{
+					From:    mailConf.DefaultFrom,
+					To:      []string{appConf.NotifyEmail},
+					ReplyTo: mailConf.DefaultFrom,
+					Tags: []string{
+						"订阅提示", "费用",
+					},
+					Subject:  "Cloudflare 的订阅产生了费用",
+					Body:     bf.String(),
+					BodyType: "text/html",
+					Headers:  map[string]string{},
+				})
 				if e != nil {
 					panic(e)
 				}
@@ -217,9 +230,9 @@ var RegisterJobs = []*customTask{
 	{
 		FuncName: "check_system_load",
 		Task: func() {
-			mailService := service.DefaultMailService
+			mailService := mail.DefaultMailService
 			appConf := conf.ProjectConf.GetAppConf()
-			mailConf := conf.ProjectConf.GetMailConf()
+			mailConf := conf.ProjectConf.GetPrimaryMailConf()
 			monitorService := monitor.DefaultMonitorService
 			pefStatus, err := monitorService.GetStatus()
 
@@ -239,12 +252,18 @@ var RegisterJobs = []*customTask{
 					panic(e)
 				}
 
-				msg := gomail.NewMessage()
-				msg.SetHeader("From", mailConf.Username)
-				msg.SetHeader("To", appConf.NotifyEmail)
-				msg.SetHeader("Subject", "获取系统负载信息失败, 请留意")
-				msg.SetBody("text/html", bf.String())
-				e := mailService.SendEmail(msg)
+				_, e := mailService.SendEmailByPrimary(&dto.SendMailReq{
+					From:    mailConf.DefaultFrom,
+					To:      []string{appConf.NotifyEmail},
+					ReplyTo: appConf.NotifyEmail,
+					Tags: []string{
+						"资源警告",
+					},
+					Subject:  "获取系统负载信息失败, 请留意",
+					Body:     bf.String(),
+					BodyType: "text/html",
+					Headers:  map[string]string{},
+				})
 				if e != nil {
 					panic(err)
 				}
@@ -287,7 +306,7 @@ var RegisterJobs = []*customTask{
 						},
 					}
 
-					// 除了模板
+					// 执行模板
 					if e := t.Execute(
 						&bf,
 						map[string]any{
@@ -298,13 +317,18 @@ var RegisterJobs = []*customTask{
 						}); e != nil {
 						panic(e)
 					}
-
-					msg := gomail.NewMessage()
-					msg.SetHeader("From", mailConf.Username)
-					msg.SetHeader("To", appConf.NotifyEmail)
-					msg.SetHeader("Subject", "当前系统负载较高, 请留意")
-					msg.SetBody("text/html", bf.String())
-					e := mailService.SendEmail(msg)
+					_, e := mailService.SendEmailByPrimary(&dto.SendMailReq{
+						From:    mailConf.DefaultFrom,
+						To:      []string{appConf.NotifyEmail},
+						ReplyTo: mailConf.DefaultFrom,
+						Tags: []string{
+							"资源监控",
+						},
+						Subject:  "当前系统负载较高, 请留意",
+						Body:     bf.String(),
+						BodyType: "text/html",
+						Headers:  map[string]string{},
+					})
 
 					if e != nil {
 						panic(err)

@@ -12,8 +12,8 @@
             "hideSystemGoroutines": true,
             "showGlobalVariables": true,
             "args": [
-                "-c=./config.yml",
-                "-use-debug=true",
+                "-c ./config.yml",
+                "-d",
             ],
             "buildFlags": [
                 "--tags=fts5 jsoniter",

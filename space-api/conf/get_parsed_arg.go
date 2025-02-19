@@ -1,7 +1,6 @@
 package conf
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -9,21 +8,39 @@ import (
 	"space-api/constants"
 	"strings"
 	"sync"
+
+	"github.com/spf13/cobra"
 )
+
+type cmdConfig struct {
+	configPath string
+	useDebug   bool
+}
 
 var (
-	_confPath    string
-	_isDebugMode bool
+	cmdConfigIns = &cmdConfig{}
 )
 var fn = sync.OnceFunc(func() {
-	flag.StringVar(&_confPath, "c", "", "the project option config")
-	flag.BoolVar(&_isDebugMode, "use-debug", false, "set debug mode")
-	flag.Parse()
 
-	if strings.TrimSpace(_confPath) == "" {
+	rootCmd := &cobra.Command{
+		Use:          "配置应用服务",
+		Short:        "应用服务配置文件路径设置",
+		SilenceUsage: false,
+	}
+
+	flagSet := rootCmd.PersistentFlags()
+	flagSet.StringVarP(&cmdConfigIns.configPath, "config", "c", "", "the project option config")
+	flagSet.BoolVarP(&cmdConfigIns.useDebug, "use-debug", "d", false, "set debug mode")
+
+	if err := rootCmd.Execute(); err != nil {
+		panic(err)
+	}
+
+	cmdConfigIns.configPath = strings.TrimSpace(cmdConfigIns.configPath)
+	if cmdConfigIns.configPath == "" {
 		t := fmt.Sprintf(
 			"%snot config set, service use default configuration%s",
-			constants.BG_CYAN,
+			constants.CYAN,
 			constants.RESET,
 		)
 		fmt.Println(t)
@@ -45,5 +62,5 @@ var fn = sync.OnceFunc(func() {
 func GetParsedArgs() (confPath string, isDebugMode bool) {
 	fn()
 
-	return _confPath, _isDebugMode
+	return cmdConfigIns.configPath, cmdConfigIns.useDebug
 }

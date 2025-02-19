@@ -9,6 +9,10 @@ type (
 		Reason error
 	}
 
+	NotMethodOrResourceErr struct {
+		BizErr
+	}
+
 	// 限流错误标识
 	LimitErr struct {
 		BizErr
@@ -41,6 +45,16 @@ func CreateBizErr(msg string, reason error) *BizErr {
 		Reason: reason,
 	}
 }
+
+func CreateNotMethodOrResourceErr(msg string, reason error) *NotMethodOrResourceErr {
+	return &NotMethodOrResourceErr{
+		BizErr{
+			Msg:    msg,
+			Reason: reason,
+		},
+	}
+}
+
 func CreateAuthErr(msg string, reason error) *AuthErr {
 	return &AuthErr{
 		BizErr: BizErr{

@@ -89,6 +89,10 @@ func UseErrorHandler() gin.HandlerFunc {
 					logInfo.Level = string(constants.Fatal)
 					logInfo.Message = err.Msg + err.Reason.Error()
 
+				case *util.NotMethodOrResourceErr:
+					restErr = util.RestWithError(err.Error())
+					logInfo.Level = string(constants.WARN)
+					logInfo.Message = err.Msg + err.Reason.Error()
 				default:
 					restErr = util.RestWithError("未知的错误")
 					logInfo.Level = string(constants.Fatal)

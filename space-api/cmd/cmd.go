@@ -25,14 +25,15 @@ func Run() {
 
 	// 处理未知请求方法
 	engine.NoMethod(func(ctx *gin.Context) {
-		ctx.Error(util.CreateBizErr(
+		ctx.Error(util.CreateNotMethodOrResourceErr(
 			"未知的请求方法: "+ctx.Request.Method,
 			fmt.Errorf("unknown request method: %s", ctx.Request.Method),
 		))
 	})
+
 	// 处理未注册路由
 	engine.NoRoute(func(ctx *gin.Context) {
-		ctx.Error(util.CreateBizErr(
+		ctx.Error(util.CreateNotMethodOrResourceErr(
 			"未知的请求资源: "+ctx.Request.RequestURI,
 			fmt.Errorf("unknown request uri resource: %s", ctx.Request.RequestURI),
 		))

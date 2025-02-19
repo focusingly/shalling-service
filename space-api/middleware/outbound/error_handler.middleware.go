@@ -73,26 +73,27 @@ func UseErrorHandler() gin.HandlerFunc {
 				switch err := err.(type) {
 				case *util.BizErr:
 					restErr = util.RestWithError(err.Error())
-					logInfo.Message = err.Msg + err.Reason.Error()
+					logInfo.Message = fmt.Sprintf("%s : %s", err.Msg, err.Reason.Error())
 
 				case *util.AuthErr:
 					restErr = util.RestWithError(err.Error())
-					logInfo.Message = err.Msg + err.Reason.Error()
+					logInfo.Level = string(constants.Warn)
+					logInfo.Message = fmt.Sprintf("%s : %s", err.Msg, err.Reason.Error())
 
 				case *util.LimitErr:
 					restErr = util.RestWithError(err.Error())
 					logInfo.LogType = string(constants.RequestLimit)
-					logInfo.Message = err.Msg + err.Reason.Error()
+					logInfo.Message = fmt.Sprintf("%s : %s", err.Msg, err.Reason.Error())
 
 				case *util.FatalErr:
 					restErr = util.RestWithError("服务内部错误, 请稍后重试或联系站长修复")
 					logInfo.Level = string(constants.Fatal)
-					logInfo.Message = err.Msg + err.Reason.Error()
+					logInfo.Message = fmt.Sprintf("%s : %s", err.Msg, err.Reason.Error())
 
 				case *util.NotMethodOrResourceErr:
 					restErr = util.RestWithError(err.Error())
-					logInfo.Level = string(constants.WARN)
-					logInfo.Message = err.Msg + err.Reason.Error()
+					logInfo.Level = string(constants.Warn)
+					logInfo.Message = fmt.Sprintf("%s : %s", err.Msg, err.Reason.Error())
 				default:
 					restErr = util.RestWithError("未知的错误")
 					logInfo.Level = string(constants.Fatal)

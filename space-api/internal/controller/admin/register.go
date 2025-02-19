@@ -1,9 +1,16 @@
 package admin
 
-import "github.com/gin-gonic/gin"
+import (
+	"space-api/middleware/auth"
+
+	"github.com/gin-gonic/gin"
+)
 
 func RegisterAllAdminControllers(group *gin.RouterGroup) {
-	adminGroup := group.Group("/admin")
+	adminGroup := group.Group(
+		"/admin",
+		auth.UseAdminAuthMiddleware(),
+	)
 
 	UsePostController(adminGroup)
 	UseCommentController(adminGroup)

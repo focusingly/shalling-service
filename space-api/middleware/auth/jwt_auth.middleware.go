@@ -2,7 +2,6 @@ package auth
 
 import (
 	"fmt"
-	"space-api/constants"
 	"space-api/util"
 	"space-api/util/performance"
 	"space-api/util/verify"
@@ -34,53 +33,16 @@ const (
 	Common    = BaseVersion + "/common"
 )
 
-func UseJwtAuthHandler() gin.HandlerFunc {
+// UseJwtAuthExtractMiddleware 提取请求中 JWT 信息, 并设置到当前请求上下文当中
+func UseJwtAuthExtractMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		loadTokenAndSetupContext(ctx)
-		p := ctx.Request.URL.Path
-
-		switch {
-		// 所有的后台服务都要求使用管理员权限
-		case strings.HasPrefix(p, AdminPath):
-			user, err := GetCurrentLoginSession(ctx)
-			switch {
-			case err != nil:
-				ctx.Error(&util.AuthErr{
-					BizErr: util.BizErr{
-						Msg:    "获取用户凭据失败, 请先登录",
-						Reason: err,
-					},
-				})
-				ctx.Abort()
-				return
-			case user.UserType == constants.LocalUser:
-				ctx.Error(&util.AuthErr{
-					BizErr: util.BizErr{
-						Msg:    "当前用户类型不支持此操作",
-						Reason: fmt.Errorf("un-support user, want%s, but current is:%s", constants.LocalUser, user.UserType),
-					},
-				})
-				// 不需要后续流程
-				ctx.Abort()
-				return
-			case user.UserType == constants.Admin:
-				// pass .....
-			default:
-				ctx.Error(util.CreateAuthErr(
-					"未知的用户类型: "+user.UserType,
-					fmt.Errorf("unknown user: %s", user.UserType),
-				))
-				ctx.Abort()
-			}
-		default:
-			// pass....
-		}
 
 		ctx.Next()
 	}
 }
 
-// GetCurrentLoginSession 获取当前的凭据
+// GetCurrentLoginSession 获取当前请求上下文中的用户登录信息
 func GetCurrentLoginSession(ctx *gin.Context) (user *model.UserLoginSession, err error) {
 	if u, ok := ctx.Get(_jwtRandMark); !ok {
 		err = util.CreateAuthErr(

@@ -25,7 +25,7 @@ func getMiddlewares(appConf *conf.AppConf) []gin.HandlerFunc {
 		inbound.UseUploadFileLimitMiddleware(constants.MemoryByteSize(appConf.ParsedUploadSize)),
 		inbound.UseUseragentParserMiddleware(),
 		inbound.UseExtractIPv4Middleware(),
-		auth.UseJwtAuthHandler(),
+		auth.UseJwtAuthExtractMiddleware(),
 		inbound.UseReqRateLimitMiddleware(time.Second*16, 32),
 
 		sessions.Sessions("shalling.space", store),

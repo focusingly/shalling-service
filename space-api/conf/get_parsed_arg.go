@@ -45,13 +45,13 @@ var fn = sync.OnceFunc(func() {
 		)
 		fmt.Println(t)
 
-		if err := os.MkdirAll(_defaultStore, os.ModePerm); err != nil {
+		if err := os.MkdirAll(defaultStore, os.ModePerm); err != nil {
 			log.Fatal("create default store error: ", err)
 		}
-		if err := os.MkdirAll(path.Join(_defaultStore, "db"), os.ModePerm); err != nil {
+		if err := os.MkdirAll(path.Join(defaultStore, "db"), os.ModePerm); err != nil {
 			log.Fatal("create store error: ", err)
 		}
-		if err := os.MkdirAll(path.Join(_defaultStore, "files"), os.ModePerm); err != nil {
+		if err := os.MkdirAll(path.Join(defaultStore, "files"), os.ModePerm); err != nil {
 			log.Fatal("create store error: ", err)
 		}
 

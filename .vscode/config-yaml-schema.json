@@ -55,26 +55,45 @@
         }
       }
     },
-    "email": {
-      "type": "object",
+    "emails": {
+      "type": "array",
       "description": "邮件配置",
-      "properties": {
-        "host": {
-          "type": "string",
-          "description": "主机地址"
-        },
-        "username": {
-          "type": "string",
-          "description": "登录账户"
-        },
-        "password": {
-          "description": "密码",
-          "type": "string"
-        },
-        "port": {
-          "type": "integer",
-          "default": 587,
-          "description": "端口"
+      "items": {
+        "type": "object",
+        "properties": {
+          "primary": {
+            "type": "boolean",
+            "description": "是否为主要邮箱"
+          },
+          "mark": {
+            "type": "string",
+            "description": "描述"
+          },
+          "defaultFrom": {
+            "type": "string",
+            "description": "设置默认的发件地址提示"
+          },
+          "host": {
+            "type": "string",
+            "description": "主机地址"
+          },
+          "specificID": {
+            "type": "string",
+            "description": "唯一的 ID 标识, 用于区分不同的邮箱"
+          },
+          "account": {
+            "type": "string",
+            "description": "登录账户/或者提供商要求的账户"
+          },
+          "credential": {
+            "description": "认证凭据/密码",
+            "type": "string"
+          },
+          "port": {
+            "type": "integer",
+            "default": 465,
+            "description": "端口"
+          }
         }
       }
     },

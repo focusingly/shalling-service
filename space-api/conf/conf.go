@@ -8,6 +8,7 @@ import (
 	"slices"
 	"space-api/constants"
 	"space-api/util"
+	"space-api/util/arr"
 	"strconv"
 	"strings"
 	"time"
@@ -31,11 +32,16 @@ type (
 		NotifyEmail      string                   `json:"notifyEmail" yaml:"notifyEmail" xml:"notifyEmail" toml:"notifyEmail"`
 	}
 
-	MailConf struct {
-		Host     string `json:"host" yaml:"host" xml:"host" toml:"host"`
-		Username string `json:"username" yaml:"username" xml:"username" toml:"username"`
-		Password string `json:"password" yaml:"password" xml:"password" toml:"password"`
-		Port     int    `json:"port" yaml:"port" xml:"port" toml:"port"`
+	// 邮件服务的描述配置
+	MailSmtpConf struct {
+		Host        string `json:"host" yaml:"host" xml:"host" toml:"host"`
+		Port        int    `json:"port" yaml:"port" xml:"port" toml:"port"`
+		Account     string `json:"account" yaml:"account" xml:"account" toml:"account"`
+		Credential  string `json:"credential" yaml:"credential" xml:"credential" toml:"credential"`
+		Primary     bool   `json:"primary" yaml:"primary" xml:"primary" toml:"primary"` // 是否被标记为首选邮箱
+		Mark        string `json:"mark" yaml:"mark" xml:"mark" toml:"mark"`
+		DefaultFrom string `json:"defaultFrom" yaml:"defaultFrom" xml:"defaultFrom" toml:"defaultFrom"`
+		SpecificID  string `json:"specificID" yaml:"specificID" xml:"specificID" toml:"specificID"` // 配置项标识的唯一 ID
 	}
 
 	// Oauth2 认证配置
@@ -78,21 +84,23 @@ type (
 	}
 )
 
-type _confScr struct {
-	appConf        AppConf
-	githubAuthConf *Oauth2Conf
-	googleAuthConf *Oauth2Conf
-	mailConf       *MailConf
-	cloudflareConf *CloudflareConf
-	s3Conf         *S3Conf
-	jwtConf        JwtConf
-	bizDBConf      DatabaseConf
-	extraDBConf    DatabaseConf
+type projectRootConf struct {
+	appConf          AppConf
+	githubAuthConf   *Oauth2Conf
+	googleAuthConf   *Oauth2Conf
+	mailConfList     []*MailSmtpConf
+	primaryEmailConf *MailSmtpConf
+	cloudflareConf   *CloudflareConf
+	s3Conf           *S3Conf
+	jwtConf          JwtConf
+	bizDBConf        DatabaseConf
+	extraDBConf      DatabaseConf
 }
 
 var (
-	_defaultStore = path.Join(util.GetOrFallback(os.UserHomeDir, "./"), ".space-store")
-	ProjectConf   = &_confScr{
+	defaultStore = path.Join(util.GetOrFallback(os.UserHomeDir, "./"), ".space-store")
+
+	ProjectConf = &projectRootConf{
 		appConf: AppConf{
 			NodeID:         1,
 			Port:           uint(8088),
@@ -158,42 +166,52 @@ var (
 			}, "./"), ".space-store", "db", "extra-db.sqlite"),
 			Mark: "extra db(for log, config...)",
 		},
+		mailConfList: make([]*MailSmtpConf, 0),
 	}
 )
 
-func (c *_confScr) GetAppConf() *AppConf {
+func (c *projectRootConf) GetAppConf() *AppConf {
 	return &c.appConf
 }
 
-func (c *_confScr) GetMailConf() *MailConf {
-	return c.mailConf
+// GetPrimaryMailConf 获取首选的邮箱配置
+func (c *projectRootConf) GetPrimaryMailConf() *MailSmtpConf {
+	if c.primaryEmailConf == nil {
+		fmt.Printf("%s当前未配置任何主邮箱\n%s", constants.RED, constants.RESET)
+	}
+
+	return c.primaryEmailConf
 }
 
-func (c *_confScr) GetCloudflareConf() *CloudflareConf {
+func (c *projectRootConf) GetMailConfList() []*MailSmtpConf {
+	return c.mailConfList
+}
+
+func (c *projectRootConf) GetCloudflareConf() *CloudflareConf {
 	return c.cloudflareConf
 }
 
-func (c *_confScr) GetS3Conf() *S3Conf {
+func (c *projectRootConf) GetS3Conf() *S3Conf {
 	return c.s3Conf
 }
 
-func (c *_confScr) GetJwtConf() *JwtConf {
+func (c *projectRootConf) GetJwtConf() *JwtConf {
 	return &c.jwtConf
 }
 
-func (c *_confScr) GetGithubAuthConf() *Oauth2Conf {
+func (c *projectRootConf) GetGithubAuthConf() *Oauth2Conf {
 	return c.githubAuthConf
 }
 
-func (c *_confScr) GetGoogleAuthConf() *Oauth2Conf {
+func (c *projectRootConf) GetGoogleAuthConf() *Oauth2Conf {
 	return c.googleAuthConf
 }
 
-func (c *_confScr) GetBizDBConf() *DatabaseConf {
+func (c *projectRootConf) GetBizDBConf() *DatabaseConf {
 	return &c.bizDBConf
 }
 
-func (c *_confScr) GetExtraDBConf() *DatabaseConf {
+func (c *projectRootConf) GetExtraDBConf() *DatabaseConf {
 	return &c.extraDBConf
 }
 
@@ -218,9 +236,34 @@ func init() {
 		log.Fatal("read config error: ", e)
 	}
 
-	if v.Get("email") != nil {
-		if e := v.UnmarshalKey("email", &ProjectConf.mailConf); e != nil {
+	if v.Get("emails") != nil {
+		if e := v.UnmarshalKey("emails", &ProjectConf.mailConfList); e != nil {
 			log.Fatal("set mail config err: ", e)
+		} else {
+			if len(ProjectConf.mailConfList) != 0 {
+				idList := []string{}
+				for _, cf := range ProjectConf.mailConfList {
+					if cf.SpecificID == "" {
+						log.Fatal("请提供一个具体的邮件的标识: ", cf)
+					}
+					if slices.Contains(idList, cf.SpecificID) {
+						log.Fatal("重复的邮箱配置标识 ID")
+					}
+					idList = append(idList, cf.SpecificID)
+				}
+				primaries := arr.FilterSlice[*MailSmtpConf](ProjectConf.mailConfList, func(current *MailSmtpConf, index int) bool {
+					return current.Primary
+				})
+				switch len(primaries) {
+				case 0:
+					log.Fatal("必须要提供一个主邮箱配置")
+				case 1:
+					// 设置主邮箱
+					ProjectConf.primaryEmailConf = primaries[0]
+				default:
+					log.Fatal("只允许配置一个主邮箱配置, 但得到了多个: ", primaries)
+				}
+			}
 		}
 	}
 

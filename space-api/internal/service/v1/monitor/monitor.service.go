@@ -1,4 +1,4 @@
-package service
+package monitor
 
 import (
 	"github.com/shirou/gopsutil/cpu"
@@ -9,7 +9,7 @@ import (
 	"github.com/shirou/gopsutil/net"
 )
 
-type _performanceMonitorService struct{}
+type _monitorService struct{}
 
 type (
 	// SystemInfo 包含所有系统性能信息
@@ -32,9 +32,9 @@ type (
 	}
 )
 
-var DefaultPerformanceService = &_performanceMonitorService{}
+var DefaultMonitorService = &_monitorService{}
 
-func (*_performanceMonitorService) GetStatus() (resp *SystemInfo, err error) {
+func (*_monitorService) GetStatus() (resp *SystemInfo, err error) {
 	// 构建 SystemInfo 结构体
 	resp = &SystemInfo{}
 

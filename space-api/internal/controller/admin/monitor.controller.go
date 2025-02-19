@@ -1,16 +1,17 @@
 package admin
 
 import (
-	"space-api/internal/service/v1"
+	"space-api/internal/service/v1/monitor"
 	"space-api/middleware/outbound"
 
 	"github.com/gin-gonic/gin"
 )
 
-func UsePerformanceMonitorController(group *gin.RouterGroup) {
-	perfGroup := group.Group("/performance")
+func UseMonitorController(group *gin.RouterGroup) {
+	perfGroup := group.Group("/monitor")
+	pefService := monitor.DefaultMonitorService
 
-	pefService := service.DefaultPerformanceService
+	// 查看当前系统的负载情况
 	{
 		perfGroup.GET("/", func(ctx *gin.Context) {
 			if resp, err := pefService.GetStatus(); err != nil {

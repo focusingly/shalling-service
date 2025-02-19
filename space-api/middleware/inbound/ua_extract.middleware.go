@@ -1,9 +1,9 @@
 package inbound
 
 import (
-	"github.com/dineshgowda24/browser"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/mssola/useragent"
 )
 
 var _uaInjectMark = uuid.NewString()
@@ -20,32 +20,18 @@ type UADetail struct {
 
 func UseUseragentParserMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		var uaDetail *UADetail
-
 		userAgent := ctx.GetHeader("User-Agent")
-		parsedUA, err := browser.NewBrowser(userAgent)
-		if err != nil {
-			uaDetail = &UADetail{
-				ClientName: "",
-				Version:    "",
-				Useragent:  userAgent,
-				IsBot:      false,
-				OS:         "",
-				OSVersion:  "",
-				IsMobile:   false,
-			}
-		} else {
-			uaDetail = &UADetail{
-				ClientName: parsedUA.Name(),
-				Version:    parsedUA.Version(),
-				Useragent:  userAgent,
-				IsBot:      parsedUA.Bot().IsBot(),
-				OS:         parsedUA.Platform().Name(),
-				OSVersion:  parsedUA.Platform().Version(),
-				IsMobile:   parsedUA.Device().IsMobile(),
-			}
+		ua := useragent.New(userAgent)
+		clientName, clientVersion := ua.Browser()
+		uaDetail := &UADetail{
+			ClientName: clientName,
+			Version:    clientVersion,
+			Useragent:  userAgent,
+			IsBot:      ua.Bot(),
+			OS:         ua.OS(),
+			OSVersion:  ua.OSInfo().Version,
+			IsMobile:   ua.Mobile(),
 		}
-
 		ctx.Set(_uaInjectMark, uaDetail)
 		ctx.Next()
 	}

@@ -12,12 +12,12 @@ require (
 	github.com/chai2010/webp v1.1.1
 	github.com/cloudflare/cloudflare-go/v3 v3.1.0
 	github.com/coocood/freecache v1.2.4
-	github.com/dineshgowda24/browser v1.1.0
 	github.com/gin-gonic/gin v1.10.0
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/google/uuid v1.6.0
 	github.com/huandu/xstrings v1.5.0
 	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20241220152942-06eb5c6e8230
+	github.com/mssola/useragent v1.0.0
 	github.com/robfig/cron/v3 v3.0.0
 	github.com/spf13/viper v1.19.0
 	github.com/yanyiwu/gojieba v1.4.5
@@ -44,7 +44,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.28.14 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.14 // indirect
 	github.com/aws/smithy-go v1.22.2 // indirect
-	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
@@ -81,7 +80,6 @@ require (
 	golang.org/x/tools v0.29.0 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gorm.io/datatypes v1.2.5 // indirect
 	gorm.io/driver/mysql v1.5.7 // indirect
 	gorm.io/hints v1.1.2 // indirect

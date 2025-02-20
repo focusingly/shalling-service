@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"space-api/dto"
 	"space-api/internal/service/v1"
+	"space-api/internal/service/v1/user"
 	"space-api/middleware/outbound"
 	"space-api/util"
 	"space-api/util/performance"
@@ -207,6 +208,20 @@ func IndexController(group *gin.RouterGroup) {
 				outbound.NotifyProduceResponse(resp, ctx)
 			}
 		})
+	}
+
+	// 获取已经登录的用户的基本信息(头像/主页链接等...)
+	{
+		userService := user.DefaultUserService
+		indexController.GET("/user/profile",
+			func(ctx *gin.Context) {
+				if resp, err := userService.GetLoginUserBasicProfile(ctx); err != nil {
+					ctx.Error(err)
+				} else {
+					outbound.NotifyProduceResponse(resp, ctx)
+				}
+
+			})
 	}
 
 	// 根据标签名称查找公开的所有可见文章列表

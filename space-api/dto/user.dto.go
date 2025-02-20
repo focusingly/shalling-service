@@ -45,4 +45,12 @@ type (
 		UUIDList []string `json:"uuidList" yaml:"uuidList" xml:"uuidList" toml:"uuidList"`
 	}
 	ExpireUserLoginSessionResp struct{}
+
+	LoginUserBasicProfile struct {
+		UserID       int64   `json:"userID" yaml:"userID" xml:"userID" toml:"userID"`
+		PlatformName string  `json:"platformName" yaml:"platformName" xml:"platformName" toml:"platformName"`
+		Username     string  `json:"username" yaml:"username" xml:"username" toml:"username"`
+		AvatarURL    *string `json:"avatarURL" yaml:"avatarURL" xml:"avatarURL" toml:"avatarURL"`
+		HomepageLink *string `json:"homepageLink" yaml:"homepageLink" xml:"homepageLink" toml:"homepageLink"`
+	}
 )

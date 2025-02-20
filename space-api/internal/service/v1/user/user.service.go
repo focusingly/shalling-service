@@ -309,6 +309,7 @@ func (*userService) GetLocalUserLoginSessions(req *dto.GetLoginUserSessionsReq, 
 	sessionOp := biz.UserLoginSession
 	currentLogin, e := auth.GetCurrentLoginSession(ctx)
 	if e != nil {
+		err = util.CreateAuthErr("无效的用户凭据", err)
 		return
 	}
 
@@ -349,6 +350,56 @@ func (*userService) GetLocalUserLoginSessions(req *dto.GetLoginUserSessionsReq, 
 			Size:  int64(*req.Size),
 			Total: count,
 		},
+	}
+
+	return
+}
+
+// GetLoginUserBasicProfile 获取已登录用户的基本信息(头像, 链接等)
+func (*userService) GetLoginUserBasicProfile(ctx *gin.Context) (resp *dto.LoginUserBasicProfile, err error) {
+	currentLogin, e := auth.GetCurrentLoginSession(ctx)
+
+	if e != nil {
+		err = util.CreateAuthErr("无效的用户凭据", err)
+		return
+	}
+
+	switch currentLogin.UserType {
+	case constants.Admin, constants.LocalUser:
+		localOp := biz.LocalUser
+		u, e := localOp.WithContext(ctx).
+			Where(localOp.ID.Eq(currentLogin.UserID)).
+			Take()
+		if e != nil {
+			err = util.CreateAuthErr("查找用户失败", err)
+			return
+		}
+		resp = &dto.LoginUserBasicProfile{
+			UserID:       u.ID,
+			PlatformName: "本地用户",
+			Username:     u.DisplayName,
+			AvatarURL:    u.AvatarURL,
+			HomepageLink: u.HomepageLink,
+		}
+	case constants.GithubUser, constants.GoogleUser:
+		userOp := biz.OAuth2User
+		u, e := userOp.WithContext(ctx).
+			Where(userOp.ID.Eq(currentLogin.UserID)).
+			Take()
+		if e != nil {
+			err = util.CreateAuthErr("查找用户失败", err)
+			return
+		}
+		resp = &dto.LoginUserBasicProfile{
+			UserID:       u.ID,
+			PlatformName: u.PlatformName,
+			Username:     u.Username,
+			AvatarURL:    u.AvatarURL,
+			HomepageLink: u.HomepageLink,
+		}
+	default:
+		err = util.CreateBizErr("未注册的用户类型, 暂不支持", fmt.Errorf("un-registered user type"))
+		return
 	}
 
 	return

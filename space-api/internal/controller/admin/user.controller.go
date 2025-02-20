@@ -109,5 +109,4 @@ func UseUserController(group *gin.RouterGroup) {
 			}
 		})
 	}
-
 }

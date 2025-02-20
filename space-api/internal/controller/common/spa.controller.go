@@ -58,20 +58,29 @@ func MapEmbedFS2Crc32(embedFS *embed.FS) (map[string]string, error) {
 	return result, nil
 }
 
-// CreateEmbedSpaAppHandler 创建一个处理 SPA web 应用的中间件
-// Note: 应该把中间件放在 gin.NoRoute 方法中(因为 gin 根路径的通配符匹配容易造成冲突)
+// CreateEmbedSpaAppHandler creates a handler function to serve an embedded Single Page Application (SPA).
+//
+// Parameters:
+//   - urlPrefix: The default access path prefix.
+//   - staticPath: The path to the static file system.
+//   - skipApiPrefix: The prefix to skip for API routes.
+//   - fsLike: The embedded file system.
+//   - expireTime: The duration for which the cache is valid.
+//
+// Returns:
+//   - gin.HandlerFunc: The handler function to serve the SPA.
 func CreateEmbedSpaAppHandler(
 	urlPrefix,
-	staticPath string,
+	staticPath,
+	skipApiPrefix string,
 	fsLike *embed.FS,
 	expireTime time.Duration,
 ) gin.HandlerFunc {
 	mapping, err := MapEmbedFS2Crc32(fsLike)
 	if err != nil {
-		log.Fatal("embed fs 文件系统存在错误: ", err)
+		log.Fatal("embed fs exists error: ", err)
 	}
-
-	// 公开静态资源缓存时间为 15 天
+	skipApiPrefix = strings.TrimPrefix(skipApiPrefix, "/")
 	pubCacheControlHeader := fmt.Sprintf("public, max-age=%d, immutable", expireTime/time.Second)
 	modifiedTime := time.Now()
 
@@ -87,11 +96,10 @@ func CreateEmbedSpaAppHandler(
 		fileCrc32, ok := mapping[fullFilePath]
 		if !ok {
 			// 如果文件不存在，尝试检查是否为API路由
-			if strings.HasPrefix(pathArg, "v1/api/") {
+			if strings.HasPrefix(pathArg, skipApiPrefix) {
 				ctx.Next()
 				return
 			}
-
 			ctx.Header("Content-Type", gin.MIMEHTML)
 			// 对于其他不存在的路径，返回 index.html，但不设置缓存
 			http.ServeFileFS(

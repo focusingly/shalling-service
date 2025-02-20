@@ -15,23 +15,27 @@ import (
 // 客户端的文章查询相关操作
 func IndexController(group *gin.RouterGroup) {
 	cachedGroup := performance.Group[any]{}
-	indexController := group.Group("/index", func(ctx *gin.Context) {
-		// 禁止访问路径过长的请求
-		if len(ctx.Request.RequestURI) >= 256 {
-			err := fmt.Errorf("illegal request param, too long request uri: %d characters", len(ctx.Request.RequestURI))
-			ctx.Error(util.CreateBizErr(
-				"非法的请求参数",
-				err,
-			))
-			ctx.Abort()
-			return
-		}
-		ctx.Next()
-	})
-
 	postService := service.DefaultPostService
 	categoryService := service.DefaultCategoryService
 	tagService := service.DefaultTagService
+	menuService := service.DefaultMenuService
+	mediaService := service.DefaultMediaService
+
+	indexController := group.Group(
+		"/index",
+		func(ctx *gin.Context) {
+			// 禁止访问路径过长的请求
+			if len(ctx.Request.RequestURI) >= 256 {
+				err := fmt.Errorf("illegal request param, too long request uri: %d characters", len(ctx.Request.RequestURI))
+				ctx.Error(util.CreateBizErr(
+					"非法的请求参数",
+					err,
+				))
+				ctx.Abort()
+				return
+			}
+			ctx.Next()
+		})
 
 	// 查询公开文章的列表
 	{
@@ -45,6 +49,58 @@ func IndexController(group *gin.RouterGroup) {
 					return
 				}
 				if resp, err := postService.GetVisiblePostList(req, ctx); err != nil {
+					return nil, err
+				} else {
+					return resp, nil
+				}
+			}, time.Millisecond*500)
+
+			if err != nil {
+				ctx.Error(err)
+			} else {
+				outbound.NotifyProduceResponse(resp, ctx)
+			}
+		})
+	}
+
+	// 获取动态菜单列表
+	{
+		indexController.GET("/menus", func(ctx *gin.Context) {
+			cachedKey := ctx.Request.URL.Path
+
+			resp, _, err := cachedGroup.Do(cachedKey, func() (value any, err error) {
+				req := &dto.GetMenusReq{}
+				if err = ctx.ShouldBindQuery(req); err != nil {
+					err = util.CreateBizErr("参数错误: "+err.Error(), err)
+					return
+				}
+				if resp, err := menuService.GetVisibleMenus(req, ctx); err != nil {
+					return nil, err
+				} else {
+					return resp, nil
+				}
+			}, time.Millisecond*500)
+
+			if err != nil {
+				ctx.Error(err)
+			} else {
+				outbound.NotifyProduceResponse(resp, ctx)
+			}
+		})
+	}
+
+	// 获取所有允许公开展示的社交媒体标签
+	{
+		indexController.GET("/medias", func(ctx *gin.Context) {
+			cachedKey := ctx.Request.URL.Path
+
+			resp, _, err := cachedGroup.Do(cachedKey, func() (value any, err error) {
+				req := &dto.GetMediaTagsReq{}
+				if err = ctx.ShouldBindQuery(req); err != nil {
+					err = util.CreateBizErr("参数错误: "+err.Error(), err)
+					return
+				}
+				if resp, err := mediaService.GetVisibleMediaTags(req, ctx); err != nil {
 					return nil, err
 				} else {
 					return resp, nil

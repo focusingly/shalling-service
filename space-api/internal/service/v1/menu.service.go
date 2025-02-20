@@ -112,7 +112,7 @@ func (*_menuService) GetVisibleMenus(req *dto.GetMenusReq, ctx *gin.Context) (re
 	return
 }
 
-func (*_menuService) GetAllMenus(req *dto.GetMenusReq, ctx *gin.Context) (resp *dto.GetMenusResp, err error) {
+func (*_menuService) GetAnyMenus(req *dto.GetMenusReq, ctx *gin.Context) (resp *dto.GetMenusResp, err error) {
 	menuTx := biz.MenuGroup
 	list, err := menuTx.WithContext(ctx).Find()
 	if err != nil {

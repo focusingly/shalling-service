@@ -13,20 +13,21 @@ func UseMenuController(group *gin.RouterGroup) {
 	menuService := service.DefaultMenuService
 	menuGroup := group.Group("/menu")
 
-	// 获取所有的列表信息
-	menuGroup.GET("/", func(ctx *gin.Context) {
+	// 获取所有的菜单信息
+	menuGroup.GET("/list", func(ctx *gin.Context) {
 		req := &dto.GetMenusReq{}
 		if err := ctx.ShouldBindQuery(req); err != nil {
 			ctx.Error(util.CreateBizErr("参数错误: "+err.Error(), err))
 			return
 		}
-		if resp, err := menuService.GetAllMenus(req, ctx); err != nil {
+		if resp, err := menuService.GetAnyMenus(req, ctx); err != nil {
 			ctx.Error(err)
 		} else {
 			outbound.NotifyProduceResponse(resp, ctx)
 		}
 	})
 
+	// 添加/更新 菜单
 	menuGroup.POST("/", func(ctx *gin.Context) {
 		req := &dto.CreateOrUpdateMenuReq{}
 
@@ -42,6 +43,7 @@ func UseMenuController(group *gin.RouterGroup) {
 		}
 	})
 
+	// 删除菜单
 	menuGroup.DELETE("/", func(ctx *gin.Context) {
 		req := &dto.DeleteMenuGroupsReq{}
 		if err := ctx.ShouldBindBodyWithJSON(req); err != nil {

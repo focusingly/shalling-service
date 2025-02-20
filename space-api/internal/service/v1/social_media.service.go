@@ -78,44 +78,37 @@ func (*mediaService) CreateOrUpdateMediaTag(req *dto.CreateOrUpdateSocialMediaRe
 		return
 	}
 	resp = &dto.CreateOrUpdateSocialMediaResp{
-		PubSocialMedia: *find,
+		PubSocialMedia: find,
 	}
 
 	return
 }
 
-func (*mediaService) GetMediaTagDetailById(req *dto.GetSocialMediaDetailReq, ctx *gin.Context) (resp *dto.GetSocialMediaDetailResp, err error) {
-	find, err := biz.PubSocialMedia.
-		WithContext(ctx).
-		Where(biz.PubSocialMedia.ID.Eq(req.Id)).
-		Take()
+func (*mediaService) GetAnyMediaTags(req *dto.GetMediaTagsReq, ctx *gin.Context) (resp dto.GetMediaTagsResp, err error) {
+	list, err := biz.PubSocialMedia.WithContext(ctx).
+		Find()
 
-	if err != nil {
-		err = util.CreateBizErr("查找记录失败: "+err.Error(), err)
-		return
-	}
-	resp = &dto.GetSocialMediaDetailResp{
-		PubSocialMedia: *find,
-	}
-
-	return
-}
-
-func (*mediaService) GetMediaTagPages(req *dto.GetSocialMediaPageListReq, ctx *gin.Context) (resp *dto.GetSocialMediaPageListResp, err error) {
-	list, count, err := biz.PubSocialMedia.WithContext(ctx).FindByPage(req.BasePageParam.Normalize())
 	if err != nil {
 		err = util.CreateBizErr("查找分页失败: "+err.Error(), err)
 		return
 	}
-	resp = &dto.GetSocialMediaPageListResp{
-		PageList: model.PageList[*model.PubSocialMedia]{
-			List:  list,
-			Page:  int64(*req.Page),
-			Size:  int64(*req.Size),
-			Total: count,
-		},
+	resp = list
+
+	return
+}
+
+// GetVisibleMediaTags 获取所有已经设置公开媒体展示标签
+func (*mediaService) GetVisibleMediaTags(req *dto.GetMediaTagsReq, ctx *gin.Context) (resp dto.GetMediaTagsResp, err error) {
+	list, err := biz.PubSocialMedia.WithContext(ctx).
+		Where(biz.PubSocialMedia.Hide.Eq(0)).
+		Find()
+
+	if err != nil {
+		err = util.CreateBizErr("查找分页失败: "+err.Error(), err)
+		return
 	}
 
+	resp = list
 	return
 }
 

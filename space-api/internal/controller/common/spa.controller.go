@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"path"
 	"path/filepath"
+	"space-api/util"
 	"strconv"
 	"strings"
 	"time"
@@ -82,21 +83,25 @@ func CreateEmbedSpaAppHandler(
 	skipApiPrefix = strings.TrimPrefix(skipApiPrefix, "/")
 	pubCacheControlHeader := fmt.Sprintf("public, max-age=%d, immutable", expireTime/time.Second)
 	modifiedTime := time.Now()
+	// 对于前端的 HTML5 history 路由刷新采取回退路径
+	fallbackPath := filepath.Join(staticPath, "index.html")
 
 	return func(ctx *gin.Context) {
 		// 去除 URL 前缀
 		pathArg := strings.TrimPrefix(ctx.Request.URL.Path, urlPrefix)
 		// 构建完整的文件路径
 		fullFilePath := filepath.Join(staticPath, pathArg)
-		// 对于前端的 HTML5 history 路由刷新采取回退路径
-		fallbackPath := filepath.Join(staticPath, "index.html")
 
 		// 检查文件是否存在于目录当中
 		fileCrc32, ok := mapping[fullFilePath]
 		if !ok {
 			// 如果文件不存在，尝试检查是否为API路由
 			if strings.HasPrefix(pathArg, skipApiPrefix) {
-				ctx.Next()
+				ctx.Error(util.CreateNotMethodOrResourceErr(
+					"没有对应的访问资源: "+ctx.Request.RequestURI,
+					fmt.Errorf("not any mathced resource: %s", ctx.Request.RequestURI),
+				))
+				ctx.Abort()
 				return
 			}
 			// 对于其他不存在的路径，返回 index.html，但不设置缓存

@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"hash/crc32"
-	"mime"
 	"net/http"
 	"os"
 	"path"
@@ -126,11 +125,6 @@ func (s *_staticFileService) HandlePubVisit(rawFileParam string, ctx *gin.Contex
 	// 设置 Last-Modified 头
 	ctx.Header("Last-Modified", modifiedTime.Format(http.TimeFormat))
 
-	// 设置文件标识
-	if m := mime.TypeByExtension(path.Ext(rawFileParam)); m != "" {
-		ctx.Header("Content-Type", m)
-	}
-	// 返回文件
 	ctx.File(fullPath)
 }
 
@@ -190,10 +184,6 @@ func (s *_staticFileService) HandleAllVisit(rawFileParam string, ctx *gin.Contex
 	// 设置 Last-Modified 头
 	ctx.Header("Last-Modified", modifiedTime.Format(http.TimeFormat))
 
-	// 设置文件标识
-	if m := mime.TypeByExtension(path.Ext(rawFileParam)); m != "" {
-		ctx.Header("Content-Type", m)
-	}
 	// 返回文件
 	ctx.File(fullPath)
 }

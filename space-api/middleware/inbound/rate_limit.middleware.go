@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"slices"
 	"space-api/constants"
 	"space-api/internal/service/v1/blocking"
 	"space-api/middleware/auth"
+	"strings"
 
 	"space-api/util"
 	"space-api/util/performance"
@@ -16,7 +18,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func UseReqRateLimitMiddleware(d time.Duration, maxReq int) gin.HandlerFunc {
+func UseReqRateLimitMiddleware(d time.Duration, maxReq int, limitPath ...string) gin.HandlerFunc {
 	cache := performance.NewCache(constants.MB * 4)
 	blockingService := blocking.DefaultIPBlockingService
 
@@ -25,6 +27,15 @@ func UseReqRateLimitMiddleware(d time.Duration, maxReq int) gin.HandlerFunc {
 	}
 
 	return func(ctx *gin.Context) {
+		// 只限制某些路径需要进行限流检查
+		if !slices.ContainsFunc(limitPath, func(p string) bool {
+			return strings.HasPrefix(ctx.Request.URL.Path, p)
+		}) {
+			ctx.Next()
+
+			return
+		}
+
 		// 管理员忽略任务访问基数限制
 		user, e := auth.GetCurrentLoginSession(ctx)
 		if e == nil && user.UserType == constants.Admin {

@@ -26,7 +26,7 @@ func getMiddlewares(appConf *conf.AppConf) []gin.HandlerFunc {
 		inbound.UseUseragentParserMiddleware(),
 		inbound.UseExtractIPv4Middleware(),
 		auth.UseJwtAuthExtractMiddleware(),
-		inbound.UseReqRateLimitMiddleware(time.Second*16, 32),
+		inbound.UseReqRateLimitMiddleware(time.Second*16, 32, appConf.ApiPrefix),
 
 		sessions.Sessions("shalling.space", store),
 		inbound.

@@ -1,4 +1,7 @@
-package netadapter
+//go:build !usehttp2
+// +build !usehttp2
+
+package adapter
 
 import (
 	"crypto/tls"
@@ -12,7 +15,7 @@ import (
 	"golang.org/x/net/http2/h2c"
 )
 
-func RunAndServeH2C(engine *gin.Engine, appConf *conf.AppConf) {
+func RunAndServe(engine *gin.Engine, appConf *conf.AppConf) {
 	h2cServer := &http2.Server{}
 	h2cHandler := h2c.NewHandler(engine, h2cServer)
 	server := &http.Server{

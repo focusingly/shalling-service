@@ -18,6 +18,7 @@ import (
 	"space-api/util/verify"
 	"space-domain/dao/biz"
 	"space-domain/model"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -135,7 +136,7 @@ func (s *_authService) updateUserLoginSession(user *boData, bizTx *biz.Query, ct
 				ID: id.GetSnowFlakeNode().Generate().Int64(),
 			},
 			UserID:     user.UserID,
-			UUID:       uuid.NewString(),
+			UUID:       strings.ReplaceAll(uuid.NewString(), "-", ""),
 			IpU32Val:   &to32Ip,
 			IpAddress:  &ipAddr,
 			IpSource:   &ipSource,

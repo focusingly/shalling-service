@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug Api Server",
+            "name": "Debug Server",
             "type": "go",
             "request": "launch",
             "mode": "debug",
@@ -17,6 +17,22 @@
             ],
             "buildFlags": [
                 "-tags=jsoniter,fts5",
+            ],
+            "program": "${workspaceFolder}/space-api/main.go"
+        },
+        {
+            "name": "Debug Server(HTTP2)",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "hideSystemGoroutines": true,
+            "showGlobalVariables": true,
+            "args": [
+                "-c ./config.yml",
+                "-d",
+            ],
+            "buildFlags": [
+                "-tags=jsoniter,fts5,usehttp2",
             ],
             "program": "${workspaceFolder}/space-api/main.go"
         },

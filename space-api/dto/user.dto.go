@@ -16,6 +16,11 @@ type (
 	}
 	UpdateOauthUserResp struct{}
 
+	DeleteOauth2UserReq struct {
+		IDList []int64
+	}
+	DeleteOauth2UserResp struct{}
+
 	UpdateLocalUserBasicReq struct {
 		UserID       int64   `json:"userID" yaml:"userID" xml:"userID" toml:"userID"`
 		Email        *string `gorm:"type:varchar(255);null;comment:用户邮箱, 可用于找回密码" json:"email" yaml:"email" xml:"email" toml:"email"`

@@ -1,4 +1,4 @@
-package service
+package user
 
 import (
 	"fmt"
@@ -11,51 +11,56 @@ import (
 	"space-domain/dao/biz"
 	"space-domain/model"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gen/field"
 )
 
-type _userService struct{}
+type userService struct{}
 
-var DefaultUserService = &_userService{}
+var DefaultUserService = &userService{}
 
-func (*_userService) UpdateLocalUserBasic(req *dto.UpdateLocalUserBasicReq, ctx *gin.Context) (resp *dto.UpdateLocalUserResp, err error) {
+// UpdateLocalUserProfile 更新本地用户处除了密码之外的配置信息
+func (*userService) UpdateLocalUserProfile(req *dto.UpdateLocalUserBasicReq, ctx *gin.Context) (resp *dto.UpdateLocalUserResp, err error) {
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
-		currentLogin, e := auth.GetCurrentLoginSession(ctx)
+		loginSession, e := auth.GetCurrentLoginSession(ctx)
 		if e != nil {
 			return e
 		}
-		localTx := tx.LocalUser
-		findUser, e := localTx.WithContext(ctx).
-			Where(localTx.ID.Eq(req.UserID)).
+
+		userTx := tx.LocalUser
+		findUser, e := userTx.WithContext(ctx).
+			Where(userTx.ID.Eq(req.UserID)).
 			Take()
 		if e != nil {
 			return e
 		}
-		if currentLogin.UserID != findUser.ID {
-			// 判断当前登录用户是否为管理员
-			f, e := biz.LocalUser.WithContext(ctx).Where(biz.LocalUser.ID.Eq(currentLogin.UserID)).Take()
-			if e != nil || (f.IsAdmin == 0) {
-				return &util.BizErr{
-					Msg:    "权限不足",
-					Reason: fmt.Errorf("permission required admin"),
-				}
+
+		// 如果要更改的配置不是当前自身登录的配置
+		if loginSession.UserID != findUser.ID {
+			// 只允许管理员修改直接修改其他账户的信息
+			if loginSession.UserType != constants.Admin {
+				return util.CreateBizErr(
+					"权限不足",
+					fmt.Errorf("permission required admin"),
+				)
 			}
 		}
-		_, e = localTx.WithContext(ctx).
+
+		_, e = userTx.WithContext(ctx).
 			Select(
-				localTx.Hide,
-				localTx.Email,
-				localTx.Username,
-				localTx.DisplayName,
-				localTx.Password,
-				localTx.AvatarURL,
-				localTx.HomepageLink,
-				localTx.Phone,
-				localTx.IsAdmin,
+				userTx.Hide,
+				userTx.Email,
+				userTx.Username,
+				userTx.DisplayName,
+				userTx.Password,
+				userTx.AvatarURL,
+				userTx.HomepageLink,
+				userTx.Phone,
+				userTx.IsAdmin,
 			).
-			Where(localTx.ID.Eq(findUser.ID)).
+			Where(userTx.ID.Eq(findUser.ID)).
 			Updates(
 				&model.LocalUser{
 					BaseColumn:   findUser.BaseColumn,
@@ -66,7 +71,7 @@ func (*_userService) UpdateLocalUserBasic(req *dto.UpdateLocalUserBasicReq, ctx 
 					AvatarURL:    req.AvatarURL,
 					HomepageLink: req.HomepageLink,
 					Phone:        req.Phone,
-					IsAdmin:      findUser.IsAdmin,
+					IsAdmin:      findUser.IsAdmin, // 管理员的权限不允许被重新分配, 只能始终保持
 				},
 			)
 
@@ -81,39 +86,48 @@ func (*_userService) UpdateLocalUserBasic(req *dto.UpdateLocalUserBasicReq, ctx 
 		err = util.CreateBizErr("更新基本信息失败", err)
 		return
 	}
+
 	return
 }
 
-func (*_userService) UpdateLocalUserPassword(req *dto.UpdateLocalUserPassReq, ctx *gin.Context) (resp *dto.UpdateLocalUserPassResp, err error) {
-	if len(strings.TrimSpace(req.NewPassword)) < 8 {
+func (*userService) UpdateLocalUserPassword(req *dto.UpdateLocalUserPassReq, ctx *gin.Context) (resp *dto.UpdateLocalUserPassResp, err error) {
+	newPass := strings.TrimSpace(req.NewPassword)
+	if utf8.RuneCountInString(newPass) < 8 {
 		err = util.CreateBizErr("密码强度太弱, 请使用至少 8 位的密码", fmt.Errorf("new password strength too weak, must less has 8 character"))
 	}
+
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
-		currentLogin, e := auth.GetCurrentLoginSession(ctx)
+		loginSession, e := auth.GetCurrentLoginSession(ctx)
 		if e != nil {
 			return e
 		}
-		localTx := tx.LocalUser
 
-		findLocalUser, e := localTx.WithContext(ctx).
+		localTx := tx.LocalUser
+		findUser, e := localTx.WithContext(ctx).
 			Where(localTx.ID.Eq(req.UserID)).
 			Take()
 		if e != nil {
 			return e
 		}
-		if currentLogin.UserID != findLocalUser.ID {
+
+		if loginSession.UserID != findUser.ID {
 			// 判断当前登录用户是否为管理员
-			currentUser, e := biz.LocalUser.WithContext(ctx).Where(biz.LocalUser.ID.Eq(currentLogin.UserID)).Take()
-			if e != nil || (currentUser.IsAdmin == 0) {
-				return &util.BizErr{
-					Msg:    "权限不足",
-					Reason: fmt.Errorf("permission required admin"),
-				}
+			currentUser, e := biz.LocalUser.WithContext(ctx).Where(biz.LocalUser.ID.Eq(loginSession.UserID)).Take()
+			if e != nil {
+				return e
 			}
+			if currentUser.IsAdmin == 0 {
+				return util.CreateBizErr(
+					"权限不足",
+					fmt.Errorf("permission required admin"),
+				)
+			}
+
 			// 如果要修改的用户也为管理员, 那么不允许
-			if findLocalUser.IsAdmin != 0 {
+			if findUser.IsAdmin != 0 {
 				return fmt.Errorf("修改的账户为管理员账户, 需要自身登录")
 			}
+
 			if !encrypt.ComparePassword(strings.TrimSpace(req.OldPassword), currentUser.Password) {
 				return fmt.Errorf("密码错误")
 			}
@@ -124,9 +138,9 @@ func (*_userService) UpdateLocalUserPassword(req *dto.UpdateLocalUserPassReq, ct
 			return e
 		}
 
-		// 允许管理员用户修改其他低一级权限的所有密码
+		// 允许管理员用户修改自身和其他低权限用户的密码
 		_, e = localTx.WithContext(ctx).
-			Where(localTx.ID.Eq(findLocalUser.ID)).
+			Where(localTx.ID.Eq(findUser.ID)).
 			Update(localTx.Password, newHashedPass)
 		if e != nil {
 			return e
@@ -138,8 +152,8 @@ func (*_userService) UpdateLocalUserPassword(req *dto.UpdateLocalUserPassReq, ct
 	return
 }
 
-func (*_userService) ExpireLoginSessions(req *dto.ExpireUserLoginSessionReq, ctx *gin.Context) (resp *dto.ExpireUserLoginSessionResp, err error) {
-	cacheSpace := auth.GetMiddlewareRelativeAuthCache()
+// ExpireAnyLoginSessions 删除登录会话信息
+func (*userService) ExpireAnyLoginSessions(req *dto.ExpireUserLoginSessionReq, ctx *gin.Context) (resp *dto.ExpireUserLoginSessionResp, err error) {
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		loginSessionTx := tx.UserLoginSession
 		_, e := loginSessionTx.WithContext(ctx).
@@ -148,7 +162,9 @@ func (*_userService) ExpireLoginSessions(req *dto.ExpireUserLoginSessionReq, ctx
 		if e != nil {
 			return e
 		}
+
 		// 清理缓存空间
+		cacheSpace := auth.GetMiddlewareRelativeAuthCache()
 		for _, uid := range req.UUIDList {
 			cacheSpace.Delete(uid)
 		}
@@ -165,8 +181,7 @@ func (*_userService) ExpireLoginSessions(req *dto.ExpireUserLoginSessionReq, ctx
 	return
 }
 
-func (*_userService) UpdateOauth2User(req *dto.UpdateOauthUserReq, ctx *gin.Context) (resp *dto.UpdateOauthUserResp, err error) {
-	cacheSpace := auth.GetMiddlewareRelativeAuthCache()
+func (*userService) UpdateOauth2User(req *dto.UpdateOauthUserReq, ctx *gin.Context) (resp *dto.UpdateOauthUserResp, err error) {
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		userTx := tx.OAuth2User
 		_, e := userTx.WithContext(ctx).
@@ -180,18 +195,21 @@ func (*_userService) UpdateOauth2User(req *dto.UpdateOauthUserReq, ctx *gin.Cont
 		// 如果用户被禁用
 		if !req.Available {
 			sessionTx := tx.UserLoginSession
-			l, e := sessionTx.WithContext(ctx).
+			loginSessions, e := sessionTx.WithContext(ctx).
 				Where(
 					sessionTx.UserID.Eq(req.UserID),
+					sessionTx.UserType.Neq(constants.Admin),
 					sessionTx.UserType.Neq(constants.LocalUser),
 				).
 				Find()
+
 			if e != nil {
 				return e
 			}
+
 			_, e = sessionTx.WithContext(ctx).
 				Where(sessionTx.ID.In(
-					arr.MapSlice(l, func(_ int, t *model.UserLoginSession) int64 {
+					arr.MapSlice(loginSessions, func(_ int, t *model.UserLoginSession) int64 {
 						return t.ID
 					})...,
 				)).
@@ -202,13 +220,15 @@ func (*_userService) UpdateOauth2User(req *dto.UpdateOauthUserReq, ctx *gin.Cont
 			}
 
 			// 清空缓存空间
-			for _, t := range l {
+			cacheSpace := auth.GetMiddlewareRelativeAuthCache()
+			for _, t := range loginSessions {
 				cacheSpace.Delete(t.UUID)
 			}
 		}
 
 		return nil
 	})
+
 	if err != nil {
 		err = util.CreateBizErr("更新信息失败", err)
 		return
@@ -218,36 +238,47 @@ func (*_userService) UpdateOauth2User(req *dto.UpdateOauthUserReq, ctx *gin.Cont
 	return
 }
 
-func (*_userService) DeleteOauth2User(req *dto.UpdateOauthUserReq, ctx *gin.Context) (resp *dto.UpdateOauthUserResp, err error) {
+// DeleteOauth2User 删除已经登录的 Oauth2 用户信息
+func (*userService) DeleteOauth2User(req *dto.DeleteOauth2UserReq, ctx *gin.Context) (resp *dto.DeleteOauth2UserResp, err error) {
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		userTx := tx.OAuth2User
+		// 找到所有要被删除的用户
 
-		l, e := userTx.WithContext(ctx).Find()
+		removes, e := userTx.WithContext(ctx).
+			Select(userTx.ID).
+			Where(userTx.ID.In(req.IDList...)).
+			Find()
 		if e != nil {
 			return e
 		}
+
+		removeUserIDList := arr.MapSlice(removes, func(_ int, t *model.OAuth2User) int64 {
+			return t.ID
+		})
 		// 删除用户
 		_, e = userTx.WithContext(ctx).
 			Where(
 				userTx.ID.In(
-					arr.MapSlice(l, func(_ int, t *model.OAuth2User) int64 {
-						return t.ID
-					})...,
+					removeUserIDList...,
 				),
 			).
 			Delete()
 		if e != nil {
 			return e
 		}
-		// 查找登录会话
-		sessions, e := tx.UserLoginSession.WithContext(ctx).Find()
+
+		// 查找匹配的登录会话
+		loginSessions, e := tx.UserLoginSession.WithContext(ctx).
+			Where(tx.UserLoginSession.UserID.In(removeUserIDList...)).
+			Find()
 		if e != nil {
 			return e
 		}
-		// 删除会话
+
+		// 删除会话记录
 		_, e = tx.UserLoginSession.WithContext(ctx).
 			Where(tx.UserLoginSession.UserID.In(
-				arr.MapSlice(sessions, func(_ int, t *model.UserLoginSession) int64 {
+				arr.MapSlice(loginSessions, func(_ int, t *model.UserLoginSession) int64 {
 					return t.ID
 				})...,
 			)).
@@ -255,42 +286,35 @@ func (*_userService) DeleteOauth2User(req *dto.UpdateOauthUserReq, ctx *gin.Cont
 		if e != nil {
 			return e
 		}
+		// 清空缓存中的记录
 		cacheSpace := auth.GetMiddlewareRelativeAuthCache()
-		// 清空凭据
-		for _, s := range sessions {
+		for _, s := range loginSessions {
 			cacheSpace.Delete(s.UUID)
 		}
 
 		return nil
 	})
+
 	if err != nil {
-		err = util.CreateBizErr("更新信息失败", err)
+		err = util.CreateBizErr("删除用户失败", err)
 		return
 	}
 
-	resp = &dto.UpdateOauthUserResp{}
+	resp = &dto.DeleteOauth2UserResp{}
 	return
 }
 
-func (*_userService) GetLoginSessions(req *dto.GetLoginUserSessionsReq, ctx *gin.Context) (resp *dto.GetLoginUserSessionsResp, err error) {
+// GetLocalUserLoginSessions 获取已登录用户的会话列表
+func (*userService) GetLocalUserLoginSessions(req *dto.GetLoginUserSessionsReq, ctx *gin.Context) (resp *dto.GetLoginUserSessionsResp, err error) {
 	sessionOp := biz.UserLoginSession
-
 	currentLogin, e := auth.GetCurrentLoginSession(ctx)
 	if e != nil {
 		return
 	}
 
-	localOp := biz.LocalUser
-	f, e := localOp.WithContext(ctx).
-		Where(localOp.ID.Eq(currentLogin.UserID)).
-		Take()
-	if e != nil {
-		err = util.CreateBizErr("查询失败", err)
-	}
-
 	// 仅限管理员查看全部权限
 	fieldList := []field.Expr{}
-	if f.IsAdmin == 0 {
+	if currentLogin.UserType == constants.Admin {
 		fieldList = append(fieldList, sessionOp.ALL)
 	} else {
 		fieldList = append(fieldList,
@@ -310,16 +334,17 @@ func (*_userService) GetLoginSessions(req *dto.GetLoginUserSessionsReq, ctx *gin
 		)
 	}
 
-	l, count, e := sessionOp.WithContext(ctx).
+	list, count, e := sessionOp.WithContext(ctx).
 		Select(fieldList...).
 		FindByPage(req.Normalize())
+
 	if e != nil {
 		err = util.CreateBizErr("查找数据失败: "+e.Error(), e)
 	}
 
 	resp = &dto.GetLoginUserSessionsResp{
 		PageList: model.PageList[*model.UserLoginSession]{
-			List:  l,
+			List:  list,
 			Page:  int64(*req.Page),
 			Size:  int64(*req.Size),
 			Total: count,

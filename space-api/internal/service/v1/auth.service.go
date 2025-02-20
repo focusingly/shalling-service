@@ -245,6 +245,7 @@ func (s *_authService) AdminLogin(req *dto.AdminLoginReq, ctx *gin.Context) (res
 	return
 }
 
+// HandleOauthLogin 处理 Oauth2 登录
 func (s *_authService) HandleOauthLogin(req *dto.OauthLoginCallbackReq, ctx *gin.Context) (resp *dto.OauthLoginCallbackResp, err error) {
 	var parsed *model.OAuth2User
 	var e error
@@ -587,7 +588,8 @@ func (*_authService) ParseGoogleCallback(req *dto.OauthLoginCallbackReq, ctx *gi
 	return
 }
 
-func (*_authService) Logout(ctx *gin.Context) (resp *performance.Empty, err error) {
+// CurrentUserLogout 当前已登录的用户退出登录(根据请求头中携带的 Bearer Token 判断)
+func (*_authService) CurrentUserLogout(ctx *gin.Context) (resp *performance.Empty, err error) {
 	exitsSession, e := auth.GetCurrentLoginSession(ctx)
 	if e != nil {
 		err = util.CreateAuthErr("无效凭据", e)

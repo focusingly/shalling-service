@@ -2,7 +2,7 @@ package admin
 
 import (
 	"space-api/dto"
-	"space-api/internal/service/v1"
+	"space-api/internal/service/v1/user"
 	"space-api/middleware/outbound"
 	"space-api/util"
 
@@ -12,7 +12,7 @@ import (
 func UseUserController(group *gin.RouterGroup) {
 	userGroup := group.Group("/user")
 
-	userService := service.DefaultUserService
+	userService := user.DefaultUserService
 
 	// 查看已经登录的用户的凭据
 	{
@@ -22,7 +22,7 @@ func UseUserController(group *gin.RouterGroup) {
 				ctx.Error(util.CreateBizErr("参数错误: "+e.Error(), e))
 				return
 			}
-			if resp, err := userService.GetLoginSessions(req, ctx); err != nil {
+			if resp, err := userService.GetLocalUserLoginSessions(req, ctx); err != nil {
 				ctx.Error(err)
 			} else {
 				outbound.NotifyProduceResponse(resp, ctx)
@@ -38,7 +38,7 @@ func UseUserController(group *gin.RouterGroup) {
 				ctx.Error(util.CreateBizErr("参数错误: "+e.Error(), e))
 				return
 			}
-			if resp, err := userService.ExpireLoginSessions(req, ctx); err != nil {
+			if resp, err := userService.ExpireAnyLoginSessions(req, ctx); err != nil {
 				ctx.Error(err)
 			} else {
 				outbound.NotifyProduceResponse(resp, ctx)
@@ -65,7 +65,7 @@ func UseUserController(group *gin.RouterGroup) {
 	// 删除 oauth2 账户信息
 	{
 		userGroup.DELETE("/oauth/delete", func(ctx *gin.Context) {
-			req := &dto.UpdateOauthUserReq{}
+			req := &dto.DeleteOauth2UserReq{}
 			if e := ctx.ShouldBindBodyWithJSON(req); e != nil {
 				ctx.Error(util.CreateBizErr("参数错误: "+e.Error(), e))
 				return
@@ -86,7 +86,7 @@ func UseUserController(group *gin.RouterGroup) {
 				ctx.Error(util.CreateBizErr("参数错误: "+e.Error(), e))
 				return
 			}
-			if resp, err := userService.UpdateLocalUserBasic(req, ctx); err != nil {
+			if resp, err := userService.UpdateLocalUserProfile(req, ctx); err != nil {
 				ctx.Error(err)
 			} else {
 				outbound.NotifyProduceResponse(resp, ctx)

@@ -47,7 +47,7 @@ func UseAuthController(group *gin.RouterGroup) {
 			}
 		})
 
-		// 解析登录
+		// 解析 Oauth 用户登录的回调信息
 		oauth2LoginGroup.POST("/login", func(ctx *gin.Context) {
 			req := &dto.OauthLoginCallbackReq{}
 
@@ -61,14 +61,13 @@ func UseAuthController(group *gin.RouterGroup) {
 			} else {
 				outbound.NotifyProduceResponse(resp, ctx)
 			}
-
 		})
 	}
 
 	// 退出登录
 	{
 		group.Group("/logout").GET("/", func(ctx *gin.Context) {
-			if resp, err := authService.Logout(ctx); err != nil {
+			if resp, err := authService.CurrentUserLogout(ctx); err != nil {
 				ctx.Error(err)
 			} else {
 				outbound.NotifyProduceResponse(resp, ctx)

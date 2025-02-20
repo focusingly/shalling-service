@@ -1,10 +1,9 @@
 package cmd
 
 import (
-	"crypto/tls"
 	"fmt"
-	"log"
 	"net/http"
+	netadapter "space-api/cmd/net_adapter"
 	"space-api/conf"
 	"space-api/constants"
 	"space-api/internal/controller"
@@ -14,8 +13,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 )
 
 func Run() {
@@ -42,6 +39,7 @@ func Run() {
 	spaHandler := common.CreateEmbedSpaAppHandler(
 		"/",
 		"static/dist",
+		appConf.ApiPrefix,
 		&pack.SpaResource,
 		time.Hour*24*15,
 	)
@@ -60,21 +58,11 @@ func Run() {
 	})
 
 	// 版本控制
-	apiRouteGroup := engine.Group("/v1/api")
+	apiRouteGroup := engine.Group(appConf.ApiPrefix)
 	// debug 测试示例路由
 	useDebugController(engine.Group("/debug"))
-
 	controller.RegisterAllControllers(apiRouteGroup)
 	prepareStartup() // 设置项目初始化数据
-	h2cServer := &http2.Server{}
-	h2cHandler := h2c.NewHandler(engine, h2cServer)
-	server := &http.Server{
-		Addr:    fmt.Sprintf(":%d", appConf.Port),
-		Handler: h2cHandler,
-		TLSConfig: &tls.Config{
-			NextProtos: []string{"h2", "http/1.1"},
-		},
-	}
-	// 使用 h2c 进行优化传输
-	log.Fatal(server.ListenAndServe())
+
+	netadapter.RunAndServe(engine, appConf)
 }

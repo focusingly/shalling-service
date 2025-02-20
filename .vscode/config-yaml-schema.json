@@ -49,6 +49,25 @@
           "type": "string",
           "description": "用于通知站主站点自动化任务执行信息(比如 r2 产生订阅费用)的收件邮箱"
         },
+        "apiPrefix": {
+          "type": "string",
+          "description": "接口统一前缀标识",
+          "default": "/v1/api"
+        },
+        "certs": {
+          "type": "object",
+          "description": "tls 证书配置, 如果启用了 http2 或者 http3 的话",
+          "properties": {
+            "pem": {
+              "type": "string",
+              "description": "证书文件"
+            },
+            "key": {
+              "type": "string",
+              "description": "密钥文件"
+            }
+          }
+        },
         "salt": {
           "type": "string",
           "description": "用于本地数据库密码加密的盐值"

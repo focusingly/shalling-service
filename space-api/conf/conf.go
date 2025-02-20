@@ -30,6 +30,11 @@ type (
 		GlobalUploadSize string                   `json:"globalUploadSize" yaml:"globalUploadSize" xml:"globalUploadSize" toml:"globalUploadSize"`
 		ParsedUploadSize constants.MemoryByteSize `json:"parsedUploadSize" yaml:"parsedUploadSize" xml:"parsedUploadSize" toml:"parsedUploadSize"`
 		NotifyEmail      string                   `json:"notifyEmail" yaml:"notifyEmail" xml:"notifyEmail" toml:"notifyEmail"`
+		ApiPrefix        string                   `json:"apiPrefix" yaml:"apiPrefix" xml:"apiPrefix" toml:"apiPrefix"`
+		Certs            struct {
+			Pem string `json:"pem" yaml:"pem" xml:"pem" toml:"pem"` // 证书配置路径
+			Key string `json:"key" yaml:"key" xml:"key" toml:"key"` // 证书密钥路径
+		} `json:"certs" yaml:"certs" xml:"certs" toml:"certs"`
 	}
 
 	// 邮件服务的描述配置
@@ -124,6 +129,7 @@ var (
 			}, "./"), ".space-store", "files"),
 			GlobalUploadSize: "32m",
 			ParsedUploadSize: constants.MB * 32, // 全局的最大本地文件上传大小, 32 MB
+			ApiPrefix:        "/v1/api",
 		},
 		jwtConf: JwtConf{
 			Salt:          uuid.NewString(),

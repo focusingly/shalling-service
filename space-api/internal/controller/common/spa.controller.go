@@ -1,79 +1,144 @@
 package common
 
 import (
+	"embed"
 	"fmt"
-	"io"
+	"hash/crc32"
 	"io/fs"
+	"log"
+	"mime"
 	"net/http"
 	"path"
-	"space-api/pack"
+	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
-// ReadSeekerWrapper wraps an embed.FS file to provide ReadSeeker functionality
-type ReadSeekerWrapper struct {
-	file     io.Reader
-	size     int64
-	modTime  time.Time
-	position int64
-}
+// MapEmbedFS2Crc32 遍历 embed.FS 并返回文件路径到哈希值的映射
+func MapEmbedFS2Crc32(embedFS *embed.FS) (map[string]string, error) {
+	result := make(map[string]string)
 
-var _ io.ReadSeeker = (*ReadSeekerWrapper)(nil)
-
-func (r *ReadSeekerWrapper) Read(p []byte) (n int, err error) {
-	return r.file.Read(p)
-}
-func (r *ReadSeekerWrapper) Seek(offset int64, whence int) (int64, error) {
-	var newPos int64
-	switch whence {
-	case io.SeekStart:
-		newPos = offset
-	case io.SeekCurrent:
-		newPos = r.position + offset
-	case io.SeekEnd:
-		newPos = r.size + offset
-	default:
-		return 0, fmt.Errorf("invalid whence")
-	}
-	if newPos < 0 || newPos > r.size {
-		return 0, fmt.Errorf("seek out of bounds")
-	}
-	r.position = newPos
-	return r.position, nil
-}
-
-func UseSpaPageController(routeGroup *gin.RouterGroup) {
-	const indexName = "static/dist/index.html"
-
-	routeGroup.GET("/*filename", func(ctx *gin.Context) {
-		fmt.Println(ctx.Request.URL, ctx.Request.RequestURI)
-
-		filename := path.Join("static", "dist", ctx.Param("filename"))
-		if ctx.Request.URL.Path == "/" {
-			filename = indexName
+	// 遍历文件系统
+	err := fs.WalkDir(embedFS, ".", func(filePath string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
 		}
-		var info fs.FileInfo
-		file, err := pack.SpaResource.Open(filename)
-		// 资源处理
-		if err == nil {
-			info, _ = file.Stat()
-			// 重定向回根文件
-			if info.IsDir() {
-				file, _ = pack.SpaResource.Open(indexName)
-				info, _ = file.Stat()
-			}
-		} else {
-			file, _ = pack.SpaResource.Open(indexName)
-			info, _ = file.Stat()
+
+		// 跳过目录
+		if d.IsDir() {
+			return nil
 		}
-		defer file.Close()
-		wrap := &ReadSeekerWrapper{
-			file:    file,
-			size:    info.Size(),
-			modTime: info.ModTime(),
+
+		// 读取文件内容
+		content, err := embedFS.ReadFile(filePath)
+		if err != nil {
+			return err
 		}
-		http.ServeContent(ctx.Writer, ctx.Request, filename, wrap.modTime, wrap)
+
+		// 计算 CRC32 哈希
+		checksum := crc32.ChecksumIEEE(content)
+		hash := strconv.FormatUint(uint64(checksum), 16)
+
+		// 规范化文件路径（使用正斜杠）
+		normalizedPath := path.Clean(filePath)
+
+		// 存储到映射中
+		result[normalizedPath] = hash
+
+		return nil
 	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// CreateEmbedSpaAppHandler 创建一个处理 SPA web 应用的中间件
+// Note: 应该把中间件放在 gin.NoRoute 方法中(因为 gin 根路径的通配符匹配容易造成冲突)
+func CreateEmbedSpaAppHandler(
+	urlPrefix,
+	staticPath string,
+	fsLike *embed.FS,
+	expireTime time.Duration,
+) gin.HandlerFunc {
+	mapping, err := MapEmbedFS2Crc32(fsLike)
+	if err != nil {
+		log.Fatal("embed fs 文件系统存在错误: ", err)
+	}
+
+	// 公开静态资源缓存时间为 15 天
+	pubCacheControlHeader := fmt.Sprintf("public, max-age=%d, immutable", expireTime/time.Second)
+	modifiedTime := time.Now()
+
+	return func(ctx *gin.Context) {
+		// 去除 URL 前缀
+		pathArg := strings.TrimPrefix(ctx.Request.URL.Path, urlPrefix)
+		// 构建完整的文件路径
+		fullFilePath := filepath.Join(staticPath, pathArg)
+		// 对于前端的 HTML5 history 路由刷新采取回退路径
+		fallbackPath := filepath.Join(staticPath, "index.html")
+
+		// 检查文件是否存在于目录当中
+		fileCrc32, ok := mapping[fullFilePath]
+		if !ok {
+			// 如果文件不存在，尝试检查是否为API路由
+			if strings.HasPrefix(pathArg, "v1/api/") {
+				ctx.Next()
+				return
+			}
+
+			ctx.Header("Content-Type", gin.MIMEHTML)
+			// 对于其他不存在的路径，返回 index.html，但不设置缓存
+			http.ServeFileFS(
+				ctx.Writer,
+				ctx.Request,
+				fsLike,
+				fallbackPath,
+			)
+			return
+		}
+
+		if match := ctx.GetHeader("If-Modified-Since"); match != "" {
+			// 客户端缓存未过期，返回 304 Not Modified
+			clientModifiedTime, err := time.Parse(http.TimeFormat, match)
+			if err == nil && modifiedTime.Before(clientModifiedTime.Add(time.Second)) {
+				ctx.Status(http.StatusNotModified)
+				return
+			}
+		}
+
+		// 检查 Etag
+		if match := ctx.GetHeader("If-None-Match"); match != "" && match == fileCrc32 {
+			// 客户端缓存未过期，返回 304 Not Modified
+			ctx.Status(http.StatusNotModified)
+			return
+		}
+
+		// 设置 ETag 头
+		ctx.Header("ETag", fileCrc32)
+		// 设置旧平台/代理兼容性过期时间
+		expiresTime := time.Now().Add(expireTime).Format(http.TimeFormat)
+		ctx.Header("Expires", expiresTime)
+		// 设置 Cache-Control 头，启用强缓存
+		ctx.Header("Cache-Control", pubCacheControlHeader)
+		// 设置 Last-Modified 头
+		ctx.Header("Last-Modified", modifiedTime.Format(http.TimeFormat))
+
+		// 设置文件标识
+		if m := mime.TypeByExtension(path.Ext(fullFilePath)); m != "" {
+			ctx.Header("Content-Type", m)
+		}
+		// 提供静态文件服务
+		http.ServeFileFS(
+			ctx.Writer,
+			ctx.Request,
+			fsLike,
+			fullFilePath,
+		)
+	}
 }

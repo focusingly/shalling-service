@@ -1,1 +1,0 @@
-import{defineComponent as t,createVNode as e,createTextVNode as o}from"https://cdnjs.cloudflare.com/ajax/libs/vue/3.5.13/vue.esm-browser.prod.min.js";const r=t({name:"About",setup(){return()=>e("div",{class:"w-full h-full"},[e("h1",{class:"text-zinc-900"},[o("About Me")])])}});export{r as default};

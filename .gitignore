@@ -17,6 +17,8 @@ __debug_bin*
 *.db
 *.sqlite-journal
 
+dist/
+
 # Go modules
 vendor/
 

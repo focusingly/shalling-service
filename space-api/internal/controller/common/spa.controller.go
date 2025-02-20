@@ -6,7 +6,6 @@ import (
 	"hash/crc32"
 	"io/fs"
 	"log"
-	"mime"
 	"net/http"
 	"path"
 	"path/filepath"
@@ -100,7 +99,6 @@ func CreateEmbedSpaAppHandler(
 				ctx.Next()
 				return
 			}
-			ctx.Header("Content-Type", gin.MIMEHTML)
 			// 对于其他不存在的路径，返回 index.html，但不设置缓存
 			http.ServeFileFS(
 				ctx.Writer,
@@ -137,10 +135,6 @@ func CreateEmbedSpaAppHandler(
 		// 设置 Last-Modified 头
 		ctx.Header("Last-Modified", modifiedTime.Format(http.TimeFormat))
 
-		// 设置文件标识
-		if m := mime.TypeByExtension(path.Ext(fullFilePath)); m != "" {
-			ctx.Header("Content-Type", m)
-		}
 		// 提供静态文件服务
 		http.ServeFileFS(
 			ctx.Writer,

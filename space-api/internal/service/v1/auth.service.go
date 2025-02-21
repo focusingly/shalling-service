@@ -98,6 +98,7 @@ func (s *_authService) updateUserLoginSession(user *boData, bizTx *biz.Query, ct
 		// 获取用户所有已经登录的会话信息
 		existsSessions, e := loginSessionTx.WithContext(ctx).
 			Where(loginSessionTx.UserID.Eq(user.UserID)).
+			Order(loginSessionTx.ID.Desc()). // 进行排序, 比较新的数据放在前面
 			Find()
 		if e != nil {
 			return util.CreateBizErr("设置会话信息失败", e)
@@ -107,20 +108,13 @@ func (s *_authService) updateUserLoginSession(user *boData, bizTx *biz.Query, ct
 		// 更新列表
 		updates := slices.DeleteFunc(
 			slices.Clone(existsSessions),
+			// 先轻量掉所有已经过期的时间戳
 			func(s *model.UserLoginSession) bool {
 				return nowEpochMill >= s.ExpiredAt
 			},
 		)
-		// 排序
-		slices.SortFunc(
-			updates,
-			func(a, b *model.UserLoginSession) int {
-				// 比较新的数据, 放在前面
-				return int(b.ID - a.ID)
-			},
-		)
 		if len(updates) >= _appConf.MaxUserActive-1 {
-			// 淘汰末尾数据(最大允许用户数来自系统配置)
+			// 淘汰最旧的数据(最大允许用户数来自系统配置)
 			updates = updates[:_appConf.MaxUserActive-1]
 		}
 
@@ -183,6 +177,7 @@ func (s *_authService) updateUserLoginSession(user *boData, bizTx *biz.Query, ct
 			cacheSpace.Delete(fmt.Sprintf("%d", u.ID))
 		}
 		nowUnixMilli := time.Now().UnixMilli()
+		// 重新设置登录会话信息
 		for _, u := range updates {
 			cacheSpace.Set(fmt.Sprintf("%d", u.ID), u, performance.Second((u.ExpiredAt-nowUnixMilli)/1000))
 		}

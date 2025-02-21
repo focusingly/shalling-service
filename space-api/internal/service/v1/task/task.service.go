@@ -118,7 +118,7 @@ func (*taskService) CreateOrUpdateNewJob(req *dto.CreateOrUpdateJobReq, ctx *gin
 					},
 					JobFuncName: req.JobFuncName,
 					CronExpr:    req.CronExpr,
-					Status:      util.TernaryExpr(req.Enable == 0, "inactive", "active"),
+					Status:      util.TernaryExp(req.Enable == 0, "inactive", "active"),
 					Enable:      req.Enable,
 					Mark:        req.Mark,
 				},
@@ -143,7 +143,7 @@ func (*taskService) CreateOrUpdateNewJob(req *dto.CreateOrUpdateJobReq, ctx *gin
 				BaseColumn:  findTask.BaseColumn,
 				JobFuncName: req.JobFuncName,
 				CronExpr:    req.CronExpr,
-				Status:      util.TernaryExpr(req.Enable == 0, "inactive", "active"),
+				Status:      util.TernaryExp(req.Enable == 0, "inactive", "active"),
 				Enable:      req.Enable,
 				Mark:        req.Mark,
 			}

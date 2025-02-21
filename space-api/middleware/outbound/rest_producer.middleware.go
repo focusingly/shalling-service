@@ -2,7 +2,7 @@ package outbound
 
 import (
 	"net/http"
-	"space-api/util"
+	"space-api/util/rest"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -16,7 +16,7 @@ func UseRestProduceHandler() gin.HandlerFunc {
 		ctx.Next()
 		if val, ok := ctx.Get(_restInjectMarkKey); ok {
 			code := http.StatusOK
-			handleProduce(code, util.RestWithSuccess(val), ctx)
+			handleProduce(code, rest.RestWithSuccess(val), ctx)
 		}
 	}
 }

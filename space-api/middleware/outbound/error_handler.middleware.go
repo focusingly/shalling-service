@@ -12,6 +12,7 @@ import (
 	"space-api/util/ip"
 	"space-api/util/performance"
 	"space-api/util/ptr"
+	"space-api/util/rest"
 	"space-domain/dao/extra"
 	"space-domain/model"
 	"time"
@@ -57,49 +58,49 @@ func UseErrorHandler() gin.HandlerFunc {
 				CostTime:      costTime,
 				RequestMethod: &ctx.Request.Method,
 				RequestURI:    &ctx.Request.RequestURI,
-				StackTrace: util.TernaryExpr(isPanic, ptr.ToPtr(
+				StackTrace: util.TernaryExp(isPanic, ptr.ToPtr(
 					ptr.Bytes2String(debug.Stack()),
 				), nil),
 				IPAddr:    &ipv4Str,
-				IPSource:  util.TernaryExpr(e != nil, nil, &source),
+				IPSource:  util.TernaryExp(e != nil, nil, &source),
 				Useragent: &userDetail.Useragent,
 				CreatedAt: time.Now().UnixMilli(),
 			}
 
-			code := util.TernaryExpr(isPanic, http.StatusInternalServerError, http.StatusOK)
-			var restErr *util.RestResult[any]
+			code := util.TernaryExp(isPanic, http.StatusInternalServerError, http.StatusOK)
+			var restErr *rest.RestResult[any]
 			switch err := catchErr.(type) {
 			case error: /* 确保都是实现 error 接口的结构体的引用 */
 				switch err := err.(type) {
 				case *util.BizErr:
-					restErr = util.RestWithError(err.Error())
+					restErr = rest.RestWithError(err.Error())
 					logInfo.Message = fmt.Sprintf("%s : %s", err.Msg, err.Reason.Error())
 
 				case *util.AuthErr:
-					restErr = util.RestWithError(err.Error())
+					restErr = rest.RestWithError(err.Error())
 					logInfo.Level = string(constants.Warn)
 					logInfo.Message = fmt.Sprintf("%s : %s", err.Msg, err.Reason.Error())
 
 				case *util.LimitErr:
-					restErr = util.RestWithError(err.Error())
+					restErr = rest.RestWithError(err.Error())
 					logInfo.LogType = string(constants.RequestLimit)
 					logInfo.Message = fmt.Sprintf("%s : %s", err.Msg, err.Reason.Error())
 
 				case *util.FatalErr:
-					restErr = util.RestWithError("服务内部错误, 请稍后重试或联系站长修复")
+					restErr = rest.RestWithError("服务内部错误, 请稍后重试或联系站长修复")
 					logInfo.Level = string(constants.Fatal)
 					logInfo.Message = fmt.Sprintf("%s : %s", err.Msg, err.Reason.Error())
 
 				case *util.NotMethodOrResourceErr:
-					restErr = util.RestWithError(err.Error())
+					restErr = rest.RestWithError(err.Error())
 					logInfo.Level = string(constants.Warn)
 					logInfo.Message = fmt.Sprintf("%s : %s", err.Msg, err.Reason.Error())
 				default:
-					restErr = util.RestWithError("未知的错误")
+					restErr = rest.RestWithError("未知的错误")
 					logInfo.Level = string(constants.Fatal)
 				}
 			default: /* 非 error 对象 */
-				restErr = util.RestWithError("未知错误, 请稍后重试")
+				restErr = rest.RestWithError("未知错误, 请稍后重试")
 				logInfo.Level = string(constants.Fatal)
 				logInfo.Message = fmt.Sprintf("%#v", err)
 			}

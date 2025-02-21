@@ -103,7 +103,7 @@ type projectRootConf struct {
 }
 
 var (
-	defaultStore = path.Join(util.GetOrFallback(os.UserHomeDir, "./"), ".space-store")
+	defaultStore = path.Join(util.GetWithFallback(os.UserHomeDir, "./"), ".space-store")
 
 	ProjectConf = &projectRootConf{
 		appConf: AppConf{
@@ -114,7 +114,7 @@ var (
 			MaxUserActive:  3,
 			ServerTimezone: "",
 			// 设置默认路径
-			StaticDir: path.Join(util.GetOrFallback(func() (string, error) {
+			StaticDir: path.Join(util.GetWithFallback(func() (string, error) {
 				p, e := os.UserHomeDir()
 				if e != nil {
 					t := fmt.Sprintf(
@@ -139,7 +139,7 @@ var (
 		bizDBConf: DatabaseConf{
 			DBName: "bizDB",
 			DBType: "sqlite",
-			Dsn: path.Join(util.GetOrFallback(func() (string, error) {
+			Dsn: path.Join(util.GetWithFallback(func() (string, error) {
 				p, e := os.UserHomeDir()
 				if e != nil {
 					t := fmt.Sprintf(
@@ -157,7 +157,7 @@ var (
 		extraDBConf: DatabaseConf{
 			DBName: "extraDB",
 			DBType: "sqlite",
-			Dsn: path.Join(util.GetOrFallback(func() (string, error) {
+			Dsn: path.Join(util.GetWithFallback(func() (string, error) {
 				p, e := os.UserHomeDir()
 				if e != nil {
 					t := fmt.Sprintf(

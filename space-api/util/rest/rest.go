@@ -1,4 +1,4 @@
-package util
+package rest
 
 import "time"
 
@@ -23,7 +23,7 @@ func RestWithSuccess[T any](data T) *RestResult[T] {
 	return &RestResult[T]{
 		Code:      Ok,
 		Timestamp: time.Now().UnixMilli(),
-		Msg:       "Ok",
+		Msg:       "ok",
 		Data:      data,
 	}
 }
@@ -49,22 +49,5 @@ func RestWithNotAllowed(msg string) *RestResult[any] {
 		Code:      Error,
 		Timestamp: time.Now().UnixMilli(),
 		Msg:       msg,
-	}
-}
-
-// TernaryExpr go 三元表达式的替换
-func TernaryExpr[T any](condition bool, val1, val2 T) T {
-	if condition {
-		return val1
-	}
-
-	return val2
-}
-
-func GetOrFallback[T any](producer func() (T, error), fallback T) T {
-	if p, e := producer(); e != nil {
-		return fallback
-	} else {
-		return p
 	}
 }

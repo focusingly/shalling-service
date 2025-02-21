@@ -1,9 +1,9 @@
 package admin
 
 import (
-	"net/http"
 	"space-api/dto"
 	"space-api/internal/service/v1"
+	"space-api/middleware/outbound"
 	"space-api/util"
 
 	"github.com/gin-gonic/gin"
@@ -19,17 +19,13 @@ func UseTagController(group *gin.RouterGroup) {
 			req := &dto.GetTagPageListReq{}
 			err := ctx.BindQuery(req)
 			if err != nil {
-				ctx.Error(&util.BizErr{
-					Msg:    "参数错误: " + err.Error(),
-					Reason: err,
-				})
-
+				ctx.Error(util.CreateBizErr("参数错误: "+err.Error(), err))
 				return
 			}
-			if val, err := service.GetAnyTagPages(req, ctx); err != nil {
+			if resp, err := service.GetAnyTagPages(req, ctx); err != nil {
 				ctx.Error(err)
 			} else {
-				ctx.JSON(http.StatusOK, util.RestWithSuccess(val))
+				outbound.NotifyProduceResponse(resp, ctx)
 			}
 		})
 	}
@@ -39,11 +35,7 @@ func UseTagController(group *gin.RouterGroup) {
 		tagGroup.GET("/:id", func(ctx *gin.Context) {
 			req := &dto.GetTagDetailReq{}
 			if err := ctx.ShouldBindUri(req); err != nil {
-				ctx.Error(&util.BizErr{
-					Reason: err,
-					Msg:    "参数错误: " + err.Error(),
-				})
-
+				ctx.Error(util.CreateBizErr("参数错误: "+err.Error(), err))
 				return
 			}
 
@@ -51,7 +43,7 @@ func UseTagController(group *gin.RouterGroup) {
 				ctx.Error(err)
 				return
 			} else {
-				ctx.JSON(http.StatusOK, util.RestWithSuccess(resp))
+				outbound.NotifyProduceResponse(resp, ctx)
 			}
 		})
 	}
@@ -61,18 +53,14 @@ func UseTagController(group *gin.RouterGroup) {
 		tagGroup.POST("/", func(ctx *gin.Context) {
 			req := &dto.CreateOrUpdateTagReq{}
 			if err := ctx.BindJSON(req); err != nil {
-				ctx.Error(&util.BizErr{
-					Msg:    "参数错误: " + err.Error(),
-					Reason: err,
-				})
+				ctx.Error(util.CreateBizErr("参数错误: "+err.Error(), err))
 				return
 			}
 
 			if resp, err := service.CreateOrUpdateTag(req, ctx); err != nil {
 				ctx.Error(err)
-
 			} else {
-				ctx.JSON(http.StatusOK, util.RestWithSuccess(resp))
+				outbound.NotifyProduceResponse(resp, ctx)
 			}
 		})
 	}
@@ -83,17 +71,14 @@ func UseTagController(group *gin.RouterGroup) {
 			req := &dto.DeleteTagByIdListReq{}
 
 			if err := ctx.ShouldBindBodyWithJSON(req); err != nil {
-				ctx.Error(&util.BizErr{
-					Reason: err,
-					Msg:    "参数错误: " + err.Error(),
-				})
+				ctx.Error(util.CreateBizErr("参数错误: "+err.Error(), err))
 				return
 			}
-			if val, err := service.DeleteTagByIdList(req, ctx); err != nil {
+			if resp, err := service.DeleteTagByIdList(req, ctx); err != nil {
 				ctx.Error(err)
 				return
 			} else {
-				ctx.JSON(http.StatusOK, util.RestWithSuccess(val))
+				outbound.NotifyProduceResponse(resp, ctx)
 			}
 		})
 	}

@@ -186,7 +186,7 @@ func (*userService) UpdateOauth2User(req *dto.UpdateOauthUserReq, ctx *gin.Conte
 		userTx := tx.OAuth2User
 		_, e := userTx.WithContext(ctx).
 			Where(userTx.ID.Eq(req.UserID)).
-			Update(userTx.Enable, util.TernaryExpr(req.Available, 1, 0))
+			Update(userTx.Enable, util.TernaryExp(req.Available, 1, 0))
 
 		if e != nil {
 			return e

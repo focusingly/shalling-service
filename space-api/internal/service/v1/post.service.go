@@ -155,7 +155,7 @@ func (s *postService) CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ctx *gi
 		} else {
 			// 通过过滤只留下需要新创建的标签
 			filterTags := slices.DeleteFunc(
-				slices.Clone(util.TernaryExpr(req.Tags != nil, req.Tags, []string{})),
+				slices.Clone(util.TernaryExp(req.Tags != nil, req.Tags, []string{})),
 				func(tag string) bool {
 					return slices.ContainsFunc(distinctTags, func(e *model.Tag) bool {
 						// 去掉所有已经存在的标签, 避免重复创建
@@ -310,9 +310,9 @@ func (s *postService) GetAllPostList(req *dto.GetPostPageListReq, ctx *gin.Conte
 // GetCachedViewCountOrFallback 获取文章在缓存中的技术值, 如果为公开访问, 那么还递增对应的缓存计数
 func (s *postService) GetCachedViewCountOrFallback(post *model.Post, isPubMode bool) int64 {
 	key := fmt.Sprintf("%d", post.ID)
-	shouldIncr := util.TernaryExpr[int64](isPubMode, 1, 0)
+	shouldIncr := util.TernaryExp[int64](isPubMode, 1, 0)
 
-	var fallbackViewCount = util.TernaryExpr(
+	var fallbackViewCount = util.TernaryExp(
 		post.Views != nil,
 		(*post.Views)+shouldIncr,
 		shouldIncr,
@@ -423,7 +423,7 @@ func (s *postService) SyncAllPostViews(ctx context.Context) (err error) {
 		// 逐条更新文章的访问量
 		for _, post := range list {
 			key := fmt.Sprintf("%d", post.ID)
-			fallbackViews := util.TernaryExpr(post.Views != nil, *post.Views, 0)
+			fallbackViews := util.TernaryExp(post.Views != nil, *post.Views, 0)
 
 			cachedCount, cachedErr := s.visitCache.GetInt64(key)
 			switch {

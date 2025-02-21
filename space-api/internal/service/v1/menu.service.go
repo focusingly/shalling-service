@@ -29,7 +29,7 @@ func (*_menuService) CreateOrUpdateMenu(req *dto.CreateOrUpdateMenuReq, ctx *gin
 				RoutePath:  req.RoutePath,
 				PostLink:   req.PostLink,
 				OpenWay:    req.OpenWay,
-				SubLinks: util.TernaryExpr(
+				SubLinks: util.TernaryExp(
 					req.SubLinks == nil || (len(req.SubLinks) == 0),
 					nil,
 					req.SubLinks,
@@ -57,7 +57,7 @@ func (*_menuService) CreateOrUpdateMenu(req *dto.CreateOrUpdateMenuReq, ctx *gin
 					RoutePath:  req.RoutePath,
 					PostLink:   req.PostLink,
 					OpenWay:    req.OpenWay,
-					SubLinks: util.TernaryExpr(
+					SubLinks: util.TernaryExp(
 						req.SubLinks == nil || (len(req.SubLinks) == 0),
 						nil,
 						req.SubLinks,

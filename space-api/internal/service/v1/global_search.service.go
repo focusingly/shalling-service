@@ -90,36 +90,47 @@ func (s *_searchService) UpdatePostSearchIndex(post *model.Post) {
 	const space = " "
 
 	var titleBf bytes.Buffer
-	for _, word := range s.cutter.CutForSearch(post.Title, true) {
+	titleCuts := s.cutter.CutForSearch(post.Title, true)
+	titleCutsLen := len(titleCuts)
+	for index, word := range titleCuts {
 		tWord := strings.TrimSpace(word)
 		if len(tWord) > 1 {
 			titleBf.WriteString(tWord)
-			titleBf.WriteString(space)
+			if index != titleCutsLen-1 {
+				titleBf.WriteString(space)
+			}
 		} else {
 			if str.IsNotPunctuation(tWord) {
 				titleBf.WriteString(tWord)
-				titleBf.WriteString(space)
+				if index != titleCutsLen-1 {
+					titleBf.WriteString(space)
+				}
 			}
 		}
 	}
+
 	var contentBf bytes.Buffer
-	for _, word := range s.cutter.CutForSearch(post.Content, true) {
+	contentCuts := s.cutter.CutForSearch(post.Content, true)
+	contentCutsLen := len(contentCuts)
+	for index, word := range contentCuts {
 		tWord := strings.TrimSpace(word)
 		if len(tWord) > 1 {
 			contentBf.WriteString(tWord)
-			contentBf.WriteString(space)
+			if index != contentCutsLen-1 {
+				contentBf.WriteString(space)
+			}
 		} else {
 			if str.IsNotPunctuation(tWord) {
 				contentBf.WriteString(tWord)
-				contentBf.WriteString(space)
+				if index != contentCutsLen-1 {
+					contentBf.WriteString(space)
+				}
 			}
 		}
 	}
 
 	var postID int64
-	ctx := context.Background()
-	titleSp := strings.TrimSuffix(titleBf.String(), space)
-	contentSp := strings.TrimPrefix(contentBf.String(), space)
+	ctx := context.TODO()
 	tmpQuery := &model.Sqlite3KeywordDoc{}
 
 	s.Table("keyword_docs").Transaction(func(tx *gorm.DB) error {
@@ -134,9 +145,9 @@ func (s *_searchService) UpdatePostSearchIndex(post *model.Post) {
 			return tx.WithContext(ctx).
 				Create(&model.Sqlite3KeywordDoc{
 					PostID:          post.ID,
-					TileSplit:       titleSp,
-					ContentSplit:    contentSp,
-					Weight:          util.TernaryExpr(ptr.IsNil(post.Weight), 0, *post.Weight),
+					TileSplit:       titleBf.String(),
+					ContentSplit:    contentBf.String(),
+					Weight:          *ptr.Optional(post.Weight, ptr.ToPtr(0)),
 					PostUpdatedAt:   post.UpdatedAt,
 					RecordCreatedAt: now,
 					RecordUpdatedAt: now,
@@ -148,9 +159,9 @@ func (s *_searchService) UpdatePostSearchIndex(post *model.Post) {
 				Where( /* sql */ `post_id = ?`, postID).
 				Updates(&model.Sqlite3KeywordDoc{
 					PostID:          post.ID,
-					TileSplit:       titleSp,
-					ContentSplit:    contentSp,
-					Weight:          util.TernaryExpr(ptr.IsNil(post.Weight), 0, *post.Weight),
+					TileSplit:       titleBf.String(),
+					ContentSplit:    contentBf.String(),
+					Weight:          *ptr.Optional(post.Weight, ptr.ToPtr(0)),
 					PostUpdatedAt:   post.UpdatedAt,
 					RecordCreatedAt: tmpQuery.RecordCreatedAt,
 					RecordUpdatedAt: now,

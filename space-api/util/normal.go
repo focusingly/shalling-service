@@ -6,7 +6,19 @@ import (
 	"iter"
 )
 
-// GetSerial 根据 seed 生成函数返回可迭代序列
+// GetSerial 生成一个序列生成器函数，该函数根据提供的种子函数和可选的限制参数生成序列。
+//
+// Parameters:
+//   - seed: 一个无参函数，返回类型为 T 的值，用于生成序列中的每个元素。
+//   - optionLimit: 可选参数，指定生成序列的最大长度。如果未提供，则生成无限序列。
+//
+// Returns:
+//   - iter.Seq[T]: 一个序列生成器函数，接受一个 yield 函数作为参数，该函数用于处理生成的每个元素。
+//
+// Usages:
+//   - 如果未提供 optionLimit 参数，则生成一个无限序列，直到 yield 函数返回 false。
+//   - 如果提供了一个正整数的 optionLimit 参数，则生成一个长度不超过该限制的序列。
+//   - 如果提供的 optionLimit 参数为非正整数或超过一个参数，则会引发 panic。
 func GetSerial[T any](seed func() T, optionLimit ...int) iter.Seq[T] {
 	prevIndex := 0
 	return func(yield func(T) bool) {
@@ -55,5 +67,46 @@ func NewByteWriteCountWrapper(writer io.Writer) (wrapperWriter io.Writer, writeC
 
 	return wr, func() int64 {
 		return wr.count
+	}
+}
+
+// TernaryExp 三元表达式的替换
+//
+// Parameters:
+//
+//	boolVal 条件值
+//	matchedVal 条件匹配成功的返回值
+//	fallbackVal 条件匹配失败的返回值
+//
+// Returns:
+//   - T
+func TernaryExp[T any](boolVal bool, matchedVal, fallbackVal T) T {
+	if boolVal {
+		return matchedVal
+	}
+
+	return fallbackVal
+}
+
+// GetWithFallback attempts to execute the provided producer function and returns its result.
+// If the producer function returns an error, the fallback value is returned instead.
+//
+// Type Parameters:
+//
+//	T - the type of the value produced by the producer function and the fallback value.
+//
+// Parameters:
+//
+//	producer - a function that produces a value of type T and may return an error.
+//	fallback - a value of type T to be returned if the producer function fails.
+//
+// Returns:
+//
+//	The value produced by the producer function if it succeeds, otherwise the fallback value.
+func GetWithFallback[T any](producer func() (T, error), fallback T) T {
+	if p, e := producer(); e != nil {
+		return fallback
+	} else {
+		return p
 	}
 }

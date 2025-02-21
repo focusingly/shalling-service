@@ -157,7 +157,7 @@ func (*userService) ExpireAnyLoginSessions(req *dto.ExpireUserLoginSessionReq, c
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		loginSessionTx := tx.UserLoginSession
 		_, e := loginSessionTx.WithContext(ctx).
-			Where(loginSessionTx.UUID.In(req.UUIDList...)).
+			Where(loginSessionTx.ID.In(req.IDList...)).
 			Delete()
 		if e != nil {
 			return e
@@ -165,8 +165,8 @@ func (*userService) ExpireAnyLoginSessions(req *dto.ExpireUserLoginSessionReq, c
 
 		// 清理缓存空间
 		cacheSpace := auth.GetMiddlewareRelativeAuthCache()
-		for _, uid := range req.UUIDList {
-			cacheSpace.Delete(uid)
+		for _, id := range req.IDList {
+			cacheSpace.Delete(fmt.Sprintf("%d", id))
 		}
 
 		return nil
@@ -222,7 +222,7 @@ func (*userService) UpdateOauth2User(req *dto.UpdateOauthUserReq, ctx *gin.Conte
 			// 清空缓存空间
 			cacheSpace := auth.GetMiddlewareRelativeAuthCache()
 			for _, t := range loginSessions {
-				cacheSpace.Delete(t.UUID)
+				cacheSpace.Delete(fmt.Sprintf("%d", t.ID))
 			}
 		}
 
@@ -289,7 +289,7 @@ func (*userService) DeleteOauth2User(req *dto.DeleteOauth2UserReq, ctx *gin.Cont
 		// 清空缓存中的记录
 		cacheSpace := auth.GetMiddlewareRelativeAuthCache()
 		for _, s := range loginSessions {
-			cacheSpace.Delete(s.UUID)
+			cacheSpace.Delete(fmt.Sprintf("%d", s.ID))
 		}
 
 		return nil
@@ -331,7 +331,7 @@ func (*userService) GetLocalUserLoginSessions(req *dto.GetLoginUserSessionsReq, 
 			sessionOp.UserType,
 			sessionOp.Useragent,
 			sessionOp.ClientName,
-			sessionOp.OsName,
+			sessionOp.OSName,
 		)
 	}
 

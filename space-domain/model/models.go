@@ -41,7 +41,6 @@ type (
 	UserLoginSession struct {
 		BaseColumn `json:"baseColumn" yaml:"baseColumn" xml:"baseColumn" toml:"baseColumn"`
 		UserID     int64   `gorm:"type:bigint;not null;comment:用户的 ID" json:"userID" yaml:"userID" xml:"userID" toml:"userID"`
-		UUID       string  `gorm:"type:varchar(255);not null;comment:在额外的缓存中用于标识 key, 也对应 token 中设置的 uuid" json:"uuid" yaml:"uuid" xml:"uuid" toml:"uuid"`
 		IpU32Val   *uint32 `gorm:"type:int;null;comment:ipv4 地址的 uint32 表示值" json:"ipU32Val" yaml:"ipU32Val" xml:"ipU32Val" toml:"ipU32Val"`
 		IpAddress  *string `gorm:"type:varchar(255);null;comment:ip 地址表示字符串" json:"ipAddress" yaml:"ipAddress" xml:"ipAddress" toml:"ipAddress"`
 		IpSource   *string `gorm:"type:varchar(255);null;comment:ip 来源归属地" json:"ipSource" yaml:"ipSource" xml:"ipSource" toml:"ipSource"`
@@ -50,7 +49,7 @@ type (
 		Token      string  `gorm:"type:text;not null;comment:当前用户的凭据" json:"token" yaml:"token" xml:"token" toml:"token"`
 		Useragent  string  `gorm:"type:varchar(255);comment:用户登录的平台标识" json:"useragent" yaml:"useragent" xml:"useragent" toml:"useragent"`
 		ClientName string  `gorm:"type:varchar(255);comment:客户端名称" json:"clientName" yaml:"clientName" xml:"clientName" toml:"clientName"`
-		OsName     string  `gorm:"type:varchar(255);comment:系统名称" json:"osName" yaml:"osName" xml:"osName" toml:"osName"`
+		OSName     string  `gorm:"type:varchar(255);comment:系统名称" json:"osName" yaml:"osName" xml:"osName" toml:"osName"`
 	}
 
 	// Post 文章

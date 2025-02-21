@@ -18,7 +18,6 @@ import (
 	"space-api/util/verify"
 	"space-domain/dao/biz"
 	"space-domain/model"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -136,7 +135,6 @@ func (s *_authService) updateUserLoginSession(user *boData, bizTx *biz.Query, ct
 				ID: id.GetSnowFlakeNode().Generate().Int64(),
 			},
 			UserID:     user.UserID,
-			UUID:       strings.ReplaceAll(uuid.NewString(), "-", ""),
 			IpU32Val:   &to32Ip,
 			IpAddress:  &ipAddr,
 			IpSource:   &ipSource,
@@ -144,7 +142,7 @@ func (s *_authService) updateUserLoginSession(user *boData, bizTx *biz.Query, ct
 			UserType:   user.UserType,
 			Useragent:  ua.Useragent,
 			ClientName: ua.ClientName,
-			OsName:     ua.OS,
+			OSName:     ua.OS,
 		}
 
 		token, e := verify.CreateJwtToken(newLoginSession)
@@ -182,11 +180,11 @@ func (s *_authService) updateUserLoginSession(user *boData, bizTx *biz.Query, ct
 		cacheSpace := auth.GetMiddlewareRelativeAuthCache()
 		// 删除已经登录的会话信息
 		for _, u := range existsSessions {
-			cacheSpace.Delete(u.UUID)
+			cacheSpace.Delete(fmt.Sprintf("%d", u.ID))
 		}
 		nowUnixMilli := time.Now().UnixMilli()
 		for _, u := range updates {
-			cacheSpace.Set(u.UUID, u, performance.Second((u.ExpiredAt-nowUnixMilli)/1000))
+			cacheSpace.Set(fmt.Sprintf("%d", u.ID), u, performance.Second((u.ExpiredAt-nowUnixMilli)/1000))
 		}
 
 		return nil
@@ -599,13 +597,13 @@ func (*_authService) CurrentUserLogout(ctx *gin.Context) (resp *performance.Empt
 
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		loginSessionTx := tx.UserLoginSession
-		_, e := loginSessionTx.WithContext(ctx).Where(loginSessionTx.UUID.Eq(exitsSession.UUID)).Delete()
+		_, e := loginSessionTx.WithContext(ctx).Where(loginSessionTx.ID.Eq(exitsSession.ID)).Delete()
 		if e != nil {
 			return e
 		}
 
 		// expire user
-		auth.GetMiddlewareRelativeAuthCache().Delete(exitsSession.UUID)
+		auth.GetMiddlewareRelativeAuthCache().Delete(fmt.Sprintf("%d", exitsSession.ID))
 		return nil
 	})
 

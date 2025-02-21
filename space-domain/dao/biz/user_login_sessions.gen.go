@@ -33,7 +33,6 @@ func newUserLoginSession(db *gorm.DB, opts ...gen.DOOption) userLoginSession {
 	_userLoginSession.UpdatedAt = field.NewInt64(tableName, "updated_at")
 	_userLoginSession.Hide = field.NewInt(tableName, "hide")
 	_userLoginSession.UserID = field.NewInt64(tableName, "user_id")
-	_userLoginSession.UUID = field.NewString(tableName, "uuid")
 	_userLoginSession.IpU32Val = field.NewUint32(tableName, "ip_u32_val")
 	_userLoginSession.IpAddress = field.NewString(tableName, "ip_address")
 	_userLoginSession.IpSource = field.NewString(tableName, "ip_source")
@@ -42,7 +41,7 @@ func newUserLoginSession(db *gorm.DB, opts ...gen.DOOption) userLoginSession {
 	_userLoginSession.Token = field.NewString(tableName, "token")
 	_userLoginSession.Useragent = field.NewString(tableName, "useragent")
 	_userLoginSession.ClientName = field.NewString(tableName, "client_name")
-	_userLoginSession.OsName = field.NewString(tableName, "os_name")
+	_userLoginSession.OSName = field.NewString(tableName, "os_name")
 
 	_userLoginSession.fillFieldMap()
 
@@ -58,7 +57,6 @@ type userLoginSession struct {
 	UpdatedAt  field.Int64
 	Hide       field.Int
 	UserID     field.Int64
-	UUID       field.String
 	IpU32Val   field.Uint32
 	IpAddress  field.String
 	IpSource   field.String
@@ -67,7 +65,7 @@ type userLoginSession struct {
 	Token      field.String
 	Useragent  field.String
 	ClientName field.String
-	OsName     field.String
+	OSName     field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -89,7 +87,6 @@ func (u *userLoginSession) updateTableName(table string) *userLoginSession {
 	u.UpdatedAt = field.NewInt64(table, "updated_at")
 	u.Hide = field.NewInt(table, "hide")
 	u.UserID = field.NewInt64(table, "user_id")
-	u.UUID = field.NewString(table, "uuid")
 	u.IpU32Val = field.NewUint32(table, "ip_u32_val")
 	u.IpAddress = field.NewString(table, "ip_address")
 	u.IpSource = field.NewString(table, "ip_source")
@@ -98,7 +95,7 @@ func (u *userLoginSession) updateTableName(table string) *userLoginSession {
 	u.Token = field.NewString(table, "token")
 	u.Useragent = field.NewString(table, "useragent")
 	u.ClientName = field.NewString(table, "client_name")
-	u.OsName = field.NewString(table, "os_name")
+	u.OSName = field.NewString(table, "os_name")
 
 	u.fillFieldMap()
 
@@ -127,13 +124,12 @@ func (u *userLoginSession) GetFieldByName(fieldName string) (field.OrderExpr, bo
 }
 
 func (u *userLoginSession) fillFieldMap() {
-	u.fieldMap = make(map[string]field.Expr, 15)
+	u.fieldMap = make(map[string]field.Expr, 14)
 	u.fieldMap["id"] = u.ID
 	u.fieldMap["created_at"] = u.CreatedAt
 	u.fieldMap["updated_at"] = u.UpdatedAt
 	u.fieldMap["hide"] = u.Hide
 	u.fieldMap["user_id"] = u.UserID
-	u.fieldMap["uuid"] = u.UUID
 	u.fieldMap["ip_u32_val"] = u.IpU32Val
 	u.fieldMap["ip_address"] = u.IpAddress
 	u.fieldMap["ip_source"] = u.IpSource
@@ -142,7 +138,7 @@ func (u *userLoginSession) fillFieldMap() {
 	u.fieldMap["token"] = u.Token
 	u.fieldMap["useragent"] = u.Useragent
 	u.fieldMap["client_name"] = u.ClientName
-	u.fieldMap["os_name"] = u.OsName
+	u.fieldMap["os_name"] = u.OSName
 }
 
 func (u userLoginSession) clone(db *gorm.DB) userLoginSession {

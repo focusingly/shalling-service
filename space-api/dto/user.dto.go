@@ -42,7 +42,7 @@ type (
 	UpdateLocalUserPassResp struct{}
 
 	ExpireUserLoginSessionReq struct {
-		UUIDList []string `json:"uuidList" yaml:"uuidList" xml:"uuidList" toml:"uuidList"`
+		IDList []int64 `json:"idList" yaml:"idList" xml:"idList" toml:"idList"`
 	}
 	ExpireUserLoginSessionResp struct{}
 

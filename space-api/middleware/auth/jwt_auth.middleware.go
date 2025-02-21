@@ -19,10 +19,10 @@ const BearerAuthPrefix = "Bearer "
 
 var _jwtRandMark = uuid.NewString()
 
-var _authCacheGroup = performance.DefaultJsonCache.Group("auth")
+var authSpaceCache = performance.DefaultJsonCache.Group("auth")
 
 func GetMiddlewareRelativeAuthCache() *performance.JsonCache {
-	return _authCacheGroup
+	return authSpaceCache
 }
 
 const (
@@ -62,6 +62,7 @@ func GetCurrentLoginSession(ctx *gin.Context) (user *model.UserLoginSession, err
 	return
 }
 
+// 加载请求头中的 token 解析并设置到当前请求上下文当中
 func loadTokenAndSetupContext(ctx *gin.Context) {
 	bearerToken := ctx.Request.Header.Get("Authorization")
 	// 没有携带 token 的情况下直接跳过设置上下文, 不进行解析
@@ -82,46 +83,43 @@ func loadTokenAndSetupContext(ctx *gin.Context) {
 
 	// 获取 token
 	claims, err := verify.VerifyAndGetParsedBizClaims(bearerToken[len(BearerAuthPrefix):])
-
 	// token 本身无效
 	if err != nil {
 		ctx.Error(util.CreateAuthErr(
-			"凭据无效, 请重新登录",
+			err.Error(),
 			err,
 		))
 		ctx.Abort()
 	} else {
-		// 优先尝试从缓存中获取用户信息
-		cacheUUIDKey := claims.UUID
+		sessionID := claims.Jti
+		parsedSessionID, err := strconv.ParseInt(sessionID, 10, 64)
+		if err != nil {
+			err = util.CreateAuthErr(err.Error(), err)
+			return
+		}
+		// 优先尝试从缓存当中获取凭据
 		cachedLoginSession := &model.UserLoginSession{}
-		if err := _authCacheGroup.Get(cacheUUIDKey, cachedLoginSession); err == nil {
+		if fetchErr := authSpaceCache.Get(sessionID, cachedLoginSession); fetchErr == nil {
 			// 存在命中情况, 直接返回即可
 			ctx.Set(_jwtRandMark, cachedLoginSession)
 			return
 		}
 
-		// 不存在的情况下, 进行查表进行二次判断
-		userId, err := strconv.ParseInt(claims.Jti, 10, 64)
+		// 缓存不存在的情况下, 查表进行二次判断
+		loginSessionTx := biz.UserLoginSession
+		findLoginSession, err := loginSessionTx.
+			WithContext(ctx).
+			Where(loginSessionTx.ID.Eq(parsedSessionID)).
+			Take()
 		if err != nil {
-			ctx.Error(util.CreateAuthErr("提取用户 ID 失败: "+err.Error(), err))
+			ctx.Error(util.CreateAuthErr("用户登录会话已失效, 请重新登录", fmt.Errorf("user login session expired, please re-login")))
 			ctx.Abort()
 			return
-		} else {
-			loginSessionTx := biz.UserLoginSession
-			findLoginSession, err := loginSessionTx.
-				WithContext(ctx).
-				Where(loginSessionTx.ID.Eq(userId), loginSessionTx.UUID.Eq(cacheUUIDKey)).
-				Take()
-			if err != nil {
-				ctx.Error(util.CreateAuthErr("用户登录会话已失效, 请重新登录", fmt.Errorf("user login session expired, please re-login")))
-				ctx.Abort()
-				return
-			}
-
-			// 设置到缓存
-			_authCacheGroup.Set(cacheUUIDKey, findLoginSession, performance.Second(findLoginSession.ExpiredAt-time.Now().Unix()))
-			//设置到上下文
-			ctx.Set(_jwtRandMark, findLoginSession)
 		}
+
+		// 设置到缓存
+		authSpaceCache.Set(sessionID, findLoginSession, performance.Second(findLoginSession.ExpiredAt-time.Now().Unix()))
+		//设置到上下文
+		ctx.Set(_jwtRandMark, findLoginSession)
 	}
 }

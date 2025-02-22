@@ -7,7 +7,6 @@ import (
 	"space-api/dto"
 	"space-api/util"
 	"space-api/util/arr"
-	"space-api/util/ptr"
 	"space-api/util/str"
 	"space-domain/dao/biz"
 	"space-domain/model"
@@ -144,10 +143,18 @@ func (s *_searchService) UpdatePostSearchIndex(post *model.Post) {
 		if e != nil {
 			return tx.WithContext(ctx).
 				Create(&model.Sqlite3KeywordDoc{
-					PostID:          post.ID,
-					TileSplit:       titleBf.String(),
-					ContentSplit:    contentBf.String(),
-					Weight:          *ptr.Optional(post.Weight, ptr.ToPtr(0)),
+					PostID:       post.ID,
+					TileSplit:    titleBf.String(),
+					ContentSplit: contentBf.String(),
+					Weight: util.TernaryExprWithProducer(
+						post.Weight != nil,
+						func() int {
+							return *post.Weight
+						},
+						func() int {
+							return 0
+						},
+					),
 					PostUpdatedAt:   post.UpdatedAt,
 					RecordCreatedAt: now,
 					RecordUpdatedAt: now,
@@ -158,10 +165,19 @@ func (s *_searchService) UpdatePostSearchIndex(post *model.Post) {
 			return tx.WithContext(ctx).
 				Where( /* sql */ `post_id = ?`, postID).
 				Updates(&model.Sqlite3KeywordDoc{
-					PostID:          post.ID,
-					TileSplit:       titleBf.String(),
-					ContentSplit:    contentBf.String(),
-					Weight:          *ptr.Optional(post.Weight, ptr.ToPtr(0)),
+					PostID:       post.ID,
+					TileSplit:    titleBf.String(),
+					ContentSplit: contentBf.String(),
+					// Weight:          *ptr.Optional(post.Weight, ptr.ToPtr(0)),
+					Weight: util.TernaryExprWithProducer(
+						post.Weight != nil,
+						func() int {
+							return *post.Weight
+						},
+						func() int {
+							return 0
+						},
+					),
 					PostUpdatedAt:   post.UpdatedAt,
 					RecordCreatedAt: tmpQuery.RecordCreatedAt,
 					RecordUpdatedAt: now,

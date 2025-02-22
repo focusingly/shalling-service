@@ -12,6 +12,7 @@ require (
 	github.com/chai2010/webp v1.1.1
 	github.com/cloudflare/cloudflare-go/v3 v3.1.0
 	github.com/coocood/freecache v1.2.4
+	github.com/gin-contrib/gzip v1.2.2
 	github.com/gin-gonic/gin v1.10.0
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/google/uuid v1.6.0

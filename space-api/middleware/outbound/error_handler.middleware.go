@@ -58,16 +58,22 @@ func UseErrorHandler() gin.HandlerFunc {
 				CostTime:      costTime,
 				RequestMethod: &ctx.Request.Method,
 				RequestURI:    &ctx.Request.RequestURI,
-				StackTrace: util.TernaryExp(isPanic, ptr.ToPtr(
-					ptr.Bytes2String(debug.Stack()),
-				), nil),
+				StackTrace: util.TernaryExpr(
+					isPanic,
+					ptr.ToPtr(ptr.Bytes2String(debug.Stack())),
+					nil,
+				),
 				IPAddr:    &ipv4Str,
-				IPSource:  util.TernaryExp(e != nil, nil, &source),
+				IPSource:  util.TernaryExpr(e != nil, nil, &source),
 				Useragent: &userDetail.Useragent,
 				CreatedAt: time.Now().UnixMilli(),
 			}
 
-			code := util.TernaryExp(isPanic, http.StatusInternalServerError, http.StatusOK)
+			code := util.TernaryExpr(
+				isPanic,
+				http.StatusInternalServerError,
+				http.StatusOK,
+			)
 			var restErr *rest.RestResult[any]
 			switch err := catchErr.(type) {
 			case error: /* 确保都是实现 error 接口的结构体的引用 */

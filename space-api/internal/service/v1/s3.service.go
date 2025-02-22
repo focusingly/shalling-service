@@ -120,7 +120,7 @@ func (s *_s3Service) SyncToDatabase(req *dto.SyncS3RecordToDatabaseReq, ctx cont
 			Take()
 
 		domain := s.s3Conf.LinkedDomain
-		var visitURL = util.TernaryExp(
+		var visitURL = util.TernaryExpr(
 			domain != "",
 			fmt.Sprintf("https://%s/%s", domain, record.ObjectKey),
 			fmt.Sprintf("%s/%s", s.s3Conf.EndPoint, record.ObjectKey),
@@ -294,8 +294,12 @@ func (s *_s3Service) GetClientDirectUploadURL(req *dto.GetUploadObjectURLReq, ct
 		Method:         httpRequest.Method,
 		URL:            httpRequest.URL,
 		ChecksumType:   "SHA256",
-		Checksum:       util.TernaryExp(req.SHA256 != nil, *req.SHA256, ""),
-		ExpiredAt:      time.Now().Add(exp).UnixMilli(),
+		Checksum: util.TernaryExprWithProducer(req.SHA256 != nil, func() string {
+			return *req.SHA256
+		}, func() string {
+			return ""
+		}),
+		ExpiredAt: time.Now().Add(exp).UnixMilli(),
 	}
 
 	return

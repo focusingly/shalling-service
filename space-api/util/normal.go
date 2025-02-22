@@ -70,22 +70,38 @@ func NewByteWriteCountWrapper(writer io.Writer) (wrapperWriter io.Writer, writeC
 	}
 }
 
-// TernaryExp 三元表达式的替换
+// TernaryExpr 三元表达式的替换
 //
 // Parameters:
 //
 //	boolVal 条件值
-//	matchedVal 条件匹配成功的返回值
-//	fallbackVal 条件匹配失败的返回值
+//	matched 条件匹配成功的返回值产生器
+//	fallback 条件匹配失败的返回值产生器
+//
+// Notes:
+//   - 对于判断空指针是要尤其注意, 如下示例的用法是错误的(这会导致严重的空指针 panic, 因为无论是否为空, 都在传参时执行了指针取值操作),
+//     ```
+//     var i *int;
+//     TernaryExpr(i !=nil, *i, 0)
+//     ```
+//   - 请考虑使用 `TernaryExprWithProducer` 替换
 //
 // Returns:
 //   - T
-func TernaryExp[T any](boolVal bool, matchedVal, fallbackVal T) T {
+func TernaryExpr[T any](boolVal bool, success, fallback T) T {
 	if boolVal {
-		return matchedVal
+		return success
 	}
 
-	return fallbackVal
+	return fallback
+}
+
+func TernaryExprWithProducer[T any](boolVal bool, success, fallback func() T) T {
+	if boolVal {
+		return success()
+	}
+
+	return fallback()
 }
 
 // GetWithFallback attempts to execute the provided producer function and returns its result.

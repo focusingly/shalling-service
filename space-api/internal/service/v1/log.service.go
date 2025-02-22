@@ -191,7 +191,7 @@ func outputJson(rows *sql.Rows, ctx *gin.Context) {
 		ls.Remove(t)
 		ctx.Writer.WriteString("  ")
 		ctx.Writer.Write(t.Value.([]byte))
-		ctx.Writer.WriteString(fmt.Sprintf("%s\n", util.TernaryExp(l-1 == i, "", ",")))
+		ctx.Writer.WriteString(fmt.Sprintf("%s\n", util.TernaryExpr(l-1 == i, "", ",")))
 	}
 	ctx.Writer.WriteString("]\n")
 	ctx.Writer.Flush()
@@ -217,14 +217,14 @@ func outputMarkdown(rows *sql.Rows, ctx *gin.Context) {
 		recordData := []string{}
 
 		index++
-		for i := 0; i < val.NumField(); i++ {
+		for i := range val.NumField() {
 			recordData = append(
 				recordData,
 				fmt.Sprintf(
 					"%s: %v%s",
 					headers[i],
 					val.Field(i),
-					util.TernaryExp(i != len(headers)-1, "; ", ""),
+					util.TernaryExpr(i != len(headers)-1, "; ", ""),
 				),
 			)
 		}

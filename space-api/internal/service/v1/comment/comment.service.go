@@ -117,7 +117,7 @@ func (servicePtr *commentService) UpdateComment(req *dto.UpdateCommentReq, ctx *
 			).
 			Updates(&model.Comment{
 				BaseColumn: model.BaseColumn{
-					Hide: util.TernaryExp(req.Hide, 1, 0),
+					Hide: util.TernaryExpr(req.Hide, 1, 0),
 				},
 				Content:  req.Content,
 				UpVote:   req.UpVote,
@@ -205,7 +205,7 @@ func (*commentService) createCommentDirect(req *dto.CreateCommentReq, ctx *gin.C
 				Useragent:     &uaDetail.Useragent,
 				OS:            &uaDetail.OS,
 				ClientName:    &uaDetail.ClientName,
-				SubEmailReply: util.TernaryExp(req.SubEmailNotify, 1, 0),
+				SubEmailReply: util.TernaryExpr(req.SubEmailNotify, 1, 0),
 			},
 		)
 		if e != nil {

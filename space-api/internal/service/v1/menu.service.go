@@ -29,7 +29,7 @@ func (*_menuService) CreateOrUpdateMenu(req *dto.CreateOrUpdateMenuReq, ctx *gin
 				RoutePath:  req.RoutePath,
 				PostLink:   req.PostLink,
 				OpenWay:    req.OpenWay,
-				SubLinks: util.TernaryExp(
+				SubLinks: util.TernaryExpr(
 					req.SubLinks == nil || (len(req.SubLinks) == 0),
 					nil,
 					req.SubLinks,
@@ -57,7 +57,7 @@ func (*_menuService) CreateOrUpdateMenu(req *dto.CreateOrUpdateMenuReq, ctx *gin
 					RoutePath:  req.RoutePath,
 					PostLink:   req.PostLink,
 					OpenWay:    req.OpenWay,
-					SubLinks: util.TernaryExp(
+					SubLinks: util.TernaryExpr(
 						req.SubLinks == nil || (len(req.SubLinks) == 0),
 						nil,
 						req.SubLinks,
@@ -130,7 +130,9 @@ func (*_menuService) GetAnyMenus(req *dto.GetMenusReq, ctx *gin.Context) (resp *
 func (*_menuService) DeleteMenuGroupByIDList(req *dto.DeleteMenuGroupsReq, ctx *gin.Context) (resp *dto.DeleteMenuGroupsResp, err error) {
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		menuTx := tx.MenuGroup
-		_, e := menuTx.WithContext(ctx).Where(menuTx.ID.In(req.IDList...)).Delete()
+		_, e := menuTx.WithContext(ctx).
+			Where(menuTx.ID.In(req.IDList...)).
+			Delete()
 		if e != nil {
 			return e
 		}

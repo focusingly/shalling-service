@@ -8,7 +8,6 @@ import (
 	"space-api/middleware/outbound"
 	"time"
 
-	"github.com/gin-contrib/gzip"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
@@ -19,8 +18,6 @@ func getMiddlewares(appConf *conf.AppConf) []gin.HandlerFunc {
 	store := cookie.NewStore([]byte(appConf.Salt))
 
 	middlewares := []gin.HandlerFunc{
-		gzip.Gzip(gzip.DefaultCompression),
-
 		outbound.UseErrorHandler(),
 		outbound.UseServerResponseHintMiddleware(),
 		outbound.UseRestProduceHandler(),

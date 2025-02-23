@@ -23,11 +23,10 @@ func RunAndServe(engine *gin.Engine, appConf *conf.AppConf) {
 	h2Server := &http2.Server{}
 	server := &http.Server{
 		TLSConfig: tlsCfg,
-		Addr:      fmt.Sprintf("local-test.me:%d", appConf.Port),
-		Handler:   engine,
+		Addr:      fmt.Sprintf(":%d", appConf.Port),
+		Handler:   NewAdaptiveHttpWriter(engine),
 	}
 
 	http2.ConfigureServer(server, h2Server)
 	server.ListenAndServeTLS(appConf.Certs.Pem, appConf.Certs.Key)
-
 }

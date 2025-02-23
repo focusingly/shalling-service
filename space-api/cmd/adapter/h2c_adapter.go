@@ -16,11 +16,12 @@ import (
 )
 
 func RunAndServe(engine *gin.Engine, appConf *conf.AppConf) {
-	h2cServer := &http2.Server{}
-	h2cHandler := h2c.NewHandler(engine, h2cServer)
 	server := &http.Server{
-		Addr:    fmt.Sprintf(":%d", appConf.Port),
-		Handler: h2cHandler,
+		Addr: fmt.Sprintf(":%d", appConf.Port),
+		Handler: h2c.NewHandler(
+			NewAdaptiveCompressionHttpWriter(engine),
+			&http2.Server{},
+		),
 		TLSConfig: &tls.Config{
 			NextProtos: []string{"h2", "http/1.1"},
 		},

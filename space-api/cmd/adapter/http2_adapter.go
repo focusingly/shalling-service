@@ -24,7 +24,7 @@ func RunAndServe(engine *gin.Engine, appConf *conf.AppConf) {
 	server := &http.Server{
 		TLSConfig: tlsCfg,
 		Addr:      fmt.Sprintf(":%d", appConf.Port),
-		Handler:   NewAdaptiveHttpWriter(engine),
+		Handler:   NewAdaptiveCompressionHttpWriter(engine),
 	}
 
 	http2.ConfigureServer(server, h2Server)

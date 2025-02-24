@@ -11,7 +11,10 @@ import (
 	"space-api/internal/service/v1"
 	"space-api/internal/service/v1/mail"
 	"space-api/internal/service/v1/monitor"
+	"space-api/internal/service/v1/user"
 	"space-api/pack"
+	"space-api/util/arr"
+	"space-api/util/performance"
 	"space-api/util/ptr"
 	"space-domain/dao/biz"
 	"space-domain/dao/extra"
@@ -337,5 +340,149 @@ var RegisterJobs = []*customTask{
 			}
 		},
 		Description: "检查系统负载, 并在 CPU 整体负载h >= 80 % 或内存使用率 >=80 的情况下发送邮件预警",
+	},
+
+	{
+		FuncName: "clear-expired-login-sessions",
+		Task: func() {
+			nowEpochMill := time.Now().UnixMilli()
+			err := biz.Q.Transaction(func(tx *biz.Query) error {
+				sessionTx := tx.UserLoginSession
+				// 删除所有过期的登录会话
+				_, e := sessionTx.WithContext(context.TODO()).
+					Where(sessionTx.ExpiredAt.Lte(nowEpochMill)).
+					Delete()
+				return e
+			})
+
+			if err != nil {
+				panic(err)
+			}
+		},
+		Description: "清理过期的登录会话信息",
+	},
+
+	// 同步 oauth2 的用户信息
+	{
+		FuncName: "sync-oauth2-user-profile",
+		Task: func() {
+			authService := service.DefaultAuthService
+			userService := user.DefaultUserService
+
+			// 所有的 oauth2 用户
+			oauth2UserList, err := biz.OAuth2User.WithContext(context.TODO()).Find()
+			if err != nil {
+				panic(err)
+			} else {
+				for _, oauthUser := range oauth2UserList {
+					// 使用 gopool 执行
+					performance.DefaultTaskRunner.Go(func() {
+						resp, fetchErr := authService.GetRefreshOauth2Data(oauthUser, context.TODO())
+
+						// 更新数据或者删除会话信息
+						biz.Q.Transaction(func(tx *biz.Query) error {
+							userTx := tx.OAuth2User
+							sessionTx := tx.UserLoginSession
+							ctx := context.TODO()
+
+							// 同步 oauth2 用户的信息失败
+							if fetchErr != nil {
+								// 设置标记同步数据失败
+								if _, e := userTx.WithContext(ctx).
+									Where(userTx.ID.Eq(oauthUser.ID)).
+									// 标记数据同步失败
+									UpdateColumn(userTx.SyncFail, 1); e != nil {
+									return e
+								}
+
+								// 查找需要移除的登录会话信息
+								if shouldRemoveSessions, e := sessionTx.
+									WithContext(ctx).
+									Where(sessionTx.UserID.Eq(oauthUser.ID)).
+									Find(); e != nil {
+									return e
+								} else {
+									// 移除已经存在的会话
+									userService.ExpireAnyLoginSessions(&dto.ExpireUserLoginSessionReq{
+										IDList: arr.MapSlice(
+											shouldRemoveSessions,
+											func(_ int, current *model.UserLoginSession) int64 {
+												return current.ID
+											},
+										),
+									}, ctx)
+								}
+
+								return nil
+							} else {
+								// 更新数据
+								_, e := userTx.WithContext(ctx).
+									Where(userTx.ID.Eq(resp.ID)).
+									Updates(resp)
+								return e
+							}
+						})
+
+					})
+				}
+			}
+		},
+		Description: "同步 oauth2 用户的信息",
+	},
+
+	// 同步评论当中的用户显示信息
+	{
+		FuncName: "sync-comment-user-profile",
+		Task: func() {
+			ctx := context.TODO()
+			localUserOP := biz.LocalUser
+			// 更新来自本地用户的关联
+			if list, findLocalErr := localUserOP.WithContext(ctx).Find(); findLocalErr == nil {
+				biz.Q.Transaction(func(tx *biz.Query) error {
+					cmtTx := tx.Comment
+					for _, localUser := range list {
+						_, updateErr := cmtTx.WithContext(ctx).
+							Where(cmtTx.UserId.Eq(localUser.ID)).
+							UpdateSimple(
+								cmtTx.DisplayUsername.Value(localUser.DisplayName),
+								cmtTx.HomePageURL.Value(*ptr.Optional(localUser.HomepageLink, ptr.ToPtr(""))),
+								cmtTx.Avatar.Value(*ptr.Optional(localUser.AvatarURL, ptr.ToPtr(""))),
+							)
+						if updateErr != nil {
+							return updateErr
+						}
+					}
+
+					return nil
+				})
+			} else {
+				panic(findLocalErr)
+			}
+
+			// 更新 oauth2 用户的关联
+			oauthUser := biz.OAuth2User
+			if list, findOauthErr := oauthUser.WithContext(ctx).Find(); findOauthErr == nil {
+				biz.Q.Transaction(func(tx *biz.Query) error {
+					cmtTx := tx.Comment
+					for _, oauthUser := range list {
+						_, updateErr := cmtTx.WithContext(ctx).
+							Where(cmtTx.UserId.Eq(oauthUser.ID)).
+							UpdateSimple(
+								cmtTx.DisplayUsername.Value(oauthUser.Username),
+								cmtTx.HomePageURL.Value(*ptr.Optional(oauthUser.HomepageLink, ptr.ToPtr(""))),
+								cmtTx.Avatar.Value(*ptr.Optional(oauthUser.AvatarURL, ptr.ToPtr(""))),
+							)
+						if updateErr != nil {
+							return updateErr
+						}
+					}
+					return nil
+				})
+			} else {
+				panic(findOauthErr)
+			}
+
+		},
+		Description: "同步评论中的用户显示资料",
 	},
 }

@@ -17,40 +17,42 @@ import (
 	"gorm.io/gen"
 )
 
-type commentService struct{}
+type (
+	commentService    struct{}
+	commentUserDetail struct {
+		Username    string
+		Avatar      *string
+		HomePageURL *string
+	}
+)
 
 var DefaultCommentService = &commentService{}
 
-type detailTransferUser struct {
-	Username    string
-	Avatar      *string
-	HomePageURL *string
-}
-
-func (servicePtr *commentService) VerifyAndCreateComment(req *dto.CreateCommentReq, ctx *gin.Context) (resp *dto.CreateCommentResp, err error) {
-	loginSession, uErr := auth.GetCurrentLoginSession(ctx)
-
-	if uErr != nil {
-		return nil, uErr
+// CheckAndCreateComment 检查创建评论的合法性并创建评论
+func (servicePtr *commentService) CheckAndCreateComment(req *dto.CreateCommentReq, ctx *gin.Context) (resp *dto.CreateCommentResp, err error) {
+	// 当前登录会话的用户
+	loginSession, getSessionErr := auth.GetCurrentLoginSession(ctx)
+	if getSessionErr != nil {
+		return nil, getSessionErr
 	}
 
-	postTx := biz.Post
+	postOP := biz.Post
 
 	// 先找到文章
-	post, e := postTx.WithContext(ctx).Where(postTx.ID.Eq(req.PostID)).Take()
-	if e != nil {
-		err = util.CreateBizErr("不存在文章", e)
+	matchedPost, matchedPostErr := postOP.WithContext(ctx).Where(postOP.ID.Eq(req.PostID)).Take()
+	if matchedPostErr != nil {
+		err = util.CreateBizErr("不存在文章", matchedPostErr)
 		return
 	}
 
+	switch {
 	// 如果文章设为了不可见, 不可评论的情况, 分别判断情况
-	if post.Hide != 0 || (post.AllowComment == 0) {
+	case matchedPost.Hide != 0 || (matchedPost.AllowComment == 0):
 		// 此时不允许 oauth2 登录的用户进行评论
 		if loginSession.UserType == constants.GoogleUser || loginSession.UserType == constants.GithubUser {
 			err = util.CreateBizErr("评论不可用", fmt.Errorf("comment not available"))
 			return
 		}
-
 		// TODO 暂时只允许管理员用户进行评论
 		if loginSession.UserType != constants.Admin {
 			err = util.CreateBizErr("当前本地账户评论功能不可用", fmt.Errorf("comment not available"))
@@ -58,39 +60,38 @@ func (servicePtr *commentService) VerifyAndCreateComment(req *dto.CreateCommentR
 		}
 	}
 
-	commentTx := biz.Comment
-
+	commentOP := biz.Comment
 	// 发表的评论信息如果是子评论, 那么要先检查根评论和他的父评论合法性在才能创建
 	if req.ReplyToID != 0 || req.RootCommentID != 0 {
 		// 查找根评论(只有根评论存在, 才有底下的评论)
-		rootCmt, e := commentTx.WithContext(ctx).
+		rootCmt, rootCmdErr := commentOP.WithContext(ctx).
 			Where(
-				commentTx.ID.Eq(req.RootCommentID), // 根评论的 ID
-				commentTx.PostId.Eq(req.PostID),    // 文章存在
+				commentOP.ID.Eq(req.RootCommentID), // 根评论的 ID
+				commentOP.PostId.Eq(req.PostID),    // 文章存在
 			).
 			Take()
-		if e != nil {
+		if rootCmdErr != nil {
 			// 不存在评论
-			err = util.CreateBizErr("评论不可用", e)
+			err = util.CreateBizErr("评论不可用", rootCmdErr)
 			return
 		}
 
-		// 根评论为隐藏的条件下
+		// 根评论为隐藏的条件下只允许管理员评论
 		if rootCmt.Hide != 0 && loginSession.UserType != constants.Admin {
 			err = util.CreateBizErr("评论不可用", fmt.Errorf("comment not available"))
 			return
 		}
 
 		// 查找父评论,
-		parentCmt, e := commentTx.WithContext(ctx).
+		parentCmt, parentCmdErr := commentOP.WithContext(ctx).
 			Where(
-				commentTx.ID.Eq(req.ReplyToID), // 父评论的 ID(父评论本身可能就是根评论, 也可能是根评论下另一条较早发布的子评论)
-				commentTx.PostId.Eq(req.PostID),
+				commentOP.ID.Eq(req.ReplyToID), // 父评论的 ID(父评论本身可能就是根评论, 也可能是根评论下另一条较早发布的子评论)
+				commentOP.PostId.Eq(req.PostID),
 			).
 			Take()
-		if e != nil {
+		if parentCmdErr != nil {
 			// 不存在评论
-			err = util.CreateBizErr("评论不可用", e)
+			err = util.CreateBizErr("评论不可用", parentCmdErr)
 			return
 		}
 
@@ -134,51 +135,50 @@ func (servicePtr *commentService) UpdateComment(req *dto.UpdateCommentReq, ctx *
 	return
 }
 
-// CreateCommentDirect 充当基础通用方法, 只创建, 不进行额外的关联关系校验
+// 充当基础通用方法, 只创建, 不进行额外的关联关系校验
 func (*commentService) createCommentDirect(req *dto.CreateCommentReq, ctx *gin.Context) (resp *dto.CreateCommentResp, err error) {
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		commentTx := tx.Comment
-		loginSession, uErr := auth.GetCurrentLoginSession(ctx)
-		if uErr != nil {
-			return uErr
+		loginSession, sessionErr := auth.GetCurrentLoginSession(ctx)
+		if sessionErr != nil {
+			return sessionErr
 		}
 
-		var detailUserTmp *detailTransferUser
+		var currentUserDetail *commentUserDetail
 		switch loginSession.UserType {
-		case constants.GoogleUser, constants.GithubUser: // oauth2 用户评论
+		// 来自 oauth2 登录用户的评论
+		case constants.GoogleUser, constants.GithubUser:
 			oauthUserTx := tx.OAuth2User
-			oauthUser, e := oauthUserTx.WithContext(ctx).
+			oauthUser, oauthUserFindErr := oauthUserTx.WithContext(ctx).
 				Select(oauthUserTx.Username, oauthUserTx.AvatarURL, oauthUserTx.HomepageLink).
 				Where(
 					oauthUserTx.ID.Eq(loginSession.UserID),
 				).
 				Take()
-			if e != nil {
-				return e
-			} else {
-				detailUserTmp = &detailTransferUser{
-					Username:    oauthUser.Username,
-					Avatar:      oauthUser.AvatarURL,
-					HomePageURL: oauthUser.HomepageLink,
-				}
+			if oauthUserFindErr != nil {
+				return oauthUserFindErr
+			}
+			currentUserDetail = &commentUserDetail{
+				Username:    oauthUser.Username,
+				Avatar:      oauthUser.AvatarURL,
+				HomePageURL: oauthUser.HomepageLink,
 			}
 
-		case constants.LocalUser, constants.Admin: // 本地账户评论(包含管理员账户)
+		// 本地账户评论(包含管理员账户)
+		case constants.LocalUser, constants.Admin:
 			localUserTx := tx.LocalUser
-			localUser, e := localUserTx.WithContext(ctx).
+			localUser, findLocalUserErr := localUserTx.WithContext(ctx).
 				Select(localUserTx.DisplayName, localUserTx.AvatarURL, localUserTx.HomepageLink).
 				Where(localUserTx.ID.Eq(loginSession.UserID)).
 				Take()
-			if e != nil {
-				return e
-			} else {
-				detailUserTmp = &detailTransferUser{
-					Username:    localUser.DisplayName,
-					Avatar:      localUser.AvatarURL,
-					HomePageURL: localUser.HomepageLink,
-				}
+			if findLocalUserErr != nil {
+				return findLocalUserErr
 			}
-
+			currentUserDetail = &commentUserDetail{
+				Username:    localUser.DisplayName, // 对于本地用户不直接使用登录的用户名称, 而是使用额外名称
+				Avatar:      localUser.AvatarURL,
+				HomePageURL: localUser.HomepageLink,
+			}
 		default:
 			return fmt.Errorf("un-support user type: %s", loginSession.UserType)
 		}
@@ -188,31 +188,29 @@ func (*commentService) createCommentDirect(req *dto.CreateCommentReq, ctx *gin.C
 		ipSource, _ := ip.GetIpSearcher().SearchByStr(realIpAddr)
 
 		// 进行创建
-		e := commentTx.WithContext(ctx).Create(
+		createCommentErr := commentTx.WithContext(ctx).Create(
 			&model.Comment{
-				PostId:        req.PostID,
-				UserId:        loginSession.ID,
-				UserType:      loginSession.UserType,
-				Avatar:        detailUserTmp.Avatar,
-				HomePageURL:   detailUserTmp.HomePageURL,
-				RootCommentId: req.RootCommentID,
-				ReplyToId:     req.ReplyToID,
-				Content:       strings.TrimSpace(req.Content),
-				UpVote:        nil,
-				DownVote:      nil,
-				IpAddr:        realIpAddr,
-				IpSource:      &ipSource,
-				Useragent:     &uaDetail.Useragent,
-				OS:            &uaDetail.OS,
-				ClientName:    &uaDetail.ClientName,
-				SubEmailReply: util.TernaryExpr(req.SubEmailNotify, 1, 0),
+				PostId:          req.PostID,
+				UserId:          loginSession.ID,
+				RootCommentId:   req.RootCommentID,
+				ReplyToId:       req.ReplyToID,
+				UserType:        loginSession.UserType,
+				DisplayUsername: currentUserDetail.Username,
+				Avatar:          currentUserDetail.Avatar,
+				HomePageURL:     currentUserDetail.HomePageURL,
+				Content:         strings.TrimSpace(req.Content),
+				UpVote:          nil,
+				DownVote:        nil,
+				IpAddr:          realIpAddr,
+				IpSource:        &ipSource,
+				Useragent:       &uaDetail.Useragent,
+				OS:              &uaDetail.OS,
+				ClientName:      &uaDetail.ClientName,
+				SubEmailReply:   util.TernaryExpr(req.SubEmailNotify, 1, 0),
 			},
 		)
-		if e != nil {
-			return e
-		}
 
-		return nil
+		return createCommentErr
 	})
 
 	if err != nil {
@@ -246,6 +244,7 @@ func (servicePtr *commentService) GetVisibleRootCommentPages(req *dto.GetRootCom
 			commentCtx.PostId,
 			commentCtx.UserId,
 			commentCtx.UserType,
+			commentCtx.DisplayUsername,
 			commentCtx.Avatar,
 			commentCtx.HomePageURL,
 			commentCtx.RootCommentId,
@@ -330,6 +329,7 @@ func (*commentService) GetVisibleSubCommentPages(req *dto.GetSubCommentPagesReq,
 			commentCtx.CreatedAt,
 			commentCtx.UpdatedAt,
 			commentCtx.PostId,
+			commentCtx.DisplayUsername,
 			commentCtx.UserId,
 			commentCtx.UserType,
 			commentCtx.Avatar,
@@ -440,11 +440,11 @@ func (servicePtr *commentService) GetAnyRootCommentPages(req *dto.GetRootComment
 // GetAnySubCommentPages 获取任何的子评论分页数据
 func (*commentService) GetAnySubCommentPages(req *dto.GetSubCommentPagesReq, ctx *gin.Context) (resp *dto.GetSubCommentPagesResp, err error) {
 	postCtx := biz.Post
-	_, err = postCtx.WithContext(ctx).
+	_, findPostErr := postCtx.WithContext(ctx).
 		Where(postCtx.ID.Eq(req.PostID)).
 		Take()
-	if err != nil {
-		err = util.CreateBizErr("当前文章不允许评论", err)
+	if findPostErr != nil {
+		err = util.CreateBizErr("当前文章不存在", findPostErr)
 		return
 	}
 

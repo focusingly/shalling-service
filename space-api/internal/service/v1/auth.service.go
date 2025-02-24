@@ -1,8 +1,10 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"slices"
 	"space-api/conf"
 	"space-api/constants"
@@ -15,6 +17,7 @@ import (
 	"space-api/util/id"
 	"space-api/util/ip"
 	"space-api/util/performance"
+	"space-api/util/ptr"
 	"space-api/util/verify"
 	"space-domain/dao/biz"
 	"space-domain/model"
@@ -77,31 +80,31 @@ type (
 var (
 	githubOauth2Config, googleOauth2Config *oauth2.Config
 	// 本地缓存空间
-	_authCache = auth.GetMiddlewareRelativeAuthCache()
-	_jwtConf   = conf.ProjectConf.GetJwtConf()
-	_appConf   = conf.ProjectConf.GetAppConf()
+	authCache = auth.GetMiddlewareRelativeAuthCache()
+	_jwtConf  = conf.ProjectConf.GetJwtConf()
+	_appConf  = conf.ProjectConf.GetAppConf()
 )
 
-type _authService struct {
+type authService struct {
 }
 
-var DefaultAuthService = &_authService{}
+var DefaultAuthService = &authService{}
 
 type boData struct {
 	UserID   int64
 	UserType string
 }
 
-func (s *_authService) updateUserLoginSession(user *boData, bizTx *biz.Query, ctx *gin.Context) (resp *model.UserLoginSession, err error) {
+func (s *authService) updateUserLoginSession(user *boData, bizTx *biz.Query, ctx *gin.Context) (resp *model.UserLoginSession, err error) {
 	err = bizTx.Transaction(func(tx *biz.Query) error {
 		loginSessionTx := tx.UserLoginSession
 		// 获取用户所有已经登录的会话信息
-		existsSessions, e := loginSessionTx.WithContext(ctx).
+		existsSessions, getSessionErr := loginSessionTx.WithContext(ctx).
 			Where(loginSessionTx.UserID.Eq(user.UserID)).
 			Order(loginSessionTx.ID.Desc()). // 进行排序, 比较新的数据放在前面
 			Find()
-		if e != nil {
-			return util.CreateBizErr("设置会话信息失败", e)
+		if getSessionErr != nil {
+			return util.CreateBizErr("设置会话信息失败", getSessionErr)
 		}
 
 		nowEpochMill := time.Now().UnixMilli()
@@ -122,7 +125,6 @@ func (s *_authService) updateUserLoginSession(user *boData, bizTx *biz.Query, ct
 		ua := inbound.GetUserAgentFromContext(ctx)
 		to32Ip, _ := ip.Ipv4StringToU32(ipAddr)
 		ipSource, _ := ip.GetIpSearcher().SearchByStr(ipAddr)
-
 		// 新的用户会话信息
 		newLoginSession := &model.UserLoginSession{
 			BaseColumn: model.BaseColumn{
@@ -139,9 +141,9 @@ func (s *_authService) updateUserLoginSession(user *boData, bizTx *biz.Query, ct
 			OSName:     ua.OS,
 		}
 
-		token, e := verify.CreateJwtToken(newLoginSession)
-		if e != nil {
-			return e
+		token, getTokenErr := verify.CreateJwtToken(newLoginSession)
+		if getTokenErr != nil {
+			return getTokenErr
 		}
 
 		// 设置新的 token
@@ -149,7 +151,7 @@ func (s *_authService) updateUserLoginSession(user *boData, bizTx *biz.Query, ct
 		// 存入新的会话
 		updates = append(updates, newLoginSession)
 		// 删除所有已存在的列表
-		_, e = loginSessionTx.WithContext(ctx).
+		_, deleteSessionErr := loginSessionTx.WithContext(ctx).
 			Where(loginSessionTx.ID.In(
 				arr.MapSlice(
 					existsSessions,
@@ -158,14 +160,14 @@ func (s *_authService) updateUserLoginSession(user *boData, bizTx *biz.Query, ct
 					})...,
 			)).
 			Delete()
-		if e != nil {
-			return e
+		if deleteSessionErr != nil {
+			return deleteSessionErr
 		}
 		// 批量重新创建会话信息
-		e = loginSessionTx.WithContext(ctx).
+		createSessionErr := loginSessionTx.WithContext(ctx).
 			CreateInBatches(updates, appConf.MaxUserActive)
-		if e != nil {
-			return e
+		if createSessionErr != nil {
+			return createSessionErr
 		}
 
 		// set value
@@ -184,8 +186,9 @@ func (s *_authService) updateUserLoginSession(user *boData, bizTx *biz.Query, ct
 
 		return nil
 	})
+
 	if err != nil {
-		err = util.CreateAuthErr("创建会话失败", err)
+		err = util.CreateAuthErr("创建/更新登录会话失败", err)
 		return
 	}
 
@@ -193,7 +196,7 @@ func (s *_authService) updateUserLoginSession(user *boData, bizTx *biz.Query, ct
 }
 
 // AdminLogin 后台管理员登录
-func (s *_authService) AdminLogin(req *dto.AdminLoginReq, ctx *gin.Context) (resp *dto.AdminLoginResp, err error) {
+func (s *authService) AdminLogin(req *dto.AdminLoginReq, ctx *gin.Context) (resp *dto.AdminLoginResp, err error) {
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		localUserTx := tx.LocalUser
 
@@ -240,7 +243,7 @@ func (s *_authService) AdminLogin(req *dto.AdminLoginReq, ctx *gin.Context) (res
 }
 
 // HandleOauthLogin 处理 Oauth2 登录
-func (s *_authService) HandleOauthLogin(req *dto.OauthLoginCallbackReq, ctx *gin.Context) (resp *dto.OauthLoginCallbackResp, err error) {
+func (s *authService) HandleOauthLogin(req *dto.OauthLoginCallbackReq, ctx *gin.Context) (resp *dto.OauthLoginCallbackResp, err error) {
 	var parsed *model.OAuth2User
 	var e error
 	switch req.Platform {
@@ -358,11 +361,11 @@ func (s *_authService) HandleOauthLogin(req *dto.OauthLoginCallbackReq, ctx *gin
 	return
 }
 
-func (*_authService) GetOauth2LoginGrantURL(req *dto.GetLoginURLReq, ctx *gin.Context) (resp dto.GetLoginURLResp, err error) {
+func (*authService) GetOauth2LoginGrantURL(req *dto.GetLoginURLReq, ctx *gin.Context) (resp dto.GetLoginURLResp, err error) {
 	state := uuid.NewString()
 	ttl := time.Minute * 5 / time.Second
 	// 设置过期时间
-	err = _authCache.Set(state, new(performance.Empty), performance.Second(ttl))
+	err = authCache.Set(state, new(performance.Empty), performance.Second(ttl))
 	if err != nil {
 		err = util.CreateBizErr("设置校验状态失败: "+err.Error(), err)
 		return
@@ -383,69 +386,217 @@ func (*_authService) GetOauth2LoginGrantURL(req *dto.GetLoginURLReq, ctx *gin.Co
 	return
 }
 
-func (*_authService) ParseGithubCallback(req *dto.OauthLoginCallbackReq, ctx *gin.Context) (resp *model.OAuth2User, err error) {
+func (s *authService) ParseGithubCallback(req *dto.OauthLoginCallbackReq, ctx *gin.Context) (resp *model.OAuth2User, err error) {
 	// 判断授权码
 	if req.GrantCode == "" || req.State == "" {
-		err = &util.AuthErr{
-			BizErr: util.BizErr{
-				Msg:    "获取授权信息失败, 请重试",
-				Reason: fmt.Errorf("grant code not exits"),
-			},
-		}
+		err = util.CreateAuthErr(
+			"获取授权信息失败, 请重试",
+			fmt.Errorf("grant code not exits"),
+		)
 		return
 	}
 
 	// 判断 state
 	// 判断缓存里的情况
-	if err = _authCache.GetAndDel(req.State, &performance.Empty{}); err != nil {
+	if err = authCache.GetAndDel(req.State, &performance.Empty{}); err != nil {
 		return
 	}
 	// 使用授权码
 	oauthToken, err := githubOauth2Config.Exchange(ctx, req.GrantCode)
 	if err != nil {
-		err = &util.AuthErr{
-			BizErr: util.BizErr{
-				Msg: err.Error(),
-			},
+		err = util.CreateAuthErr(
+			"获取授权信息失败, 请重试",
+			err,
+		)
+
+		return
+	}
+	client := githubOauth2Config.Client(ctx, oauthToken)
+	if githubUserProfile, e := s.GetGithubUserProfile(client); e != nil {
+		err = util.CreateAuthErr("获取用户信息失败, 请重试", e)
+		return
+	} else {
+		resp = &model.OAuth2User{
+			PlatformName:   constants.GithubUser,
+			PlatformUserId: githubUserProfile.ID,
+			Username:       githubUserProfile.Username,
+			PrimaryEmail:   githubUserProfile.PrimaryEmail,
+			AccessToken:    oauthToken.AccessToken,
+			RefreshToken:   oauthToken.RefreshToken,
+			ExpiredAt:      &oauthToken.ExpiresIn,
+			AvatarURL:      githubUserProfile.AvatarURL,
+			HomepageLink:   githubUserProfile.HomepageLink,
+			Scopes:         githubOauth2Config.Scopes,
 		}
+	}
+
+	return
+}
+
+func (*authService) GetGoogleLoginURL(ctx *gin.Context) (val string, err error) {
+	state := uuid.NewString()
+	if err = authCache.Set(state, &performance.Empty{}, performance.Second(time.Minute*5/time.Second)); err != nil {
+		return
+	}
+	val = googleOauth2Config.AuthCodeURL(state)
+	return
+}
+
+func (s *authService) ParseGoogleCallback(req *dto.OauthLoginCallbackReq, ctx *gin.Context) (resp *model.OAuth2User, err error) {
+	// 基本校验
+	if req.GrantCode == "" || req.State == "" {
+		err = util.CreateAuthErr(
+			"凭据校验失败",
+			fmt.Errorf("the principal is illegal"),
+		)
+		return
+	}
+	if err = authCache.GetAndDel(req.State, &performance.Empty{}); err != nil {
+		err = util.CreateAuthErr(
+			"凭据校验失败",
+			err,
+		)
+		return
+	}
+
+	oauthToken, err := googleOauth2Config.Exchange(ctx, req.GrantCode)
+	if err != nil {
+		err = util.CreateAuthErr(
+			"获取凭证失败"+err.Error(),
+			err,
+		)
 
 		return
 	}
 
-	client := githubOauth2Config.Client(ctx, oauthToken)
-	var primaryEmail string
-	githubPubDetail := new(GithubPub)
-	emailList := []GithubEmailElement{}
+	client := googleOauth2Config.Client(ctx, oauthToken)
+	googleUserProfile, err := s.GetGoogleUserProfile(client)
+
+	if err != nil {
+		return
+	}
+
+	resp = &model.OAuth2User{
+		PlatformName:   constants.GoogleUser,
+		PlatformUserId: googleUserProfile.ID,
+		Username:       googleUserProfile.Username,
+		PrimaryEmail:   googleUserProfile.PrimaryEmail,
+		AccessToken:    oauthToken.AccessToken,
+		RefreshToken:   oauthToken.RefreshToken,
+		ExpiredAt:      &oauthToken.ExpiresIn,
+		AvatarURL:      googleUserProfile.AvatarURL,
+		HomepageLink:   googleUserProfile.HomepageLink,
+		Scopes:         googleOauth2Config.Scopes,
+	}
+
+	return
+}
+
+// GetRefreshOauth2Data 获取新的用户凭据
+func (s *authService) GetRefreshOauth2Data(user *model.OAuth2User, ctx context.Context) (resp *model.OAuth2User, err error) {
+	var userProfile *OauthBasicUserProfile
+	var newToken oauth2.Token
+
+	switch user.PlatformName {
+	case constants.GithubUser:
+		// github 目前返回的 token 没有设置过期时间, 除非被用户取消授权
+		newToken = oauth2.Token{
+			AccessToken:  user.AccessToken,
+			RefreshToken: user.RefreshToken,
+		}
+		userProfile, err = s.GetGithubUserProfile(githubOauth2Config.Client(ctx, &oauth2.Token{
+			AccessToken: user.AccessToken,
+			TokenType:   "Bearer",
+		}))
+
+		if err != nil {
+			return
+		}
+	case constants.GoogleUser:
+		t, e := googleOauth2Config.TokenSource(ctx, &oauth2.Token{
+			RefreshToken: user.RefreshToken,
+		}).Token()
+		if e != nil {
+			err = util.CreateAuthErr("获取新的凭据失败", e)
+			return
+		}
+		newToken = oauth2.Token{
+			AccessToken: t.AccessToken,
+			RefreshToken: util.TernaryExpr(
+				t.RefreshToken != "",
+				t.RefreshToken,
+				user.RefreshToken,
+			),
+			ExpiresIn: t.ExpiresIn,
+		}
+		// 获取新的配置文件
+		userProfile, err = s.GetGoogleUserProfile(githubOauth2Config.Client(ctx, t))
+		if err != nil {
+			return
+		}
+	default:
+		return nil, fmt.Errorf("un-support auth platform: %s", user.PlatformName)
+	}
+
+	resp = &model.OAuth2User{
+		BaseColumn:     user.BaseColumn,
+		PlatformName:   user.PlatformName,
+		PlatformUserId: user.PlatformUserId,
+		Username:       userProfile.Username,
+		PrimaryEmail:   user.PrimaryEmail,
+		AccessToken:    newToken.AccessToken,
+		RefreshToken:   newToken.RefreshToken,
+		ExpiredAt:      ptr.ToPtr(newToken.ExpiresIn),
+		AvatarURL:      userProfile.AvatarURL,
+		HomepageLink:   userProfile.HomepageLink,
+		Scopes:         user.Scopes,
+		Enable:         user.Enable,
+	}
+
+	return
+}
+
+type OauthBasicUserProfile struct {
+	ID           string
+	Username     string
+	PrimaryEmail string
+	HomepageLink *string
+	AvatarURL    *string
+}
+
+func (s *authService) GetGithubUserProfile(authClient *http.Client) (resp *OauthBasicUserProfile, err error) {
 	var group errgroup.Group
+	var primaryEmail string
+	githubPubDetail := &GithubPub{}
+	emailList := []*GithubEmailElement{}
 
 	// 读取公开信息
 	group.Go(func() error {
-		res, err := client.Get("https://api.github.com/user")
+		res, err := authClient.Get("https://api.github.com/user")
 		if err != nil {
-			err = &util.BizErr{
-				Msg: err.Error(),
-			}
+			err = util.CreateBizErr(
+				"获取用户数据失败: "+err.Error(),
+				err,
+			)
 			return err
 		}
-		if res != nil {
-			defer res.Body.Close()
-			// 获取公开信息
-			if err = json.NewDecoder(res.Body).Decode(githubPubDetail); err != nil {
-				err = &util.AuthErr{
-					BizErr: util.BizErr{
-						Msg:    "解码错误: " + err.Error(),
-						Reason: err,
-					},
-				}
-				return err
-			}
+
+		defer res.Body.Close()
+		// 获取公开信息
+		if err = json.NewDecoder(res.Body).Decode(githubPubDetail); err != nil {
+			err = util.CreateBizErr(
+				"获取用户数据失败: "+err.Error(),
+				err,
+			)
+			return err
 		}
 		return nil
 	})
+
 	// 获取主邮箱
 	group.Go(func() error {
 		// 获取用户私人电子邮件地址
-		emailResp, e := client.Get("https://api.github.com/user/emails")
+		emailResp, e := authClient.Get("https://api.github.com/user/emails")
 		if e != nil {
 			e = &util.BizErr{
 				Msg: e.Error(),
@@ -454,8 +605,13 @@ func (*_authService) ParseGithubCallback(req *dto.OauthLoginCallbackReq, ctx *gi
 		}
 		if emailResp != nil {
 			defer emailResp.Body.Close()
-			if err := json.NewDecoder(emailResp.Body).Decode(&emailList); err != nil {
-				return err
+			if e := json.NewDecoder(emailResp.Body).Decode(&emailList); e != nil {
+				// 获取公开信息
+				e = util.CreateBizErr(
+					"获取用户数据失败: "+e.Error(),
+					e,
+				)
+				return e
 			}
 			if len(emailList) == 0 {
 				return fmt.Errorf("can't get primary email")
@@ -468,122 +624,57 @@ func (*_authService) ParseGithubCallback(req *dto.OauthLoginCallbackReq, ctx *gi
 			}
 			return fmt.Errorf("can't get primary email")
 		}
+
 		return nil
 	})
-	if err = group.Wait(); err != nil {
-		err = &util.AuthErr{
-			BizErr: util.BizErr{
-				Msg:    "获取用户信息失败, 请重试",
-				Reason: err,
-			},
-		}
 
-		return
-	} else {
-		resp = &model.OAuth2User{
-			PlatformName:   constants.GithubUser,
-			PlatformUserId: fmt.Sprintf("%d", githubPubDetail.ID),
-			Username:       githubPubDetail.Login,
-			PrimaryEmail:   primaryEmail,
-			AccessToken:    oauthToken.AccessToken,
-			RefreshToken:   &oauthToken.RefreshToken,
-			ExpiredAt:      &oauthToken.ExpiresIn,
-			AvatarURL:      &githubPubDetail.AvatarURL,
-			HomepageLink:   &githubPubDetail.HtmlURL,
-			Scopes:         githubOauth2Config.Scopes,
+	err = group.Wait()
+	if err == nil {
+		resp = &OauthBasicUserProfile{
+			ID:           fmt.Sprintf("%d", githubPubDetail.ID),
+			Username:     githubPubDetail.Login,
+			PrimaryEmail: primaryEmail,
+			HomepageLink: &githubPubDetail.HtmlURL,
+			AvatarURL:    &githubPubDetail.AvatarURL,
 		}
 	}
 
 	return
+
 }
 
-func (*_authService) GetGoogleLoginURL(ctx *gin.Context) (val string, err error) {
-	state := uuid.NewString()
-	if err = _authCache.Set(state, &performance.Empty{}, performance.Second(time.Minute*5/time.Second)); err != nil {
-		return
-	}
-	val = googleOauth2Config.AuthCodeURL(state)
-	return
-}
-
-func (*_authService) ParseGoogleCallback(req *dto.OauthLoginCallbackReq, ctx *gin.Context) (resp *model.OAuth2User, err error) {
-	// 基本校验
-	if req.GrantCode == "" || req.State == "" {
-		err = &util.AuthErr{
-			BizErr: util.BizErr{
-				Msg:    "凭据校验失败",
-				Reason: fmt.Errorf("the principal is illegal"),
-			},
-		}
-		return
-	}
-	if err = _authCache.GetAndDel(req.State, &performance.Empty{}); err != nil {
-		err = &util.AuthErr{
-			BizErr: util.BizErr{
-				Msg:    "凭据校验失败",
-				Reason: err,
-			},
-		}
-		return
-	}
-
-	oauthToken, err := googleOauth2Config.Exchange(ctx, req.GrantCode)
-	if err != nil {
-		err = &util.AuthErr{
-			BizErr: util.BizErr{
-				Msg:    "获取凭证失败" + err.Error(),
-				Reason: err,
-			},
-		}
-
-		return
-	}
-
-	client := googleOauth2Config.Client(ctx, oauthToken)
-	res, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
+func (s *authService) GetGoogleUserProfile(authClient *http.Client) (resp *OauthBasicUserProfile, err error) {
+	res, err := authClient.Get("https://www.googleapis.com/oauth2/v2/userinfo")
 	if err != nil || res.Body == nil {
-		err = &util.AuthErr{
-			BizErr: util.BizErr{
-				Reason: err,
-				Msg:    "获取用户数据失败: " + err.Error(),
-			},
-		}
-
+		err = util.CreateBizErr(
+			"获取用户数据失败: "+err.Error(),
+			err,
+		)
 		return
 	}
-
 	defer res.Body.Close()
-
 	googlePubDetail := GooglePub{}
 	if err = json.NewDecoder(res.Body).Decode(&googlePubDetail); err != nil {
-		err = &util.AuthErr{
-			BizErr: util.BizErr{
-				Reason: err,
-				Msg:    "解析用户数据失败: " + err.Error(),
-			},
-		}
-
+		err = util.CreateBizErr(
+			"解析用户数据失败: "+err.Error(),
+			err,
+		)
 		return
 	}
 
-	resp = &model.OAuth2User{
-		PlatformName:   constants.GoogleUser,
-		PlatformUserId: googlePubDetail.ID,
-		Username:       googlePubDetail.Name,
-		PrimaryEmail:   googlePubDetail.Email,
-		AccessToken:    oauthToken.AccessToken,
-		RefreshToken:   &oauthToken.RefreshToken,
-		ExpiredAt:      &oauthToken.ExpiresIn,
-		AvatarURL:      &googlePubDetail.Picture,
-		HomepageLink:   new(string),
-		Scopes:         googleOauth2Config.Scopes,
+	resp = &OauthBasicUserProfile{
+		ID:           googlePubDetail.ID,
+		Username:     googlePubDetail.Name,
+		PrimaryEmail: googlePubDetail.Email,
+		HomepageLink: nil,
+		AvatarURL:    &googlePubDetail.Picture,
 	}
 
 	return
 }
 
 // CurrentUserLogout 当前已登录的用户退出登录(根据请求头中携带的 Bearer Token 判断)
-func (*_authService) CurrentUserLogout(ctx *gin.Context) (resp *performance.Empty, err error) {
+func (*authService) CurrentUserLogout(ctx *gin.Context) (resp *performance.Empty, err error) {
 	exitsSession, e := auth.GetCurrentLoginSession(ctx)
 	if e != nil {
 		err = util.CreateAuthErr("无效凭据", e)

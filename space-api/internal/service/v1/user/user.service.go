@@ -1,6 +1,7 @@
 package user
 
 import (
+	"context"
 	"fmt"
 	"space-api/constants"
 	"space-api/dto"
@@ -153,7 +154,7 @@ func (*userService) UpdateLocalUserPassword(req *dto.UpdateLocalUserPassReq, ctx
 }
 
 // ExpireAnyLoginSessions 删除登录会话信息
-func (*userService) ExpireAnyLoginSessions(req *dto.ExpireUserLoginSessionReq, ctx *gin.Context) (resp *dto.ExpireUserLoginSessionResp, err error) {
+func (s *userService) ExpireAnyLoginSessions(req *dto.ExpireUserLoginSessionReq, ctx context.Context) (resp *dto.ExpireUserLoginSessionResp, err error) {
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		loginSessionTx := tx.UserLoginSession
 		_, e := loginSessionTx.WithContext(ctx).
@@ -163,10 +164,9 @@ func (*userService) ExpireAnyLoginSessions(req *dto.ExpireUserLoginSessionReq, c
 			return e
 		}
 
-		// 清理缓存空间
-		cacheSpace := auth.GetMiddlewareRelativeAuthCache()
+		// 清理缓存缓存空间空间
 		for _, id := range req.IDList {
-			cacheSpace.Delete(fmt.Sprintf("%d", id))
+			s.DeleteCacheSessionFromCache(fmt.Sprintf("%d", id))
 		}
 
 		return nil
@@ -179,6 +179,10 @@ func (*userService) ExpireAnyLoginSessions(req *dto.ExpireUserLoginSessionReq, c
 	resp = &dto.ExpireUserLoginSessionResp{}
 
 	return
+}
+
+func (s *userService) DeleteCacheSessionFromCache(key string) {
+	auth.GetMiddlewareRelativeAuthCache().Delete(key)
 }
 
 func (*userService) UpdateOauth2User(req *dto.UpdateOauthUserReq, ctx *gin.Context) (resp *dto.UpdateOauthUserResp, err error) {

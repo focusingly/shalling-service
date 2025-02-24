@@ -110,7 +110,7 @@ func UseCommentController(routeGroup *gin.RouterGroup) {
 					ctx.Error(util.CreateBizErr("参数错误: "+err.Error(), err))
 					return
 				}
-				if resp, err := commentService.VerifyAndCreateComment(req, ctx); err != nil {
+				if resp, err := commentService.CheckAndCreateComment(req, ctx); err != nil {
 					ctx.Error(err)
 				} else {
 					outbound.NotifyProduceResponse(resp, ctx)

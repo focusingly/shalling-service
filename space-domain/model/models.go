@@ -29,12 +29,13 @@ type (
 		Username       string   `gorm:"type:varchar(255);not null;comment:oauth2 用户在平台的名称" json:"username" yaml:"username" xml:"username" toml:"username"`
 		PrimaryEmail   string   `gorm:"type:varchar(255);not null;comment:用户主邮箱" json:"primaryEmail" yaml:"primaryEmail" xml:"primaryEmail" toml:"primaryEmail"`
 		AccessToken    string   `gorm:"type:text;not null;comment:授权token" json:"accessToken" yaml:"accessToken" xml:"accessToken" toml:"accessToken"`
-		RefreshToken   *string  `gorm:"type:text;null;comment:刷新 token(如果存在的话)" json:"refreshToken" yaml:"refreshToken" xml:"refreshToken" toml:"refreshToken"`
+		RefreshToken   string   `gorm:"type:text;null;comment:刷新 token(如果存在的话)" json:"refreshToken" yaml:"refreshToken" xml:"refreshToken" toml:"refreshToken"`
 		ExpiredAt      *int64   `gorm:"type:bigint;null;comment:凭证 token 的有效截至时间(unix 毫秒时间戳)" json:"expiredAt" yaml:"expiredAt" xml:"expiredAt" toml:"expiredAt"`
 		AvatarURL      *string  `gorm:"type:text;null;comment:用户的头像链接" json:"avatarURL" yaml:"avatarURL" xml:"avatarURL" toml:"avatarURL"`
 		HomepageLink   *string  `gorm:"type:text;null;comment:用户的主页链接" json:"homepageLink" yaml:"homepageLink" xml:"homepageLink" toml:"homepageLink"`
 		Scopes         []string `gorm:"type:text;null;serializer:json;comment:oauth2 申请的权限范围" json:"scopes" yaml:"scopes" xml:"scopes" toml:"scopes"`
 		Enable         int      `gorm:"type:smallint;default:1;not null;comment:用户是否启用" json:"enable" yaml:"enable" xml:"enable" toml:"enable"`
+		SyncFail       int      `gorm:"type:smallint;default:0;not null;comment:表示数据是否同步失败(非 0)" json:"syncFail" yaml:"syncFail" xml:"syncFail" toml:"syncFail"`
 	}
 
 	// UserLoginSession 表示登录会话信息
@@ -97,23 +98,24 @@ type (
 
 	// 评论表
 	Comment struct {
-		BaseColumn    `json:"baseColumn" yaml:"baseColumn" xml:"baseColumn" toml:"baseColumn"`
-		PostId        int64   `gorm:"type:bigint;not null;comment:文章的的 ID" json:"postId" yaml:"postId" xml:"postId" toml:"postId"`
-		UserId        int64   `gorm:"type:bigint;not null;comment:评论用户 ID" json:"userId" yaml:"userId" xml:"userId" toml:"userId"`
-		UserType      string  `gorm:"type:text;null;comment:用户类型" json:"userType" yaml:"userType" xml:"userType" toml:"userType"`
-		Avatar        *string `gorm:"type:text;null;comment:用户头像的链接" json:"avatar" yaml:"avatar" xml:"avatar" toml:"avatar"`
-		HomePageURL   *string `gorm:"type:text;null;comment:用户的公开主页" json:"homePageURL" yaml:"homePageURL" xml:"homePageURL" toml:"homePageURL"`
-		RootCommentId int64   `gorm:"type:bigint;not null;default:0;comment:评论所属的根评论 ID, 用于查找评论下所有子评论的以及评论二级分页" json:"rootCommentId" yaml:"rootCommentId" xml:"rootCommentId" toml:"rootCommentId"`
-		ReplyToId     int64   `gorm:"type:bigint;not null;default:0;comment:回复的上条评论 ID, 如果自身是根评论, 那么为 0" json:"replyToId" yaml:"replyToId" xml:"replyToId" toml:"replyToId"`
-		Content       string  `gorm:"type:text;not null;comment:评论内容" json:"content" yaml:"content" xml:"content" toml:"content"`
-		UpVote        *int64  `gorm:"type:bigint;null;comment:赞成数" json:"upVote" yaml:"upVote" xml:"upVote" toml:"upVote"`
-		DownVote      *int64  `gorm:"type:bigint;null;comment:否定数" json:"downVote" yaml:"downVote" xml:"downVote" toml:"downVote"`
-		IpAddr        string  `gorm:"type:varchar(255);null;comment:客户端的 IP 地址" json:"ipAddr" yaml:"ipAddr" xml:"ipAddr" toml:"ipAddr"`
-		IpSource      *string `gorm:"type:varchar(255);null;comment:IP 归属地" json:"ipSource" yaml:"ipSource" xml:"ipSource" toml:"ipSource"`
-		Useragent     *string `gorm:"type:text;null;comment:用户的客户端标识" json:"useragent" yaml:"useragent" xml:"useragent" toml:"useragent"`
-		OS            *string `gorm:"type:text;null;comment:用户的操作系统平台" json:"os" yaml:"os" xml:"os" toml:"os"`
-		SubEmailReply int     `gorm:"type:smallint;default:0;comment:是否订阅邮件的通知回复" json:"subEmailReply" yaml:"subEmailReply" xml:"subEmailReply" toml:"subEmailReply"`
-		ClientName    *string `gorm:"type:text;null;comment:用户的访问平台名称" json:"clientName" yaml:"clientName" xml:"clientName" toml:"clientName"`
+		BaseColumn      `json:"baseColumn" yaml:"baseColumn" xml:"baseColumn" toml:"baseColumn"`
+		PostId          int64   `gorm:"type:bigint;not null;comment:文章的的 ID" json:"postId" yaml:"postId" xml:"postId" toml:"postId"`
+		UserId          int64   `gorm:"type:bigint;not null;comment:评论用户 ID" json:"userId" yaml:"userId" xml:"userId" toml:"userId"`
+		UserType        string  `gorm:"type:text;null;comment:用户类型" json:"userType" yaml:"userType" xml:"userType" toml:"userType"`
+		DisplayUsername string  `gorm:"type:text;null;comment:显示的用户名称" json:"displayUsername" yaml:"displayUsername" xml:"displayUsername" toml:"displayUsername"`
+		Avatar          *string `gorm:"type:text;null;comment:用户头像的链接" json:"avatar" yaml:"avatar" xml:"avatar" toml:"avatar"`
+		HomePageURL     *string `gorm:"type:text;null;comment:用户的公开主页" json:"homePageURL" yaml:"homePageURL" xml:"homePageURL" toml:"homePageURL"`
+		RootCommentId   int64   `gorm:"type:bigint;not null;default:0;comment:评论所属的根评论 ID, 用于查找评论下所有子评论的以及评论二级分页" json:"rootCommentId" yaml:"rootCommentId" xml:"rootCommentId" toml:"rootCommentId"`
+		ReplyToId       int64   `gorm:"type:bigint;not null;default:0;comment:回复的上条评论 ID, 如果自身是根评论, 那么为 0" json:"replyToId" yaml:"replyToId" xml:"replyToId" toml:"replyToId"`
+		Content         string  `gorm:"type:text;not null;comment:评论内容" json:"content" yaml:"content" xml:"content" toml:"content"`
+		UpVote          *int64  `gorm:"type:bigint;null;comment:赞成数" json:"upVote" yaml:"upVote" xml:"upVote" toml:"upVote"`
+		DownVote        *int64  `gorm:"type:bigint;null;comment:否定数" json:"downVote" yaml:"downVote" xml:"downVote" toml:"downVote"`
+		IpAddr          string  `gorm:"type:varchar(255);null;comment:客户端的 IP 地址" json:"ipAddr" yaml:"ipAddr" xml:"ipAddr" toml:"ipAddr"`
+		IpSource        *string `gorm:"type:varchar(255);null;comment:IP 归属地" json:"ipSource" yaml:"ipSource" xml:"ipSource" toml:"ipSource"`
+		Useragent       *string `gorm:"type:text;null;comment:用户的客户端标识" json:"useragent" yaml:"useragent" xml:"useragent" toml:"useragent"`
+		OS              *string `gorm:"type:text;null;comment:用户的操作系统平台" json:"os" yaml:"os" xml:"os" toml:"os"`
+		SubEmailReply   int     `gorm:"type:smallint;default:0;comment:是否订阅邮件的通知回复" json:"subEmailReply" yaml:"subEmailReply" xml:"subEmailReply" toml:"subEmailReply"`
+		ClientName      *string `gorm:"type:text;null;comment:用户的访问平台名称" json:"clientName" yaml:"clientName" xml:"clientName" toml:"clientName"`
 	}
 
 	// 公开的社交媒体信息

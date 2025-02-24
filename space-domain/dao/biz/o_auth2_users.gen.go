@@ -43,6 +43,7 @@ func newOAuth2User(db *gorm.DB, opts ...gen.DOOption) oAuth2User {
 	_oAuth2User.HomepageLink = field.NewString(tableName, "homepage_link")
 	_oAuth2User.Scopes = field.NewField(tableName, "scopes")
 	_oAuth2User.Enable = field.NewInt(tableName, "enable")
+	_oAuth2User.SyncFail = field.NewInt(tableName, "sync_fail")
 
 	_oAuth2User.fillFieldMap()
 
@@ -68,6 +69,7 @@ type oAuth2User struct {
 	HomepageLink   field.String
 	Scopes         field.Field
 	Enable         field.Int
+	SyncFail       field.Int
 
 	fieldMap map[string]field.Expr
 }
@@ -99,6 +101,7 @@ func (o *oAuth2User) updateTableName(table string) *oAuth2User {
 	o.HomepageLink = field.NewString(table, "homepage_link")
 	o.Scopes = field.NewField(table, "scopes")
 	o.Enable = field.NewInt(table, "enable")
+	o.SyncFail = field.NewInt(table, "sync_fail")
 
 	o.fillFieldMap()
 
@@ -125,7 +128,7 @@ func (o *oAuth2User) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (o *oAuth2User) fillFieldMap() {
-	o.fieldMap = make(map[string]field.Expr, 15)
+	o.fieldMap = make(map[string]field.Expr, 16)
 	o.fieldMap["id"] = o.ID
 	o.fieldMap["created_at"] = o.CreatedAt
 	o.fieldMap["updated_at"] = o.UpdatedAt
@@ -141,6 +144,7 @@ func (o *oAuth2User) fillFieldMap() {
 	o.fieldMap["homepage_link"] = o.HomepageLink
 	o.fieldMap["scopes"] = o.Scopes
 	o.fieldMap["enable"] = o.Enable
+	o.fieldMap["sync_fail"] = o.SyncFail
 }
 
 func (o oAuth2User) clone(db *gorm.DB) oAuth2User {

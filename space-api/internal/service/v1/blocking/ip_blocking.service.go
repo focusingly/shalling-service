@@ -2,7 +2,6 @@ package blocking
 
 import (
 	"fmt"
-	"space-api/constants"
 	"space-api/dto"
 	"space-api/util"
 	"space-api/util/arr"
@@ -16,11 +15,11 @@ import (
 )
 
 type _ipBlockingService struct {
-	cache performance.JsonCache
+	cache performance.CacheGroupInf
 }
 
 var DefaultIPBlockingService = &_ipBlockingService{
-	cache: *performance.NewCache(constants.MB * 4),
+	cache: performance.DefaultJsonCache.Group("ip-limit"),
 }
 
 func (s *_ipBlockingService) AddBlockingIP(req *dto.AddBlockingIPReq, ctx context.Context) (resp *dto.AddBlockingIPResp, err error) {

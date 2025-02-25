@@ -78,8 +78,7 @@ func UseCommentController(routeGroup *gin.RouterGroup) {
 
 	// 创建评论
 	{
-		limitCache := performance.NewCache(constants.MB * 2)
-
+		limitCache := performance.DefaultJsonCache.Group("comment-limit")
 		commentsGroup.POST("/",
 			func(ctx *gin.Context) {
 				// TODO 暂时仅限登录用户进行评论
@@ -120,7 +119,7 @@ func UseCommentController(routeGroup *gin.RouterGroup) {
 					if loginSession.UserType != constants.Admin {
 						limitCache.Set(
 							fmt.Sprintf("%d", loginSession.ID),
-							&performance.Empty{}, performance.Second(time.Minute*1/time.Second),
+							&performance.Empty{}, time.Second,
 						)
 					}
 				}

@@ -21,7 +21,7 @@ var _jwtRandMark = uuid.NewString()
 
 var authSpaceCache = performance.DefaultJsonCache.Group("auth")
 
-func GetMiddlewareRelativeAuthCache() *performance.JsonCache {
+func GetMiddlewareRelativeAuthCache() performance.CacheGroupInf {
 	return authSpaceCache
 }
 
@@ -118,9 +118,7 @@ func loadTokenAndSetupContext(ctx *gin.Context) {
 		}
 
 		// 设置到缓存
-		authSpaceCache.Set(sessionID, findLoginSession, performance.Second(
-			(findLoginSession.ExpiredAt-time.Now().UnixMilli())/1000,
-		))
+		authSpaceCache.Set(sessionID, findLoginSession, time.UnixMilli(findLoginSession.ExpiredAt).Sub(time.Now()))
 		//设置到上下文
 		ctx.Set(_jwtRandMark, findLoginSession)
 	}

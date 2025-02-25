@@ -178,10 +178,10 @@ func (s *authService) updateUserLoginSession(user *boData, bizTx *biz.Query, ctx
 		for _, u := range existsSessions {
 			cacheSpace.Delete(fmt.Sprintf("%d", u.ID))
 		}
-		nowUnixMilli := time.Now().UnixMilli()
+		now := time.Now()
 		// 重新设置登录会话信息
 		for _, u := range updates {
-			cacheSpace.Set(fmt.Sprintf("%d", u.ID), u, performance.Second((u.ExpiredAt-nowUnixMilli)/1000))
+			cacheSpace.Set(fmt.Sprintf("%d", u.ID), u, time.UnixMilli(u.ExpiredAt).Sub(now))
 		}
 
 		return nil
@@ -363,9 +363,9 @@ func (s *authService) HandleOauthLogin(req *dto.OauthLoginCallbackReq, ctx *gin.
 
 func (*authService) GetOauth2LoginGrantURL(req *dto.GetLoginURLReq, ctx *gin.Context) (resp dto.GetLoginURLResp, err error) {
 	state := uuid.NewString()
-	ttl := time.Minute * 5 / time.Second
+
 	// 设置过期时间
-	err = authCache.Set(state, new(performance.Empty), performance.Second(ttl))
+	err = authCache.Set(state, new(performance.Empty), time.Minute*5)
 	if err != nil {
 		err = util.CreateBizErr("设置校验状态失败: "+err.Error(), err)
 		return
@@ -435,7 +435,7 @@ func (s *authService) ParseGithubCallback(req *dto.OauthLoginCallbackReq, ctx *g
 
 func (*authService) GetGoogleLoginURL(ctx *gin.Context) (val string, err error) {
 	state := uuid.NewString()
-	if err = authCache.Set(state, &performance.Empty{}, performance.Second(time.Minute*5/time.Second)); err != nil {
+	if err = authCache.Set(state, &performance.Empty{}, time.Minute*5); err != nil {
 		return
 	}
 	val = googleOauth2Config.AuthCodeURL(state)

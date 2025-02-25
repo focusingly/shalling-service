@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"space-api/constants"
 	"space-api/dto"
 	"space-api/middleware/auth"
 	"space-api/util"
@@ -23,13 +22,13 @@ import (
 type postService struct {
 	searchService *_searchService
 	executor      gopool.Pool
-	visitCache    *performance.JsonCache
+	visitCache    performance.CacheGroupInf
 }
 
 var DefaultPostService = &postService{
 	searchService: DefaultGlobalSearchService,
 	executor:      performance.DefaultTaskRunner,
-	visitCache:    performance.NewCache(constants.MB * 4),
+	visitCache:    performance.DefaultJsonCache.Group("pv"),
 }
 
 // CreateOrUpdatePost 创建/更新文章, 取决于是否存在已有的文章
@@ -330,7 +329,7 @@ func (s *postService) GetCachedViewCountOrFallback(post *model.Post, isPubMode b
 	var err error = nil
 
 	if isPubMode {
-		getViews, err = s.visitCache.IncAndGet(key, 1, 0)
+		getViews, err = s.visitCache.IncrAndGet(key, 1, 0)
 	} else {
 		getViews, err = s.visitCache.GetInt64(key)
 	}

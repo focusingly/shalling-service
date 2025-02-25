@@ -9,7 +9,6 @@ import (
 	"os"
 	"path"
 	"space-api/conf"
-	"space-api/constants"
 	"space-api/util/performance"
 	"space-domain/dao/biz"
 	"strings"
@@ -19,7 +18,7 @@ import (
 )
 
 type _staticFileService struct {
-	cache *performance.JsonCache
+	cache performance.CacheGroupInf
 }
 
 const pubCacheControlExpired = time.Hour * 24 * 15
@@ -27,7 +26,7 @@ const adminCacheControlExpired = time.Minute * 1
 
 var (
 	DefaultStaticFileService = &_staticFileService{
-		cache: performance.NewCache(constants.MB * 4),
+		cache: performance.DefaultJsonCache.Group("static-file"),
 	}
 	// 公开静态资源缓存时间为 15 天
 	pubCacheControlHeader = fmt.Sprintf("public, max-age=%d, immutable", pubCacheControlExpired/time.Second)
@@ -37,7 +36,7 @@ var (
 	staticDirPrefix         = path.Clean(appConf.StaticDir)
 )
 
-func (s *_staticFileService) ExposeInnerCacher() *performance.JsonCache {
+func (s *_staticFileService) ExposeInnerCacher() performance.CacheGroupInf {
 	return s.cache
 }
 
@@ -57,7 +56,7 @@ func (s *_staticFileService) IsPubVisible(locationName string) bool {
 	if err != nil {
 		return false
 	} else {
-		s.cache.Set(locationName, &performance.Empty{}, performance.Second(pubCacheControlExpired))
+		s.cache.Set(locationName, &performance.Empty{}, pubCacheControlExpired)
 		return true
 	}
 }

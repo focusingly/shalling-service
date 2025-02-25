@@ -293,6 +293,31 @@ func GetBizMigrateTables() []any {
 	}
 }
 
+func GetGenShouldCreates() []any {
+	return []any{
+		new(LocalUser),
+		new(UserLoginSession),
+		new(OAuth2User),
+		new(Post),
+		new(Tag),
+		new(PostTagRelation),
+		new(S3ObjectRecord),
+		new(Category),
+		new(Comment),
+		new(PubSocialMedia),
+		new(CloudFn),
+		new(FileRecord),
+		new(MenuGroup),
+		new(MenuLink),
+		new(FriendLink),
+		new(BlockIPRecord),
+		new(ServiceConf),
+		new(UVStatistic),
+		new(CronJob),
+		new(Sqlite3KeywordDoc),
+	}
+}
+
 func GetExtraHelperMigrateTables() []any {
 	return []any{
 		new(LogInfo),

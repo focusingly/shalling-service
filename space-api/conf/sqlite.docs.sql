@@ -1,4 +1,4 @@
-CREATE VIRTUAL TABLE IF NOT EXISTS `keyword_docs` USING fts5 (
+CREATE VIRTUAL TABLE IF NOT EXISTS `sqlite3_keyword_docs` USING fts5 (
     -- 文章 ID, 后续返回依靠此字段
     `post_id`,
     -- 文章标题分词

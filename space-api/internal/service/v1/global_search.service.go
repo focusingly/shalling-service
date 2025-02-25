@@ -11,7 +11,6 @@ import (
 	"space-domain/dao/biz"
 	"space-domain/model"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/yanyiwu/gojieba"
@@ -36,41 +35,34 @@ func (s *_searchService) ExpireAllPostIndex(ctx context.Context) error {
 		Error
 }
 
-// ReleaseExtension 销毁分词器(注意: 销毁之后无法继续继续使用, 仅且应当用于当服务需要关闭的资源释放方操作)
-func (s *_searchService) ReleaseExtension() {
+// Free 销毁分词器(注意: 销毁之后无法继续继续使用, 仅且应当用于当服务需要关闭的资源释放方操作)
+func (s *_searchService) Free() {
 	s.cutter.Free()
 }
 
 // DeletePostSearchIndex 根据 ID 列表删除缓存
 func (s *_searchService) DeletePostSearchIndex(postIDList []int64, ctx context.Context) error {
-	return s.Table("keyword_docs").Transaction(func(tx *gorm.DB) error {
-		return tx.WithContext(ctx).
-			Where( /* sql */ `post_id in ?`, postIDList).
-			Delete(&model.Sqlite3KeywordDoc{}).
-			Error
+	return biz.Q.Transaction(func(tx *biz.Query) error {
+		docTx := tx.Sqlite3KeywordDoc
+		_, e := docTx.WithContext(ctx).Where(docTx.PostID.In(postIDList...)).Delete()
+		return e
 	})
 }
 
 func (s *_searchService) GetPostSearchIndexPages(req *dto.GetSearchIndexPagesReq, ctx context.Context) (resp *dto.GetSearchIndexPagesResp, err error) {
-	var total int64
-	// 计算记录数
-	err = s.Table("keyword_docs").WithContext(ctx).Count(&total).Error
+	docOP := biz.Sqlite3KeywordDoc
+
+	docs, count, err := docOP.WithContext(ctx).
+		Select(
+			docOP.PostID,
+			docOP.Weight,
+			docOP.PostUpdatedAt,
+			docOP.RecordCreatedAt,
+			docOP.RecordUpdatedAt,
+		).
+		FindByPage(req.Normalize())
 	if err != nil {
-		err = util.CreateBizErr("查询文章索引记录数失败", err)
-		return
-	}
-	docs := []*model.Sqlite3KeywordDoc{}
-	offset, limit := req.Normalize()
-	err = s.Table("keyword_docs").
-		WithContext(ctx).
-		Select( /* sql */ `post_id, weight, post_updated_at, record_created_at, record_updated_at`).
-		Order( /* sql */ `record_updated_at desc`).
-		Offset(offset).
-		Limit(limit).
-		Find(&docs).
-		Error
-	if err != nil {
-		err = util.CreateBizErr("查询文章索引记录分页失败", err)
+		err = util.CreateBizErr("查询文章分词分页失败", err)
 		return
 	}
 
@@ -79,7 +71,7 @@ func (s *_searchService) GetPostSearchIndexPages(req *dto.GetSearchIndexPagesReq
 			List:  docs,
 			Page:  int64(*req.Page),
 			Size:  int64(*req.Size),
-			Total: total,
+			Total: count,
 		},
 	}
 	return
@@ -130,18 +122,17 @@ func (s *_searchService) UpdatePostSearchIndex(post *model.Post) {
 
 	var postID int64
 	ctx := context.TODO()
-	tmpQuery := &model.Sqlite3KeywordDoc{}
 
-	s.Table("keyword_docs").Transaction(func(tx *gorm.DB) error {
-		e := tx.
-			Select("post_id").
-			Where( /* sql */ `post_id = ?`, post.ID).
-			Take(tmpQuery).Error
+	biz.Q.Transaction(func(tx *biz.Query) error {
+		docTx := tx.Sqlite3KeywordDoc
+		tmpQuery, e := docTx.WithContext(ctx).
+			Select(docTx.PostID).
+			Where(docTx.PostID.Eq(post.ID)).
+			Take()
 
-		now := time.Now().UnixMilli()
 		// 创建新记录
 		if e != nil {
-			return tx.WithContext(ctx).
+			return docTx.WithContext(ctx).
 				Create(&model.Sqlite3KeywordDoc{
 					PostID:       post.ID,
 					TileSplit:    titleBf.String(),
@@ -155,20 +146,17 @@ func (s *_searchService) UpdatePostSearchIndex(post *model.Post) {
 							return 0
 						},
 					),
-					PostUpdatedAt:   post.UpdatedAt,
-					RecordCreatedAt: now,
-					RecordUpdatedAt: now,
-				}).Error
+					PostUpdatedAt: post.UpdatedAt,
+				})
 		} else {
 			// 仅更新记录
 			postID = tmpQuery.PostID
-			return tx.WithContext(ctx).
-				Where( /* sql */ `post_id = ?`, postID).
+			_, e := docTx.WithContext(ctx).
+				Where(docTx.PostID.Eq(postID)).
 				Updates(&model.Sqlite3KeywordDoc{
 					PostID:       post.ID,
 					TileSplit:    titleBf.String(),
 					ContentSplit: contentBf.String(),
-					// Weight:          *ptr.Optional(post.Weight, ptr.ToPtr(0)),
 					Weight: util.TernaryExprWithProducer(
 						post.Weight != nil,
 						func() int {
@@ -178,12 +166,12 @@ func (s *_searchService) UpdatePostSearchIndex(post *model.Post) {
 							return 0
 						},
 					),
-					PostUpdatedAt:   post.UpdatedAt,
-					RecordCreatedAt: tmpQuery.RecordCreatedAt,
-					RecordUpdatedAt: now,
-				}).Error
+					PostUpdatedAt: post.UpdatedAt,
+				})
 
+			return e
 		}
+
 	})
 }
 

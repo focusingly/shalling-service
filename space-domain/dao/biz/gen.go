@@ -16,26 +16,27 @@ import (
 )
 
 var (
-	Q                = new(Query)
-	BlockIPRecord    *blockIPRecord
-	Category         *category
-	CloudFn          *cloudFn
-	Comment          *comment
-	CronJob          *cronJob
-	FileRecord       *fileRecord
-	FriendLink       *friendLink
-	LocalUser        *localUser
-	MenuGroup        *menuGroup
-	MenuLink         *menuLink
-	OAuth2User       *oAuth2User
-	Post             *post
-	PostTagRelation  *postTagRelation
-	PubSocialMedia   *pubSocialMedia
-	S3ObjectRecord   *s3ObjectRecord
-	ServiceConf      *serviceConf
-	Tag              *tag
-	UVStatistic      *uVStatistic
-	UserLoginSession *userLoginSession
+	Q                 = new(Query)
+	BlockIPRecord     *blockIPRecord
+	Category          *category
+	CloudFn           *cloudFn
+	Comment           *comment
+	CronJob           *cronJob
+	FileRecord        *fileRecord
+	FriendLink        *friendLink
+	LocalUser         *localUser
+	MenuGroup         *menuGroup
+	MenuLink          *menuLink
+	OAuth2User        *oAuth2User
+	Post              *post
+	PostTagRelation   *postTagRelation
+	PubSocialMedia    *pubSocialMedia
+	S3ObjectRecord    *s3ObjectRecord
+	ServiceConf       *serviceConf
+	Sqlite3KeywordDoc *sqlite3KeywordDoc
+	Tag               *tag
+	UVStatistic       *uVStatistic
+	UserLoginSession  *userLoginSession
 )
 
 func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
@@ -56,6 +57,7 @@ func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	PubSocialMedia = &Q.PubSocialMedia
 	S3ObjectRecord = &Q.S3ObjectRecord
 	ServiceConf = &Q.ServiceConf
+	Sqlite3KeywordDoc = &Q.Sqlite3KeywordDoc
 	Tag = &Q.Tag
 	UVStatistic = &Q.UVStatistic
 	UserLoginSession = &Q.UserLoginSession
@@ -63,77 +65,80 @@ func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 
 func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 	return &Query{
-		db:               db,
-		BlockIPRecord:    newBlockIPRecord(db, opts...),
-		Category:         newCategory(db, opts...),
-		CloudFn:          newCloudFn(db, opts...),
-		Comment:          newComment(db, opts...),
-		CronJob:          newCronJob(db, opts...),
-		FileRecord:       newFileRecord(db, opts...),
-		FriendLink:       newFriendLink(db, opts...),
-		LocalUser:        newLocalUser(db, opts...),
-		MenuGroup:        newMenuGroup(db, opts...),
-		MenuLink:         newMenuLink(db, opts...),
-		OAuth2User:       newOAuth2User(db, opts...),
-		Post:             newPost(db, opts...),
-		PostTagRelation:  newPostTagRelation(db, opts...),
-		PubSocialMedia:   newPubSocialMedia(db, opts...),
-		S3ObjectRecord:   newS3ObjectRecord(db, opts...),
-		ServiceConf:      newServiceConf(db, opts...),
-		Tag:              newTag(db, opts...),
-		UVStatistic:      newUVStatistic(db, opts...),
-		UserLoginSession: newUserLoginSession(db, opts...),
+		db:                db,
+		BlockIPRecord:     newBlockIPRecord(db, opts...),
+		Category:          newCategory(db, opts...),
+		CloudFn:           newCloudFn(db, opts...),
+		Comment:           newComment(db, opts...),
+		CronJob:           newCronJob(db, opts...),
+		FileRecord:        newFileRecord(db, opts...),
+		FriendLink:        newFriendLink(db, opts...),
+		LocalUser:         newLocalUser(db, opts...),
+		MenuGroup:         newMenuGroup(db, opts...),
+		MenuLink:          newMenuLink(db, opts...),
+		OAuth2User:        newOAuth2User(db, opts...),
+		Post:              newPost(db, opts...),
+		PostTagRelation:   newPostTagRelation(db, opts...),
+		PubSocialMedia:    newPubSocialMedia(db, opts...),
+		S3ObjectRecord:    newS3ObjectRecord(db, opts...),
+		ServiceConf:       newServiceConf(db, opts...),
+		Sqlite3KeywordDoc: newSqlite3KeywordDoc(db, opts...),
+		Tag:               newTag(db, opts...),
+		UVStatistic:       newUVStatistic(db, opts...),
+		UserLoginSession:  newUserLoginSession(db, opts...),
 	}
 }
 
 type Query struct {
 	db *gorm.DB
 
-	BlockIPRecord    blockIPRecord
-	Category         category
-	CloudFn          cloudFn
-	Comment          comment
-	CronJob          cronJob
-	FileRecord       fileRecord
-	FriendLink       friendLink
-	LocalUser        localUser
-	MenuGroup        menuGroup
-	MenuLink         menuLink
-	OAuth2User       oAuth2User
-	Post             post
-	PostTagRelation  postTagRelation
-	PubSocialMedia   pubSocialMedia
-	S3ObjectRecord   s3ObjectRecord
-	ServiceConf      serviceConf
-	Tag              tag
-	UVStatistic      uVStatistic
-	UserLoginSession userLoginSession
+	BlockIPRecord     blockIPRecord
+	Category          category
+	CloudFn           cloudFn
+	Comment           comment
+	CronJob           cronJob
+	FileRecord        fileRecord
+	FriendLink        friendLink
+	LocalUser         localUser
+	MenuGroup         menuGroup
+	MenuLink          menuLink
+	OAuth2User        oAuth2User
+	Post              post
+	PostTagRelation   postTagRelation
+	PubSocialMedia    pubSocialMedia
+	S3ObjectRecord    s3ObjectRecord
+	ServiceConf       serviceConf
+	Sqlite3KeywordDoc sqlite3KeywordDoc
+	Tag               tag
+	UVStatistic       uVStatistic
+	UserLoginSession  userLoginSession
 }
 
 func (q *Query) Available() bool { return q.db != nil }
 
 func (q *Query) clone(db *gorm.DB) *Query {
 	return &Query{
-		db:               db,
-		BlockIPRecord:    q.BlockIPRecord.clone(db),
-		Category:         q.Category.clone(db),
-		CloudFn:          q.CloudFn.clone(db),
-		Comment:          q.Comment.clone(db),
-		CronJob:          q.CronJob.clone(db),
-		FileRecord:       q.FileRecord.clone(db),
-		FriendLink:       q.FriendLink.clone(db),
-		LocalUser:        q.LocalUser.clone(db),
-		MenuGroup:        q.MenuGroup.clone(db),
-		MenuLink:         q.MenuLink.clone(db),
-		OAuth2User:       q.OAuth2User.clone(db),
-		Post:             q.Post.clone(db),
-		PostTagRelation:  q.PostTagRelation.clone(db),
-		PubSocialMedia:   q.PubSocialMedia.clone(db),
-		S3ObjectRecord:   q.S3ObjectRecord.clone(db),
-		ServiceConf:      q.ServiceConf.clone(db),
-		Tag:              q.Tag.clone(db),
-		UVStatistic:      q.UVStatistic.clone(db),
-		UserLoginSession: q.UserLoginSession.clone(db),
+		db:                db,
+		BlockIPRecord:     q.BlockIPRecord.clone(db),
+		Category:          q.Category.clone(db),
+		CloudFn:           q.CloudFn.clone(db),
+		Comment:           q.Comment.clone(db),
+		CronJob:           q.CronJob.clone(db),
+		FileRecord:        q.FileRecord.clone(db),
+		FriendLink:        q.FriendLink.clone(db),
+		LocalUser:         q.LocalUser.clone(db),
+		MenuGroup:         q.MenuGroup.clone(db),
+		MenuLink:          q.MenuLink.clone(db),
+		OAuth2User:        q.OAuth2User.clone(db),
+		Post:              q.Post.clone(db),
+		PostTagRelation:   q.PostTagRelation.clone(db),
+		PubSocialMedia:    q.PubSocialMedia.clone(db),
+		S3ObjectRecord:    q.S3ObjectRecord.clone(db),
+		ServiceConf:       q.ServiceConf.clone(db),
+		Sqlite3KeywordDoc: q.Sqlite3KeywordDoc.clone(db),
+		Tag:               q.Tag.clone(db),
+		UVStatistic:       q.UVStatistic.clone(db),
+		UserLoginSession:  q.UserLoginSession.clone(db),
 	}
 }
 
@@ -147,72 +152,75 @@ func (q *Query) WriteDB() *Query {
 
 func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 	return &Query{
-		db:               db,
-		BlockIPRecord:    q.BlockIPRecord.replaceDB(db),
-		Category:         q.Category.replaceDB(db),
-		CloudFn:          q.CloudFn.replaceDB(db),
-		Comment:          q.Comment.replaceDB(db),
-		CronJob:          q.CronJob.replaceDB(db),
-		FileRecord:       q.FileRecord.replaceDB(db),
-		FriendLink:       q.FriendLink.replaceDB(db),
-		LocalUser:        q.LocalUser.replaceDB(db),
-		MenuGroup:        q.MenuGroup.replaceDB(db),
-		MenuLink:         q.MenuLink.replaceDB(db),
-		OAuth2User:       q.OAuth2User.replaceDB(db),
-		Post:             q.Post.replaceDB(db),
-		PostTagRelation:  q.PostTagRelation.replaceDB(db),
-		PubSocialMedia:   q.PubSocialMedia.replaceDB(db),
-		S3ObjectRecord:   q.S3ObjectRecord.replaceDB(db),
-		ServiceConf:      q.ServiceConf.replaceDB(db),
-		Tag:              q.Tag.replaceDB(db),
-		UVStatistic:      q.UVStatistic.replaceDB(db),
-		UserLoginSession: q.UserLoginSession.replaceDB(db),
+		db:                db,
+		BlockIPRecord:     q.BlockIPRecord.replaceDB(db),
+		Category:          q.Category.replaceDB(db),
+		CloudFn:           q.CloudFn.replaceDB(db),
+		Comment:           q.Comment.replaceDB(db),
+		CronJob:           q.CronJob.replaceDB(db),
+		FileRecord:        q.FileRecord.replaceDB(db),
+		FriendLink:        q.FriendLink.replaceDB(db),
+		LocalUser:         q.LocalUser.replaceDB(db),
+		MenuGroup:         q.MenuGroup.replaceDB(db),
+		MenuLink:          q.MenuLink.replaceDB(db),
+		OAuth2User:        q.OAuth2User.replaceDB(db),
+		Post:              q.Post.replaceDB(db),
+		PostTagRelation:   q.PostTagRelation.replaceDB(db),
+		PubSocialMedia:    q.PubSocialMedia.replaceDB(db),
+		S3ObjectRecord:    q.S3ObjectRecord.replaceDB(db),
+		ServiceConf:       q.ServiceConf.replaceDB(db),
+		Sqlite3KeywordDoc: q.Sqlite3KeywordDoc.replaceDB(db),
+		Tag:               q.Tag.replaceDB(db),
+		UVStatistic:       q.UVStatistic.replaceDB(db),
+		UserLoginSession:  q.UserLoginSession.replaceDB(db),
 	}
 }
 
 type queryCtx struct {
-	BlockIPRecord    IBlockIPRecordDo
-	Category         ICategoryDo
-	CloudFn          ICloudFnDo
-	Comment          ICommentDo
-	CronJob          ICronJobDo
-	FileRecord       IFileRecordDo
-	FriendLink       IFriendLinkDo
-	LocalUser        ILocalUserDo
-	MenuGroup        IMenuGroupDo
-	MenuLink         IMenuLinkDo
-	OAuth2User       IOAuth2UserDo
-	Post             IPostDo
-	PostTagRelation  IPostTagRelationDo
-	PubSocialMedia   IPubSocialMediaDo
-	S3ObjectRecord   IS3ObjectRecordDo
-	ServiceConf      IServiceConfDo
-	Tag              ITagDo
-	UVStatistic      IUVStatisticDo
-	UserLoginSession IUserLoginSessionDo
+	BlockIPRecord     IBlockIPRecordDo
+	Category          ICategoryDo
+	CloudFn           ICloudFnDo
+	Comment           ICommentDo
+	CronJob           ICronJobDo
+	FileRecord        IFileRecordDo
+	FriendLink        IFriendLinkDo
+	LocalUser         ILocalUserDo
+	MenuGroup         IMenuGroupDo
+	MenuLink          IMenuLinkDo
+	OAuth2User        IOAuth2UserDo
+	Post              IPostDo
+	PostTagRelation   IPostTagRelationDo
+	PubSocialMedia    IPubSocialMediaDo
+	S3ObjectRecord    IS3ObjectRecordDo
+	ServiceConf       IServiceConfDo
+	Sqlite3KeywordDoc ISqlite3KeywordDocDo
+	Tag               ITagDo
+	UVStatistic       IUVStatisticDo
+	UserLoginSession  IUserLoginSessionDo
 }
 
 func (q *Query) WithContext(ctx context.Context) *queryCtx {
 	return &queryCtx{
-		BlockIPRecord:    q.BlockIPRecord.WithContext(ctx),
-		Category:         q.Category.WithContext(ctx),
-		CloudFn:          q.CloudFn.WithContext(ctx),
-		Comment:          q.Comment.WithContext(ctx),
-		CronJob:          q.CronJob.WithContext(ctx),
-		FileRecord:       q.FileRecord.WithContext(ctx),
-		FriendLink:       q.FriendLink.WithContext(ctx),
-		LocalUser:        q.LocalUser.WithContext(ctx),
-		MenuGroup:        q.MenuGroup.WithContext(ctx),
-		MenuLink:         q.MenuLink.WithContext(ctx),
-		OAuth2User:       q.OAuth2User.WithContext(ctx),
-		Post:             q.Post.WithContext(ctx),
-		PostTagRelation:  q.PostTagRelation.WithContext(ctx),
-		PubSocialMedia:   q.PubSocialMedia.WithContext(ctx),
-		S3ObjectRecord:   q.S3ObjectRecord.WithContext(ctx),
-		ServiceConf:      q.ServiceConf.WithContext(ctx),
-		Tag:              q.Tag.WithContext(ctx),
-		UVStatistic:      q.UVStatistic.WithContext(ctx),
-		UserLoginSession: q.UserLoginSession.WithContext(ctx),
+		BlockIPRecord:     q.BlockIPRecord.WithContext(ctx),
+		Category:          q.Category.WithContext(ctx),
+		CloudFn:           q.CloudFn.WithContext(ctx),
+		Comment:           q.Comment.WithContext(ctx),
+		CronJob:           q.CronJob.WithContext(ctx),
+		FileRecord:        q.FileRecord.WithContext(ctx),
+		FriendLink:        q.FriendLink.WithContext(ctx),
+		LocalUser:         q.LocalUser.WithContext(ctx),
+		MenuGroup:         q.MenuGroup.WithContext(ctx),
+		MenuLink:          q.MenuLink.WithContext(ctx),
+		OAuth2User:        q.OAuth2User.WithContext(ctx),
+		Post:              q.Post.WithContext(ctx),
+		PostTagRelation:   q.PostTagRelation.WithContext(ctx),
+		PubSocialMedia:    q.PubSocialMedia.WithContext(ctx),
+		S3ObjectRecord:    q.S3ObjectRecord.WithContext(ctx),
+		ServiceConf:       q.ServiceConf.WithContext(ctx),
+		Sqlite3KeywordDoc: q.Sqlite3KeywordDoc.WithContext(ctx),
+		Tag:               q.Tag.WithContext(ctx),
+		UVStatistic:       q.UVStatistic.WithContext(ctx),
+		UserLoginSession:  q.UserLoginSession.WithContext(ctx),
 	}
 }
 

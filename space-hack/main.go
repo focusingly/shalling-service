@@ -50,9 +50,8 @@ type Querier interface {
 
 func genBizCodes() {
 	db := db.GetBizDB()
+	bizTbs := model.GetGenShouldCreates()
 
-	bizTbs := model.GetBizMigrateTables()
-	db.AutoMigrate()
 	g := gen.NewGenerator(gen.Config{
 		OutPath:           "../space-domain/dao/biz",
 		OutFile:           "gen.go",

@@ -2,6 +2,7 @@ package auth
 
 import (
 	"fmt"
+	"space-api/conf"
 	"space-api/util"
 	"space-api/util/performance"
 	"space-api/util/verify"
@@ -17,20 +18,14 @@ import (
 
 const BearerAuthPrefix = "Bearer "
 
-var _jwtRandMark = uuid.NewString()
+var (
+	BaseVersion = conf.ProjectConf.GetAppConf().ApiPrefix
+	AdminPath   = BaseVersion + "/admin"
+	Client      = BaseVersion + "/client"
+	Common      = BaseVersion + "/common"
 
-var authSpaceCache = performance.DefaultJsonCache.Group("auth")
-
-func GetMiddlewareRelativeAuthCache() performance.CacheGroupInf {
-	return authSpaceCache
-}
-
-const (
-	BaseVersion = "/v1/api"
-
-	AdminPath = BaseVersion + "/admin"
-	Client    = BaseVersion + "/client"
-	Common    = BaseVersion + "/common"
+	_jwtRandMark   = uuid.NewString()
+	authSpaceCache = performance.DefaultJsonCache.Group("auth")
 )
 
 // UseJwtAuthExtractMiddleware 提取请求中 JWT 信息, 并设置到当前请求上下文当中
@@ -40,6 +35,10 @@ func UseJwtAuthExtractMiddleware() gin.HandlerFunc {
 
 		ctx.Next()
 	}
+}
+
+func GetMiddlewareRelativeAuthCache() performance.CacheGroupInf {
+	return authSpaceCache
 }
 
 // GetCurrentLoginSession 获取当前请求上下文中的用户登录信息
@@ -118,7 +117,7 @@ func loadTokenAndSetupContext(ctx *gin.Context) {
 		}
 
 		// 设置到缓存
-		authSpaceCache.Set(sessionID, findLoginSession, time.UnixMilli(findLoginSession.ExpiredAt).Sub(time.Now()))
+		authSpaceCache.Set(sessionID, findLoginSession, time.Until(time.UnixMilli(findLoginSession.ExpiredAt)))
 		//设置到上下文
 		ctx.Set(_jwtRandMark, findLoginSession)
 	}

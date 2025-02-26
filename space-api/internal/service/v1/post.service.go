@@ -87,6 +87,7 @@ func (s *postService) CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ctx *gi
 				UpVote:       req.UpVote,
 				DownVote:     req.DownVote,
 				AllowComment: req.AllowComment,
+				Lang:         req.Lang,
 			}
 			if err := postOp.WithContext(ctx).Create(t); err != nil {
 				return err
@@ -109,6 +110,7 @@ func (s *postService) CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ctx *gi
 				Weight:       req.Weight,
 				Views:        req.Views,
 				Snippet:      req.Snippet,
+				Lang:         req.Lang,
 				UpVote:       req.UpVote,
 				DownVote:     req.DownVote,
 				AllowComment: req.AllowComment,
@@ -126,6 +128,7 @@ func (s *postService) CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ctx *gi
 					postOp.WordCount,
 					postOp.ReadTime,
 					postOp.Category,
+					postOp.Lang,
 					postOp.Tags,
 					postOp.LastPubTime,
 					postOp.Weight,
@@ -283,6 +286,7 @@ func (s *postService) GetAllPostList(req *dto.GetPostPageListReq, ctx *gin.Conte
 			postOp.LastPubTime,
 			postOp.Weight,
 			postOp.Views,
+			postOp.Lang,
 			postOp.UpVote,
 			postOp.DownVote,
 			postOp.AllowComment,
@@ -363,6 +367,7 @@ func (s *postService) GetVisiblePostList(req *dto.GetPostPageListReq, ctx *gin.C
 			postOp.AuthorId,
 			// postOp.Content,
 			postOp.Snippet,
+			postOp.Lang,
 			postOp.WordCount,
 			postOp.ReadTime,
 			postOp.Category,
@@ -547,6 +552,7 @@ func (s *postService) GetVisiblePostsByTagName(req *dto.GetPostByTagNameReq, ctx
 			postOp.WordCount,
 			postOp.ReadTime,
 			postOp.Snippet,
+			postOp.Lang,
 			postOp.Category,
 			postOp.Tags,
 			postOp.LastPubTime,

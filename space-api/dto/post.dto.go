@@ -18,6 +18,7 @@ type (
 		Category        *string  `json:"category" yaml:"category" xml:"category" toml:"category"`
 		Tags            []string `json:"tags" yaml:"tags" xml:"tags" toml:"tags"`
 		Snippet         *string  `json:"snippet" yaml:"snippet" xml:"snippet" toml:"snippet"`
+		Lang            *string  `json:"lang" yaml:"lang" xml:"lang" toml:"lang"`
 		LastPubTime     *int64   `json:"lastPubTime" yaml:"lastPubTime" xml:"lastPubTime" toml:"lastPubTime"`
 		Weight          *int     `json:"weight" yaml:"weight" xml:"weight" toml:"weight"`
 		Views           *int64   `json:"views" yaml:"views" xml:"views" toml:"views"`

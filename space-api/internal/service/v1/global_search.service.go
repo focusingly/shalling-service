@@ -179,11 +179,12 @@ func (s *_searchService) UpdatePostSearchIndex(post *model.Post) {
 func (s *_searchService) SearchKeywordPages(req *dto.GlobalSearchReq, ctx *gin.Context) (resp *dto.GlobalSearchResp, err error) {
 	offset, limit := req.Normalize()
 	keyword := strings.TrimSpace(req.Keyword)
+	docOP := biz.Sqlite3KeywordDoc
 
 	var total int64
 	// 计算总条数
-	err = s.Table("keyword_docs").
-		WithContext(ctx).
+	err = docOP.WithContext(ctx).
+		UnderlyingDB().
 		Model(&model.Sqlite3KeywordDoc{}).
 		Where(`title_split MATCH ? or content_split MATCH ?`, keyword, keyword).
 		Count(&total).
@@ -194,8 +195,10 @@ func (s *_searchService) SearchKeywordPages(req *dto.GlobalSearchReq, ctx *gin.C
 	}
 
 	keywordMatches := []*model.Sqlite3KeywordDoc{}
+
 	// 查找相关记录
-	op := s.Table("keyword_docs").WithContext(ctx).
+	op := docOP.WithContext(ctx).
+		UnderlyingDB().
 		Select(`post_id`). // 只选择相关 ID
 		Where(`title_split MATCH ? or content_split MATCH ?`, keyword, keyword).
 		Order("weight desc, post_updated_at desc").

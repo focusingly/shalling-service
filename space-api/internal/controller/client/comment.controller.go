@@ -78,7 +78,8 @@ func UseCommentController(routeGroup *gin.RouterGroup) {
 
 	// 创建评论
 	{
-		limitCache := performance.DefaultJsonCache.Group("comment-limit")
+		limitCache := performance.DefaultJsonCache.Group("cmt-limit")
+
 		commentsGroup.POST("/",
 			func(ctx *gin.Context) {
 				// TODO 暂时仅限登录用户进行评论
@@ -90,7 +91,8 @@ func UseCommentController(routeGroup *gin.RouterGroup) {
 				}
 				// 限制非管理员的言论发表频率
 				if loginSession.UserType != constants.Admin {
-					if ttl, e := limitCache.GetTTL(fmt.Sprintf("%d", loginSession.ID)); e == nil {
+					key := fmt.Sprintf("%d", loginSession.ID)
+					if ttl, e := limitCache.GetTTL(key); e == nil {
 						ctx.Error(util.CreateLimitErr(
 							fmt.Sprintf("发言时间限制, 下一条评论发表时间 %d 秒后", ttl),
 							fmt.Errorf("post comment limit, left %d seconds", ttl)),
@@ -98,10 +100,17 @@ func UseCommentController(routeGroup *gin.RouterGroup) {
 						ctx.Abort()
 						return
 					}
-
 				}
 
 				ctx.Next()
+
+				if loginSession.UserType != constants.Admin {
+					// 设置标记, 限制非管理员评论速率, 一分钟一条
+					limitCache.Set(
+						fmt.Sprintf("%d", loginSession.ID),
+						&performance.Empty{}, time.Second,
+					)
+				}
 			},
 			func(ctx *gin.Context) {
 				req := &dto.CreateCommentReq{}
@@ -113,15 +122,6 @@ func UseCommentController(routeGroup *gin.RouterGroup) {
 					ctx.Error(err)
 				} else {
 					outbound.NotifyProduceResponse(resp, ctx)
-					loginSession, _ := auth.GetCurrentLoginSession(ctx)
-
-					// 设置标记, 限制非管理员评论速率, 一分钟一条
-					if loginSession.UserType != constants.Admin {
-						limitCache.Set(
-							fmt.Sprintf("%d", loginSession.ID),
-							&performance.Empty{}, time.Second,
-						)
-					}
 				}
 			})
 	}

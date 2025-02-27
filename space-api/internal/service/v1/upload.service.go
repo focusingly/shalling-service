@@ -18,7 +18,6 @@ import (
 	"space-api/middleware/inbound"
 	"space-api/util"
 	"space-api/util/id"
-	"space-api/util/performance"
 	"space-domain/dao/biz"
 	"space-domain/model"
 	"strconv"
@@ -163,9 +162,6 @@ func (d *_localUploadService) Upload(ctx *gin.Context, maxSize ...constants.Memo
 	return
 }
 
-// 设置图象转码任务的并行度, 防止 webp 转码耗 CPU
-var _jobParallelControl = make(chan performance.Empty, 1)
-
 // UploadImage2Webp 上传图片并转码为 webp 格式
 func (d *_localUploadService) UploadImage2Webp(ctx *gin.Context, maxSize ...constants.MemoryByteSize) (resp *model.FileRecord, err error) {
 	i := len(maxSize)
@@ -183,12 +179,6 @@ func (d *_localUploadService) UploadImage2Webp(ctx *gin.Context, maxSize ...cons
 		)
 		return
 	}
-
-	// 令牌机制用于控制并行的图片处理
-	_jobParallelControl <- performance.Empty{}
-	defer func() {
-		<-_jobParallelControl
-	}()
 
 	formPartFile, e := ctx.FormFile("file")
 	if e != nil {

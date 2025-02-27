@@ -4,6 +4,7 @@ import (
 	"space-api/constants"
 	"space-api/internal/service/v1"
 	"space-api/middleware/outbound"
+	"space-api/util/performance"
 
 	"github.com/gin-gonic/gin"
 )
@@ -22,13 +23,25 @@ func UseUploadController(group *gin.RouterGroup) {
 		}
 	})
 
-	// 上传图片文件并转码为 webp
-	uploadGroup.POST("/webp", func(ctx *gin.Context) {
-		if resp, err := uploadService.UploadImage2Webp(ctx); err != nil {
-			ctx.Error(err)
-		} else {
-			outbound.NotifyProduceResponse(resp, ctx)
-		}
-	})
+	{
+		// 设置图象转码任务的并行度, 防止 webp 转码过度消耗 CPU
+		tokenLimitChan := make(chan performance.Empty, 1)
 
+		// 上传图片文件并转码为 webp
+		uploadGroup.POST("/webp",
+			func(ctx *gin.Context) {
+				tokenLimitChan <- performance.Empty{}
+				defer func() {
+					<-tokenLimitChan
+				}()
+				ctx.Next()
+			},
+			func(ctx *gin.Context) {
+				if resp, err := uploadService.UploadImage2Webp(ctx); err != nil {
+					ctx.Error(err)
+				} else {
+					outbound.NotifyProduceResponse(resp, ctx)
+				}
+			})
+	}
 }

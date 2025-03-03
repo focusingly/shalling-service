@@ -9,21 +9,24 @@ import (
 	"github.com/google/uuid"
 )
 
-var _restInjectMarkKey = "rest:" + uuid.NewString()
+var restInjectMarkKey = "rest:" + uuid.NewString()
 
 func UseRestProduceHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		ctx.Next()
-		if val, ok := ctx.Get(_restInjectMarkKey); ok {
-			code := http.StatusOK
-			handleProduce(code, rest.RestWithSuccess(val), ctx)
+		if val, ok := ctx.Get(restInjectMarkKey); ok {
+			handleProduce(
+				http.StatusOK,
+				rest.RestWithSuccess(val),
+				ctx,
+			)
 		}
 	}
 }
 
 // NotifyProduceResponse 将要返回给客户端的值注到 gin 的上下文当中, 供注册的中间件统一处理返回
 func NotifyProduceResponse[T any](val T, ctx *gin.Context) {
-	ctx.Set(_restInjectMarkKey, val)
+	ctx.Set(restInjectMarkKey, val)
 }
 
 // 根据请求头的 Accept 返回给客户端指定的值, 如果没找到匹配项, 那么默认返回 json

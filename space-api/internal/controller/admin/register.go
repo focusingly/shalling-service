@@ -24,6 +24,7 @@ func RegisterAllAdminControllers(group *gin.RouterGroup) {
 	UseLogController(adminGroup)
 	UseUploadController(adminGroup)
 	UseBlockingIPController(adminGroup)
+	UseNftController(adminGroup)
 	UseMailController(adminGroup)
 	UseS3Controller(adminGroup)
 	UseUVController(adminGroup)

@@ -19,3 +19,14 @@ func FilterSlice[T any](source []T, filterFunc func(current T, index int) bool) 
 
 	return
 }
+
+func Compress[T any, E ~[]T](arr E, containFunc func(T, E) bool) E {
+	newPack := []T{}
+	for _, val := range arr {
+		if !containFunc(val, newPack) {
+			newPack = append(newPack, val)
+		}
+	}
+
+	return newPack
+}

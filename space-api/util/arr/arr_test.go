@@ -21,14 +21,8 @@ func TestArrFunc(t *testing.T) {
 		{0},
 	}
 
-	compact1 := arr.Compress(arr1, func(v k, dstArr []k) bool {
-		for _, t := range dstArr {
-			if t.val == v.val {
-				return true
-			}
-		}
-
-		return false
+	compact1 := arr.Compress(arr1, func(v1, v2 k) bool {
+		return v1.val == v2.val
 	})
 
 	assert.Equal(t, compact1, []k{

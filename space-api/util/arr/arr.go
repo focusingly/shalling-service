@@ -20,13 +20,26 @@ func FilterSlice[T any](source []T, filterFunc func(current T, index int) bool) 
 	return
 }
 
-func Compress[T any, E ~[]T](arr E, containFunc func(T, E) bool) E {
-	newPack := []T{}
-	for _, val := range arr {
-		if !containFunc(val, newPack) {
-			newPack = append(newPack, val)
+func Compress[T any, E ~[]T](src E, eqFn func(current, receive T) bool) E {
+	ret := []T{}
+
+	for inputIndex := range src {
+		if inputIndex < 1 {
+			ret = append(ret, src[inputIndex])
+		} else {
+			exists := false
+			for currentIndex := range ret {
+				current, cmp := ret[currentIndex], src[inputIndex]
+				if eqFn(current, cmp) {
+					exists = true
+					break
+				}
+			}
+			if !exists {
+				ret = append(ret, src[inputIndex])
+			}
 		}
 	}
 
-	return newPack
+	return ret
 }

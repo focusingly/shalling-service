@@ -9,7 +9,6 @@ import (
 	"space-api/conf"
 	"space-api/constants"
 	"space-api/dto"
-	"space-api/middleware/auth"
 	"space-api/middleware/inbound"
 	"space-api/util"
 	"space-api/util/arr"
@@ -80,24 +79,40 @@ type (
 var (
 	githubOauth2Config, googleOauth2Config *oauth2.Config
 	// 本地缓存空间
-	authCache = auth.GetMiddlewareRelativeAuthCache()
+	authCache = inbound.GetMiddlewareRelativeAuthCache()
 	_jwtConf  = conf.ProjectConf.GetJwtConf()
 	_appConf  = conf.ProjectConf.GetAppConf()
 )
 
 type (
-	authService struct {
+	IAuthService interface {
+		AdminLogin(req *dto.AdminLoginReq, ctx *gin.Context) (resp *dto.AdminLoginResp, err error)
+		HandleOauthLogin(req *dto.OauthLoginCallbackReq, ctx *gin.Context) (resp *dto.OauthLoginCallbackResp, err error)
+		GetOauth2LoginGrantURL(req *dto.GetLoginURLReq, ctx *gin.Context) (resp dto.GetLoginURLResp, err error)
+		ParseGithubCallback(req *dto.OauthLoginCallbackReq, ctx *gin.Context) (resp *model.OAuth2User, err error)
+		GetGoogleLoginURL(ctx *gin.Context) (val string, err error)
+		ParseGoogleCallback(req *dto.OauthLoginCallbackReq, ctx *gin.Context) (resp *model.OAuth2User, err error)
+		GetRefreshOauth2Data(user *model.OAuth2User, ctx context.Context) (resp *model.OAuth2User, err error)
+		GetGithubUserProfile(authClient *http.Client) (resp *OauthBasicUserProfile, err error)
+		GetGoogleUserProfile(authClient *http.Client) (resp *OauthBasicUserProfile, err error)
+		CurrentUserLogout(ctx *gin.Context) (resp *performance.Empty, err error)
+	}
+	authServiceImpl struct {
+	}
+
+	boData struct {
+		UserID   int64
+		UserType string
 	}
 )
 
-var DefaultAuthService = &authService{}
+var (
+	_ IAuthService = (*authServiceImpl)(nil)
 
-type boData struct {
-	UserID   int64
-	UserType string
-}
+	DefaultAuthService IAuthService = &authServiceImpl{}
+)
 
-func (s *authService) updateUserLoginSession(user *boData, bizTx *biz.Query, ctx *gin.Context) (resp *model.UserLoginSession, err error) {
+func (s *authServiceImpl) updateUserLoginSession(user *boData, bizTx *biz.Query, ctx *gin.Context) (resp *model.UserLoginSession, err error) {
 	err = bizTx.Transaction(func(tx *biz.Query) error {
 		loginSessionTx := tx.UserLoginSession
 		// 获取用户所有已经登录的会话信息
@@ -175,7 +190,7 @@ func (s *authService) updateUserLoginSession(user *boData, bizTx *biz.Query, ctx
 		// set value
 		resp = newLoginSession
 		// 更新缓存中的数据
-		cacheSpace := auth.GetMiddlewareRelativeAuthCache()
+		cacheSpace := inbound.GetMiddlewareRelativeAuthCache()
 		// 删除已经登录的会话信息
 		for _, u := range existsSessions {
 			cacheSpace.Delete(fmt.Sprintf("%d", u.ID))
@@ -198,7 +213,7 @@ func (s *authService) updateUserLoginSession(user *boData, bizTx *biz.Query, ctx
 }
 
 // AdminLogin 后台管理员登录
-func (s *authService) AdminLogin(req *dto.AdminLoginReq, ctx *gin.Context) (resp *dto.AdminLoginResp, err error) {
+func (s *authServiceImpl) AdminLogin(req *dto.AdminLoginReq, ctx *gin.Context) (resp *dto.AdminLoginResp, err error) {
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		localUserTx := tx.LocalUser
 
@@ -245,7 +260,7 @@ func (s *authService) AdminLogin(req *dto.AdminLoginReq, ctx *gin.Context) (resp
 }
 
 // HandleOauthLogin 处理 Oauth2 登录
-func (s *authService) HandleOauthLogin(req *dto.OauthLoginCallbackReq, ctx *gin.Context) (resp *dto.OauthLoginCallbackResp, err error) {
+func (s *authServiceImpl) HandleOauthLogin(req *dto.OauthLoginCallbackReq, ctx *gin.Context) (resp *dto.OauthLoginCallbackResp, err error) {
 	var parsed *model.OAuth2User
 	var e error
 	switch req.Platform {
@@ -363,7 +378,7 @@ func (s *authService) HandleOauthLogin(req *dto.OauthLoginCallbackReq, ctx *gin.
 	return
 }
 
-func (*authService) GetOauth2LoginGrantURL(req *dto.GetLoginURLReq, ctx *gin.Context) (resp dto.GetLoginURLResp, err error) {
+func (*authServiceImpl) GetOauth2LoginGrantURL(req *dto.GetLoginURLReq, ctx *gin.Context) (resp dto.GetLoginURLResp, err error) {
 	state := uuid.NewString()
 
 	// 设置过期时间
@@ -388,7 +403,7 @@ func (*authService) GetOauth2LoginGrantURL(req *dto.GetLoginURLReq, ctx *gin.Con
 	return
 }
 
-func (s *authService) ParseGithubCallback(req *dto.OauthLoginCallbackReq, ctx *gin.Context) (resp *model.OAuth2User, err error) {
+func (s *authServiceImpl) ParseGithubCallback(req *dto.OauthLoginCallbackReq, ctx *gin.Context) (resp *model.OAuth2User, err error) {
 	// 判断授权码
 	if req.GrantCode == "" || req.State == "" {
 		err = util.CreateAuthErr(
@@ -435,7 +450,7 @@ func (s *authService) ParseGithubCallback(req *dto.OauthLoginCallbackReq, ctx *g
 	return
 }
 
-func (*authService) GetGoogleLoginURL(ctx *gin.Context) (val string, err error) {
+func (*authServiceImpl) GetGoogleLoginURL(ctx *gin.Context) (val string, err error) {
 	state := uuid.NewString()
 	if err = authCache.Set(state, &performance.Empty{}, time.Minute*5); err != nil {
 		return
@@ -444,7 +459,7 @@ func (*authService) GetGoogleLoginURL(ctx *gin.Context) (val string, err error) 
 	return
 }
 
-func (s *authService) ParseGoogleCallback(req *dto.OauthLoginCallbackReq, ctx *gin.Context) (resp *model.OAuth2User, err error) {
+func (s *authServiceImpl) ParseGoogleCallback(req *dto.OauthLoginCallbackReq, ctx *gin.Context) (resp *model.OAuth2User, err error) {
 	// 基本校验
 	if req.GrantCode == "" || req.State == "" {
 		err = util.CreateAuthErr(
@@ -495,7 +510,7 @@ func (s *authService) ParseGoogleCallback(req *dto.OauthLoginCallbackReq, ctx *g
 }
 
 // GetRefreshOauth2Data 获取新的用户凭据
-func (s *authService) GetRefreshOauth2Data(user *model.OAuth2User, ctx context.Context) (resp *model.OAuth2User, err error) {
+func (s *authServiceImpl) GetRefreshOauth2Data(user *model.OAuth2User, ctx context.Context) (resp *model.OAuth2User, err error) {
 	var userProfile *OauthBasicUserProfile
 	var newToken oauth2.Token
 
@@ -566,7 +581,7 @@ type OauthBasicUserProfile struct {
 	AvatarURL    *string
 }
 
-func (s *authService) GetGithubUserProfile(authClient *http.Client) (resp *OauthBasicUserProfile, err error) {
+func (s *authServiceImpl) GetGithubUserProfile(authClient *http.Client) (resp *OauthBasicUserProfile, err error) {
 	var group errgroup.Group
 	var primaryEmail string
 	githubPubDetail := &GithubPub{}
@@ -645,7 +660,7 @@ func (s *authService) GetGithubUserProfile(authClient *http.Client) (resp *Oauth
 
 }
 
-func (s *authService) GetGoogleUserProfile(authClient *http.Client) (resp *OauthBasicUserProfile, err error) {
+func (s *authServiceImpl) GetGoogleUserProfile(authClient *http.Client) (resp *OauthBasicUserProfile, err error) {
 	res, err := authClient.Get("https://www.googleapis.com/oauth2/v2/userinfo")
 	if err != nil || res.Body == nil {
 		err = util.CreateBizErr(
@@ -676,8 +691,8 @@ func (s *authService) GetGoogleUserProfile(authClient *http.Client) (resp *Oauth
 }
 
 // CurrentUserLogout 当前已登录的用户退出登录(根据请求头中携带的 Bearer Token 判断)
-func (*authService) CurrentUserLogout(ctx *gin.Context) (resp *performance.Empty, err error) {
-	exitsSession, e := auth.GetCurrentLoginSession(ctx)
+func (*authServiceImpl) CurrentUserLogout(ctx *gin.Context) (resp *performance.Empty, err error) {
+	exitsSession, e := inbound.GetCurrentLoginSession(ctx)
 	if e != nil {
 		err = util.CreateAuthErr("无效凭据", e)
 		return
@@ -691,7 +706,7 @@ func (*authService) CurrentUserLogout(ctx *gin.Context) (resp *performance.Empty
 		}
 
 		// expire user
-		auth.GetMiddlewareRelativeAuthCache().Delete(fmt.Sprintf("%d", exitsSession.ID))
+		inbound.GetMiddlewareRelativeAuthCache().Delete(fmt.Sprintf("%d", exitsSession.ID))
 		return nil
 	})
 

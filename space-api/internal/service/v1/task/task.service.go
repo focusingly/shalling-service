@@ -17,20 +17,31 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
-type taskService struct {
-	mu       sync.Mutex
-	initDone bool
-}
-
-var DefaultTaskService = &taskService{}
+type (
+	ITaskService interface {
+		ResumeTasksFromPersistData() (err error)
+		GetAvailableJobList(req *dto.GetAvailableJobListReq, ctx *gin.Context) (resp *dto.GetAvailableJobListResp, err error)
+		CreateOrUpdateNewJob(req *dto.CreateOrUpdateJobReq, ctx *gin.Context) (resp *dto.CreateOrUpdateJobResp, err error)
+		RunJobImmediately(req *dto.RunJobReq, ctx *gin.Context) (resp *dto.RunJobResp, err error)
+		GetRunningJobs(req *dto.GetRunningJobListReq, ctx *gin.Context) (resp *dto.GetRunningJobListResp, err error)
+		DeleteRunningJobs(req *dto.DeleteRunningJobListReq, ctx *gin.Context) (resp *dto.DeleteRunningJobListResp, err error)
+	}
+	taskServiceImpl struct {
+		mu       sync.Mutex
+		initDone bool
+	}
+)
 
 var (
-	singleScheduler = cron.New()
-	memTaskRecords  = &taskMemRecord{}
+	_ ITaskService = (*taskServiceImpl)(nil)
+
+	singleScheduler                 = cron.New()
+	memTaskRecords                  = &taskMemRecord{}
+	DefaultTaskService ITaskService = &taskServiceImpl{}
 )
 
 // ResumeTasksFromPersistData 从数据库中恢复执行, 如果已经执行过了, 那么会直接返回
-func (s *taskService) ResumeTasksFromPersistData() (err error) {
+func (s *taskServiceImpl) ResumeTasksFromPersistData() (err error) {
 	if s.initDone {
 		return
 	}
@@ -69,7 +80,7 @@ func (s *taskService) ResumeTasksFromPersistData() (err error) {
 	return
 }
 
-func (*taskService) GetAvailableJobList(req *dto.GetAvailableJobListReq, ctx *gin.Context) (resp *dto.GetAvailableJobListResp, err error) {
+func (*taskServiceImpl) GetAvailableJobList(req *dto.GetAvailableJobListReq, ctx *gin.Context) (resp *dto.GetAvailableJobListResp, err error) {
 	return &dto.GetAvailableJobListResp{
 		List: arr.MapSlice(RegisterJobs, func(_ int, job *customTask) *dto.RegisteredJob {
 			return &dto.RegisteredJob{
@@ -80,7 +91,7 @@ func (*taskService) GetAvailableJobList(req *dto.GetAvailableJobListReq, ctx *gi
 	}, nil
 }
 
-func (*taskService) CreateOrUpdateNewJob(req *dto.CreateOrUpdateJobReq, ctx *gin.Context) (resp *dto.CreateOrUpdateJobResp, err error) {
+func (*taskServiceImpl) CreateOrUpdateNewJob(req *dto.CreateOrUpdateJobReq, ctx *gin.Context) (resp *dto.CreateOrUpdateJobResp, err error) {
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		// 加锁操作
 		memTaskRecords.Lock()
@@ -221,7 +232,7 @@ func (*taskService) CreateOrUpdateNewJob(req *dto.CreateOrUpdateJobReq, ctx *gin
 }
 
 // 立马执行任务
-func (*taskService) RunJobImmediately(req *dto.RunJobReq, ctx *gin.Context) (resp *dto.RunJobResp, err error) {
+func (*taskServiceImpl) RunJobImmediately(req *dto.RunJobReq, ctx *gin.Context) (resp *dto.RunJobResp, err error) {
 	// 上锁
 	memTaskRecords.Lock()
 	defer memTaskRecords.Unlock()
@@ -261,7 +272,7 @@ func (*taskService) RunJobImmediately(req *dto.RunJobReq, ctx *gin.Context) (res
 }
 
 // 获取已经添加到数据库中的任务列表
-func (*taskService) GetRunningJobs(req *dto.GetRunningJobListReq, ctx *gin.Context) (resp *dto.GetRunningJobListResp, err error) {
+func (*taskServiceImpl) GetRunningJobs(req *dto.GetRunningJobListReq, ctx *gin.Context) (resp *dto.GetRunningJobListResp, err error) {
 	list, err := biz.CronJob.WithContext(ctx).Find()
 	if err != nil {
 		err = util.CreateBizErr("查询任务列表失败", err)
@@ -274,7 +285,7 @@ func (*taskService) GetRunningJobs(req *dto.GetRunningJobListReq, ctx *gin.Conte
 }
 
 // 获取已经添加到数据库中的任务列表
-func (*taskService) DeleteRunningJobs(req *dto.DeleteRunningJobListReq, ctx *gin.Context) (resp *dto.DeleteRunningJobListResp, err error) {
+func (*taskServiceImpl) DeleteRunningJobs(req *dto.DeleteRunningJobListReq, ctx *gin.Context) (resp *dto.DeleteRunningJobListResp, err error) {
 	err = extra.Q.Transaction(func(tx *extra.Query) error {
 		// 加锁操作
 		memTaskRecords.Lock()

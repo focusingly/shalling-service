@@ -26,14 +26,26 @@ import (
 )
 
 type (
-	_s3Service struct {
+	IS3Service interface {
+		CreateBucketByName(bucketName string, ctx context.Context) (err error)
+		EnsureBucketExists(bucketName string, ctx context.Context) error
+		SyncToDatabase(req *dto.SyncS3RecordToDatabaseReq, ctx context.Context) (resp *dto.SyncToDatabaseResp, err error)
+		GetBucketDetailPages(req *dto.GetS3ObjectPagesReq, ctx context.Context) (resp *dto.GetS3ObjectPagesResp, err error)
+		DeleteS3Object(req *dto.DeleteS3ObjectPagesReq, ctx context.Context) (resp *dto.DeleteS3ObjectPagesResp, err error)
+		GetClientDirectUploadURL(req *dto.GetUploadObjectURLReq, ctx context.Context) (resp *dto.GetUploadObjectURLResp, err error)
+	}
+	s3ServiceImpl struct {
 		*s3.Client
 		presignClient *s3.PresignClient
 		s3Conf        *conf.S3Conf
 	}
 )
 
-var DefaultS3Service *_s3Service
+var (
+	_ IS3Service = (*s3ServiceImpl)(nil)
+
+	DefaultS3Service IS3Service
+)
 
 func init() {
 	s3Conf := conf.ProjectConf.GetS3Conf()
@@ -58,14 +70,14 @@ func init() {
 	client := s3.NewFromConfig(cfg, func(o *s3.Options) {
 		o.BaseEndpoint = aws.String(s3Conf.EndPoint)
 	})
-	DefaultS3Service = &_s3Service{
+	DefaultS3Service = &s3ServiceImpl{
 		Client:        client,
 		presignClient: s3.NewPresignClient(client),
 		s3Conf:        s3Conf,
 	}
 }
 
-func (s *_s3Service) CreateBucketByName(bucketName string, ctx context.Context) (err error) {
+func (s *s3ServiceImpl) CreateBucketByName(bucketName string, ctx context.Context) (err error) {
 	_, err = s.CreateBucket(ctx, &s3.CreateBucketInput{
 		Bucket: aws.String(bucketName),
 	})
@@ -77,7 +89,7 @@ func (s *_s3Service) CreateBucketByName(bucketName string, ctx context.Context) 
 	return
 }
 
-func (s *_s3Service) EnsureBucketExists(bucketName string, ctx context.Context) error {
+func (s *s3ServiceImpl) EnsureBucketExists(bucketName string, ctx context.Context) error {
 	s3Op := biz.S3ObjectRecord
 	_, err := s3Op.WithContext(ctx).
 		Where(s3Op.BucketName.Eq(bucketName)).
@@ -93,7 +105,7 @@ func (s *_s3Service) EnsureBucketExists(bucketName string, ctx context.Context) 
 	return nil
 }
 
-func (s *_s3Service) SyncToDatabase(req *dto.SyncS3RecordToDatabaseReq, ctx context.Context) (resp *dto.SyncToDatabaseResp, err error) {
+func (s *s3ServiceImpl) SyncToDatabase(req *dto.SyncS3RecordToDatabaseReq, ctx context.Context) (resp *dto.SyncToDatabaseResp, err error) {
 	objInfo, err := s.HeadObject(ctx, &s3.HeadObjectInput{
 		Bucket: aws.String(req.BucketName),
 		Key:    aws.String(req.ObjectKey),
@@ -167,7 +179,7 @@ func (s *_s3Service) SyncToDatabase(req *dto.SyncS3RecordToDatabaseReq, ctx cont
 
 }
 
-func (s *_s3Service) GetBucketDetailPages(req *dto.GetS3ObjectPagesReq, ctx context.Context) (resp *dto.GetS3ObjectPagesResp, err error) {
+func (s *s3ServiceImpl) GetBucketDetailPages(req *dto.GetS3ObjectPagesReq, ctx context.Context) (resp *dto.GetS3ObjectPagesResp, err error) {
 	s3Op := biz.S3ObjectRecord
 	condList := []gen.Condition{}
 	tableName := s3Op.TableName()
@@ -210,7 +222,7 @@ func (s *_s3Service) GetBucketDetailPages(req *dto.GetS3ObjectPagesReq, ctx cont
 	return
 }
 
-func (s *_s3Service) DeleteS3Object(req *dto.DeleteS3ObjectPagesReq, ctx context.Context) (resp *dto.DeleteS3ObjectPagesResp, err error) {
+func (s *s3ServiceImpl) DeleteS3Object(req *dto.DeleteS3ObjectPagesReq, ctx context.Context) (resp *dto.DeleteS3ObjectPagesResp, err error) {
 	removeList := []*model.S3ObjectRecord{}
 
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
@@ -261,7 +273,7 @@ func (s *_s3Service) DeleteS3Object(req *dto.DeleteS3ObjectPagesReq, ctx context
 }
 
 // GetClientDirectUploadURL 获取客户端链的直传链接
-func (s *_s3Service) GetClientDirectUploadURL(req *dto.GetUploadObjectURLReq, ctx context.Context) (resp *dto.GetUploadObjectURLResp, err error) {
+func (s *s3ServiceImpl) GetClientDirectUploadURL(req *dto.GetUploadObjectURLReq, ctx context.Context) (resp *dto.GetUploadObjectURLResp, err error) {
 	exp := time.Minute * 3
 
 	err = s.EnsureBucketExists(req.Bucket, ctx)

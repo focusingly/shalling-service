@@ -11,12 +11,21 @@ import (
 	"github.com/cloudflare/cloudflare-go/v3/shared"
 )
 
-type _clfService struct {
-	*cloudflare.Client
-	clfConf *conf.CloudflareConf
-}
+type (
+	IClfService interface {
+		GetExistsCost(ctx context.Context) (subs []*shared.Subscription, err error)
+	}
+	clfServiceImpl struct {
+		*cloudflare.Client
+		clfConf *conf.CloudflareConf
+	}
+)
 
-var DefaultCloudflareService *_clfService
+var (
+	_ IClfService = (*clfServiceImpl)(nil)
+
+	DefaultCloudflareService IClfService
+)
 
 func init() {
 	clfConf := conf.ProjectConf.GetCloudflareConf()
@@ -27,14 +36,14 @@ func init() {
 		option.WithAPIKey(clfConf.ApiKey),  // defaults to os.LookupEnv("CLOUDFLARE_API_KEY")
 		option.WithAPIEmail(clfConf.Email), // defaults to os.LookupEnv("CLOUDFLARE_EMAIL")
 	)
-	DefaultCloudflareService = &_clfService{
+	DefaultCloudflareService = &clfServiceImpl{
 		clfConf: clfConf,
 		Client:  client,
 	}
 }
 
 // GetExistsCost 返回所有已经产生了费用的项目
-func (s *_clfService) GetExistsCost(ctx context.Context) (subs []*shared.Subscription, err error) {
+func (s *clfServiceImpl) GetExistsCost(ctx context.Context) (subs []*shared.Subscription, err error) {
 	list, err := s.Accounts.
 		Subscriptions.
 		Get(ctx, accounts.SubscriptionGetParams{

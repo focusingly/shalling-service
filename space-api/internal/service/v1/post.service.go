@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"slices"
 	"space-api/dto"
-	"space-api/middleware/auth"
+	"space-api/middleware/inbound"
 	"space-api/util"
 	"space-api/util/arr"
 	"space-api/util/id"
@@ -19,20 +19,39 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type postService struct {
-	searchService *_searchService
-	executor      gopool.Pool
-	visitCache    performance.CacheGroupInf
-}
+type (
+	IPostsService interface {
+		CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.Context) (resp *dto.UpdateOrCreatePostResp, err error)
+		GetAllPostList(req *dto.GetPostPageListReq, ctx *gin.Context) (resp *dto.GetPostPageListResp, err error)
+		GetCachedViewCountOrFallback(post *model.Post, isPubMode bool) int64
+		GetVisiblePostList(req *dto.GetPostPageListReq, ctx *gin.Context) (resp *dto.GetPostPageListResp, err error)
+		GetPostById(req *dto.GetPostDetailReq, ctx *gin.Context) (resp *dto.GetPostDetailResp, err error)
+		SyncAllPostViews(ctx context.Context) (err error)
+		ClearPostsViewsCache()
+		ExpirePubViewsCacheByID(postID int64)
+		GetVisiblePostById(req *dto.GetPostDetailReq, ctx *gin.Context) (resp *dto.GetPostDetailResp, err error)
+		DeletePostByIdList(req *dto.DeletePostByIdListReq, ctx *gin.Context) (resp *dto.DeletePostByIdListResp, err error)
+		GetVisiblePostsByTagName(req *dto.GetPostByTagNameReq, ctx *gin.Context) (resp *dto.GetPostByTagNameResp, err error)
+	}
+	postsServiceImpl struct {
+		searchService *searchServiceImpl
+		executor      gopool.Pool
+		visitCache    performance.CacheGroupInf
+	}
+)
 
-var DefaultPostService = &postService{
-	searchService: DefaultGlobalSearchService,
-	executor:      performance.DefaultTaskRunner,
-	visitCache:    performance.DefaultJsonCache.Group("pv"),
-}
+var (
+	_ IPostsService = (*postsServiceImpl)(nil)
+
+	DefaultPostService IPostsService = &postsServiceImpl{
+		searchService: DefaultGlobalSearchService,
+		executor:      performance.DefaultTaskRunner,
+		visitCache:    performance.DefaultJsonCache.Group("pv"),
+	}
+)
 
 // CreateOrUpdatePost 创建/更新文章, 取决于是否存在已有的文章
-func (s *postService) CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.Context) (resp *dto.UpdateOrCreatePostResp, err error) {
+func (s *postsServiceImpl) CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.Context) (resp *dto.UpdateOrCreatePostResp, err error) {
 	// 被创建/更新的 文章的 ID
 	var postId int64 = 0
 
@@ -65,7 +84,7 @@ func (s *postService) CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ctx *gi
 			// 同步更新 ID
 			postId = id.GetSnowFlakeNode().Generate().Int64()
 			// 获取当前登录的用户信息
-			loginUser, err := auth.GetCurrentLoginSession(ctx)
+			loginUser, err := inbound.GetCurrentLoginSession(ctx)
 			if err != nil {
 				return err
 			}
@@ -267,7 +286,7 @@ func (s *postService) CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ctx *gi
 }
 
 // GetAllPostList 获取所有文章分页的信息(不包括正文内容)
-func (s *postService) GetAllPostList(req *dto.GetPostPageListReq, ctx *gin.Context) (resp *dto.GetPostPageListResp, err error) {
+func (s *postsServiceImpl) GetAllPostList(req *dto.GetPostPageListReq, ctx *gin.Context) (resp *dto.GetPostPageListResp, err error) {
 	postOp := biz.Post
 
 	result, count, err := postOp.
@@ -315,7 +334,7 @@ func (s *postService) GetAllPostList(req *dto.GetPostPageListReq, ctx *gin.Conte
 }
 
 // GetCachedViewCountOrFallback 获取文章在缓存中的技术值, 如果为公开访问, 那么还递增对应的缓存计数
-func (s *postService) GetCachedViewCountOrFallback(post *model.Post, isPubMode bool) int64 {
+func (s *postsServiceImpl) GetCachedViewCountOrFallback(post *model.Post, isPubMode bool) int64 {
 	key := fmt.Sprintf("%d", post.ID)
 	shouldIncr := util.TernaryExpr[int64](isPubMode, 1, 0)
 
@@ -352,7 +371,7 @@ func (s *postService) GetCachedViewCountOrFallback(post *model.Post, isPubMode b
 }
 
 // GetVisiblePostList 获取可见文章分页的信息(不包括正文内容)
-func (s *postService) GetVisiblePostList(req *dto.GetPostPageListReq, ctx *gin.Context) (resp *dto.GetPostPageListResp, err error) {
+func (s *postsServiceImpl) GetVisiblePostList(req *dto.GetPostPageListReq, ctx *gin.Context) (resp *dto.GetPostPageListResp, err error) {
 	postOp := biz.Post
 
 	// 只允许可见的文章
@@ -404,7 +423,7 @@ func (s *postService) GetVisiblePostList(req *dto.GetPostPageListReq, ctx *gin.C
 }
 
 // GetPostById 根据文章 ID 获取全量的文章信息
-func (s *postService) GetPostById(req *dto.GetPostDetailReq, ctx *gin.Context) (resp *dto.GetPostDetailResp, err error) {
+func (s *postsServiceImpl) GetPostById(req *dto.GetPostDetailReq, ctx *gin.Context) (resp *dto.GetPostDetailResp, err error) {
 	val, err := biz.Post.WithContext(ctx).Where(biz.Post.ID.Eq(req.PostID)).Take()
 	if err != nil {
 		return nil, &util.BizErr{
@@ -420,7 +439,7 @@ func (s *postService) GetPostById(req *dto.GetPostDetailReq, ctx *gin.Context) (
 	}, nil
 }
 
-func (s *postService) SyncAllPostViews(ctx context.Context) (err error) {
+func (s *postsServiceImpl) SyncAllPostViews(ctx context.Context) (err error) {
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		bizTx := tx.Post
 
@@ -468,16 +487,16 @@ func (s *postService) SyncAllPostViews(ctx context.Context) (err error) {
 	return
 }
 
-func (s *postService) ClearPostsViewsCache() {
+func (s *postsServiceImpl) ClearPostsViewsCache() {
 	s.visitCache.ClearAll()
 }
 
-func (s *postService) ExpirePubViewsCacheByID(postID int64) {
+func (s *postsServiceImpl) ExpirePubViewsCacheByID(postID int64) {
 	s.visitCache.Delete(fmt.Sprintf("%d", postID))
 }
 
 // GetVisiblePostById 根据文章 ID 获取可见的全量的文章信息
-func (s *postService) GetVisiblePostById(req *dto.GetPostDetailReq, ctx *gin.Context) (resp *dto.GetPostDetailResp, err error) {
+func (s *postsServiceImpl) GetVisiblePostById(req *dto.GetPostDetailReq, ctx *gin.Context) (resp *dto.GetPostDetailResp, err error) {
 	pubPost, err := biz.Post.WithContext(ctx).
 		Where(
 			biz.Post.ID.Eq(req.PostID),
@@ -499,7 +518,7 @@ func (s *postService) GetVisiblePostById(req *dto.GetPostDetailReq, ctx *gin.Con
 }
 
 // GetPostById 根据文章 ID 获取全量的文章信息
-func (s *postService) DeletePostByIdList(req *dto.DeletePostByIdListReq, ctx *gin.Context) (resp *dto.DeletePostByIdListResp, err error) {
+func (s *postsServiceImpl) DeletePostByIdList(req *dto.DeletePostByIdListReq, ctx *gin.Context) (resp *dto.DeletePostByIdListResp, err error) {
 	deleteErr := biz.Q.Transaction(func(tx *biz.Query) error {
 		_, dErr := tx.Post.WithContext(ctx).Where(tx.Post.ID.In(req.IdList...)).Delete()
 		return dErr
@@ -526,7 +545,7 @@ func (s *postService) DeletePostByIdList(req *dto.DeletePostByIdListReq, ctx *gi
 	return
 }
 
-func (s *postService) GetVisiblePostsByTagName(req *dto.GetPostByTagNameReq, ctx *gin.Context) (resp *dto.GetPostByTagNameResp, err error) {
+func (s *postsServiceImpl) GetVisiblePostsByTagName(req *dto.GetPostByTagNameReq, ctx *gin.Context) (resp *dto.GetPostByTagNameResp, err error) {
 	tagOp := biz.Tag
 	// 找到匹配的标签
 	tag, err := tagOp.WithContext(ctx).

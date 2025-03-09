@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"space-api/constants"
 	"space-api/dto"
-	"space-api/middleware/auth"
 	"space-api/middleware/inbound"
+
 	"space-api/util"
 	"space-api/util/ip"
 	"space-api/util/ptr"
@@ -18,20 +18,34 @@ import (
 )
 
 type (
-	commentService    struct{}
-	commentUserDetail struct {
+	ICommentService interface {
+		CheckAndCreateComment(req *dto.CreateCommentReq, ctx *gin.Context) (resp *dto.CreateCommentResp, err error)
+		UpdateComment(req *dto.UpdateCommentReq, ctx *gin.Context) (resp *dto.UpdateCommentResp, err error)
+		GetVisibleRootCommentPages(req *dto.GetRootCommentPagesReq, ctx *gin.Context) (resp *dto.GetRootCommentPagesResp, err error)
+		GetVisibleSubCommentPages(req *dto.GetSubCommentPagesReq, ctx *gin.Context) (resp *dto.GetSubCommentPagesResp, err error)
+		GetAnyRootCommentPages(req *dto.GetRootCommentPagesReq, ctx *gin.Context) (resp *dto.GetRootCommentPagesResp, err error)
+		GetAnySubCommentPages(req *dto.GetSubCommentPagesReq, ctx *gin.Context) (resp *dto.GetSubCommentPagesResp, err error)
+		DeleteSubComments(req *dto.DeleteSubCommentReq, ctx *gin.Context) (resp *dto.DeleteCategoryResp, err error)
+		DeleteRootComments(req *dto.DeleteRootCommentReq, ctx *gin.Context) (resp *dto.DeleteRootCommentResp, err error)
+	}
+	commentServiceImpl struct{}
+	commentUserDetail  struct {
 		Username    string
 		Avatar      *string
 		HomePageURL *string
 	}
 )
 
-var DefaultCommentService = &commentService{}
+var (
+	_ ICommentService = (*commentServiceImpl)(nil)
+
+	DefaultCommentService ICommentService = &commentServiceImpl{}
+)
 
 // CheckAndCreateComment 检查创建评论的合法性并创建评论
-func (servicePtr *commentService) CheckAndCreateComment(req *dto.CreateCommentReq, ctx *gin.Context) (resp *dto.CreateCommentResp, err error) {
+func (servicePtr *commentServiceImpl) CheckAndCreateComment(req *dto.CreateCommentReq, ctx *gin.Context) (resp *dto.CreateCommentResp, err error) {
 	// 当前登录会话的用户
-	loginSession, getSessionErr := auth.GetCurrentLoginSession(ctx)
+	loginSession, getSessionErr := inbound.GetCurrentLoginSession(ctx)
 	if getSessionErr != nil {
 		return nil, getSessionErr
 	}
@@ -105,7 +119,7 @@ func (servicePtr *commentService) CheckAndCreateComment(req *dto.CreateCommentRe
 	return servicePtr.createCommentDirect(req, ctx)
 }
 
-func (servicePtr *commentService) UpdateComment(req *dto.UpdateCommentReq, ctx *gin.Context) (resp *dto.UpdateCommentResp, err error) {
+func (servicePtr *commentServiceImpl) UpdateComment(req *dto.UpdateCommentReq, ctx *gin.Context) (resp *dto.UpdateCommentResp, err error) {
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		cmtTx := tx.Comment
 		_, e := cmtTx.WithContext(ctx).
@@ -136,10 +150,10 @@ func (servicePtr *commentService) UpdateComment(req *dto.UpdateCommentReq, ctx *
 }
 
 // 充当基础通用方法, 只创建, 不进行额外的关联关系校验
-func (*commentService) createCommentDirect(req *dto.CreateCommentReq, ctx *gin.Context) (resp *dto.CreateCommentResp, err error) {
+func (*commentServiceImpl) createCommentDirect(req *dto.CreateCommentReq, ctx *gin.Context) (resp *dto.CreateCommentResp, err error) {
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		commentTx := tx.Comment
-		loginSession, sessionErr := auth.GetCurrentLoginSession(ctx)
+		loginSession, sessionErr := inbound.GetCurrentLoginSession(ctx)
 		if sessionErr != nil {
 			return sessionErr
 		}
@@ -224,7 +238,7 @@ func (*commentService) createCommentDirect(req *dto.CreateCommentReq, ctx *gin.C
 }
 
 // GetVisibleRootCommentPages 获取根评论的分页
-func (servicePtr *commentService) GetVisibleRootCommentPages(req *dto.GetRootCommentPagesReq, ctx *gin.Context) (resp *dto.GetRootCommentPagesResp, err error) {
+func (servicePtr *commentServiceImpl) GetVisibleRootCommentPages(req *dto.GetRootCommentPagesReq, ctx *gin.Context) (resp *dto.GetRootCommentPagesResp, err error) {
 	// 必须的文章开启评和可见论才允许获取评论
 	postCtx := biz.Post
 	_, err = postCtx.WithContext(ctx).
@@ -311,7 +325,7 @@ func (servicePtr *commentService) GetVisibleRootCommentPages(req *dto.GetRootCom
 }
 
 // GetRootCommentPages 获取子评论的分页
-func (*commentService) GetVisibleSubCommentPages(req *dto.GetSubCommentPagesReq, ctx *gin.Context) (resp *dto.GetSubCommentPagesResp, err error) {
+func (*commentServiceImpl) GetVisibleSubCommentPages(req *dto.GetSubCommentPagesReq, ctx *gin.Context) (resp *dto.GetSubCommentPagesResp, err error) {
 	// 必须的文章开启评论才允许获取评论
 	postCtx := biz.Post
 	_, err = postCtx.WithContext(ctx).
@@ -386,7 +400,7 @@ func (*commentService) GetVisibleSubCommentPages(req *dto.GetSubCommentPagesReq,
 }
 
 // GetAnyRootCommentPages 获取任何的根评论分页
-func (servicePtr *commentService) GetAnyRootCommentPages(req *dto.GetRootCommentPagesReq, ctx *gin.Context) (resp *dto.GetRootCommentPagesResp, err error) {
+func (servicePtr *commentServiceImpl) GetAnyRootCommentPages(req *dto.GetRootCommentPagesReq, ctx *gin.Context) (resp *dto.GetRootCommentPagesResp, err error) {
 	// 必须的文章开启评和可见论才允许获取评论
 	postCtx := biz.Post
 	_, err = postCtx.WithContext(ctx).
@@ -438,7 +452,7 @@ func (servicePtr *commentService) GetAnyRootCommentPages(req *dto.GetRootComment
 }
 
 // GetAnySubCommentPages 获取任何的子评论分页数据
-func (*commentService) GetAnySubCommentPages(req *dto.GetSubCommentPagesReq, ctx *gin.Context) (resp *dto.GetSubCommentPagesResp, err error) {
+func (*commentServiceImpl) GetAnySubCommentPages(req *dto.GetSubCommentPagesReq, ctx *gin.Context) (resp *dto.GetSubCommentPagesResp, err error) {
 	postCtx := biz.Post
 	_, findPostErr := postCtx.WithContext(ctx).
 		Where(postCtx.ID.Eq(req.PostID)).
@@ -475,7 +489,7 @@ func (*commentService) GetAnySubCommentPages(req *dto.GetSubCommentPagesReq, ctx
 }
 
 // DeleteSubComments 删除评论
-func (*commentService) DeleteSubComments(req *dto.DeleteSubCommentReq, ctx *gin.Context) (resp *dto.DeleteCategoryResp, err error) {
+func (*commentServiceImpl) DeleteSubComments(req *dto.DeleteSubCommentReq, ctx *gin.Context) (resp *dto.DeleteCategoryResp, err error) {
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		cmtTx := tx.Comment
 		tableName := cmtTx.TableName()
@@ -510,7 +524,7 @@ func (*commentService) DeleteSubComments(req *dto.DeleteSubCommentReq, ctx *gin.
 }
 
 // DeleteSubComments 删除评论
-func (*commentService) DeleteRootComments(req *dto.DeleteRootCommentReq, ctx *gin.Context) (resp *dto.DeleteRootCommentResp, err error) {
+func (*commentServiceImpl) DeleteRootComments(req *dto.DeleteRootCommentReq, ctx *gin.Context) (resp *dto.DeleteRootCommentResp, err error) {
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		cmtTx := tx.Comment
 		_, e := cmtTx.WithContext(ctx).

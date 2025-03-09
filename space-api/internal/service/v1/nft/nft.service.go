@@ -10,15 +10,26 @@ import (
 	"github.com/google/nftables/expr"
 )
 
-type nftService struct {
-	conn  *nftables.Conn
-	table *nftables.Table
-	chain *nftables.Chain
-}
+type (
+	INftService interface {
+		AddBlockIPList(ips []string) error
+		RemoveBlockIPList(ips []string) error
+		GetBlockList() (resp []string, err error)
+	}
+	nftServiceImpl struct {
+		conn  *nftables.Conn
+		table *nftables.Table
+		chain *nftables.Chain
+	}
+)
 
-var DefaultNftService = NewNftService("drop_ip_table", "drop_ip_chain")
+var (
+	_ INftService = (*nftServiceImpl)(nil)
 
-func NewNftService(tableName, chainName string) *nftService {
+	DefaultNftService INftService = NewNftService("drop_ip_table", "drop_ip_chain")
+)
+
+func NewNftService(tableName, chainName string) INftService {
 	// 创建 nftables 连接
 	conn := &nftables.Conn{}
 
@@ -44,14 +55,14 @@ func NewNftService(tableName, chainName string) *nftService {
 		log.Fatalf("Failed to create initial nftables configuration: %v", err)
 	}
 
-	return &nftService{
+	return &nftServiceImpl{
 		conn:  conn,
 		table: table,
 		chain: chain,
 	}
 }
 
-func (m *nftService) AddBlockIPList(ips []string) error {
+func (m *nftServiceImpl) AddBlockIPList(ips []string) error {
 	// 解析 IP 地址
 
 	rules := []*nftables.Rule{}
@@ -104,7 +115,7 @@ func (m *nftService) AddBlockIPList(ips []string) error {
 	return nil
 }
 
-func (m *nftService) RemoveBlockIPList(ips []string) error {
+func (m *nftServiceImpl) RemoveBlockIPList(ips []string) error {
 	// 解析 IP 地址
 	parsedIPList := []*net.IP{}
 	for _, ip := range ips {
@@ -147,7 +158,7 @@ func (m *nftService) RemoveBlockIPList(ips []string) error {
 	return nil
 }
 
-func (m *nftService) GetBlockList() (resp []string, err error) {
+func (m *nftServiceImpl) GetBlockList() (resp []string, err error) {
 	resp = []string{}
 	// 获取所有规则
 	rules, err := m.conn.GetRules(m.table, m.chain)

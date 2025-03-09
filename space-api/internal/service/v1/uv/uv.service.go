@@ -12,12 +12,25 @@ import (
 	"gorm.io/gen/field"
 )
 
-type _uvService struct{}
+type (
+	IUVService interface {
+		GetDailyUVCount(req *dto.GetDailyCountReq, ctx context.Context) (int64, error)
+		QueryRangeUV(req *dto.QueryUvCountReq, ctx context.Context) (resp int64, err error)
+		GetUVTrend(req *dto.GetUVTrendReq, ctx context.Context) ([]map[string]any, error)
+		GetUvPages(req *dto.GetUvPagesReq, ctx context.Context) (resp *dto.GetUvPagesResp, err error)
+		DeleteUVRecord(req *dto.DeleteUVReq, ctx context.Context) (resp *dto.DeleteUVResp, err error)
+	}
+	uvServiceImpl struct{}
+)
 
-var DefaultUVService = &_uvService{}
+var (
+	_ IUVService = (*uvServiceImpl)(nil)
+
+	DefaultUVService = &uvServiceImpl{}
+)
 
 // GetDailyUVCount 获取指定日期的独立访客数
-func (m *_uvService) GetDailyUVCount(req *dto.GetDailyCountReq, ctx context.Context) (int64, error) {
+func (m *uvServiceImpl) GetDailyUVCount(req *dto.GetDailyCountReq, ctx context.Context) (int64, error) {
 	uvOp := biz.UVStatistic
 	count, err := uvOp.
 		WithContext(ctx).
@@ -32,7 +45,7 @@ func (m *_uvService) GetDailyUVCount(req *dto.GetDailyCountReq, ctx context.Cont
 }
 
 // QueryRangeUV 获取指定日期范围内的独立访客数
-func (m *_uvService) QueryRangeUV(req *dto.QueryUvCountReq, ctx context.Context) (resp int64, err error) {
+func (m *uvServiceImpl) QueryRangeUV(req *dto.QueryUvCountReq, ctx context.Context) (resp int64, err error) {
 	uvOp := biz.UVStatistic
 	tableName := uvOp.TableName()
 	condList := []gen.Condition{}
@@ -58,7 +71,7 @@ func (m *_uvService) QueryRangeUV(req *dto.QueryUvCountReq, ctx context.Context)
 }
 
 // GetUVTrend 获取一段时间内的UV趋势
-func (m *_uvService) GetUVTrend(req *dto.GetUVTrendReq, ctx context.Context) ([]map[string]interface{}, error) {
+func (m *uvServiceImpl) GetUVTrend(req *dto.GetUVTrendReq, ctx context.Context) ([]map[string]any, error) {
 	var results []struct {
 		Date  string
 		Count int64
@@ -97,7 +110,7 @@ func (m *_uvService) GetUVTrend(req *dto.GetUVTrendReq, ctx context.Context) ([]
 	return trend, nil
 }
 
-func (m *_uvService) GetUvPages(req *dto.GetUvPagesReq, ctx context.Context) (resp *dto.GetUvPagesResp, err error) {
+func (m *uvServiceImpl) GetUvPages(req *dto.GetUvPagesReq, ctx context.Context) (resp *dto.GetUvPagesResp, err error) {
 	uvOp := biz.UVStatistic
 	tableName := uvOp.TableName()
 	condList := []gen.Condition{}
@@ -138,7 +151,7 @@ func (m *_uvService) GetUvPages(req *dto.GetUvPagesReq, ctx context.Context) (re
 	return
 }
 
-func (m *_uvService) DeleteUVRecord(req *dto.DeleteUVReq, ctx context.Context) (resp *dto.DeleteUVResp, err error) {
+func (m *uvServiceImpl) DeleteUVRecord(req *dto.DeleteUVReq, ctx context.Context) (resp *dto.DeleteUVResp, err error) {
 	uvOp := biz.UVStatistic
 	tableName := uvOp.TableName()
 	condList := []gen.Condition{}

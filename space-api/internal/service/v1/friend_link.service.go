@@ -10,11 +10,23 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type _friendLinkService struct{}
+type (
+	IFriendLinkService interface {
+		CreateOrUpdateFriendLink(req *dto.CreateOrUpdateFriendLinkReq, ctx *gin.Context) (resp *dto.CreateOrUpdateFriendLinkResp, err error)
+		GetVisibleFriendLinks(req *dto.GetFriendLinksReq, ctx *gin.Context) (resp *dto.GetFriendLinksResp, err error)
+		GetAllFriendLinks(req *dto.GetFriendLinksReq, ctx *gin.Context) (resp *dto.GetFriendLinksResp, err error)
+		DeleteFriendLinkByIDList(req *dto.DeleteFriendLinkReq, ctx *gin.Context) (resp *dto.DeleteFriendLinkResp, err error)
+	}
+	friendLinkServiceImpl struct{}
+)
 
-var DefaultFriendLinkService = &_friendLinkService{}
+var (
+	_ IFriendLinkService = (*friendLinkServiceImpl)(nil)
 
-func (*_friendLinkService) CreateOrUpdateFriendLink(req *dto.CreateOrUpdateFriendLinkReq, ctx *gin.Context) (resp *dto.CreateOrUpdateFriendLinkResp, err error) {
+	DefaultFriendLinkService IFriendLinkService = &friendLinkServiceImpl{}
+)
+
+func (*friendLinkServiceImpl) CreateOrUpdateFriendLink(req *dto.CreateOrUpdateFriendLinkReq, ctx *gin.Context) (resp *dto.CreateOrUpdateFriendLinkResp, err error) {
 	var friendLinkID int64
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		friendLinkTx := tx.FriendLink
@@ -83,7 +95,7 @@ func (*_friendLinkService) CreateOrUpdateFriendLink(req *dto.CreateOrUpdateFrien
 	return
 }
 
-func (*_friendLinkService) GetVisibleFriendLinks(req *dto.GetFriendLinksReq, ctx *gin.Context) (resp *dto.GetFriendLinksResp, err error) {
+func (*friendLinkServiceImpl) GetVisibleFriendLinks(req *dto.GetFriendLinksReq, ctx *gin.Context) (resp *dto.GetFriendLinksResp, err error) {
 	friendLinkTx := biz.FriendLink
 	list, err := friendLinkTx.
 		WithContext(ctx).
@@ -112,7 +124,7 @@ func (*_friendLinkService) GetVisibleFriendLinks(req *dto.GetFriendLinksReq, ctx
 	return
 }
 
-func (*_friendLinkService) GetAllFriendLinks(req *dto.GetFriendLinksReq, ctx *gin.Context) (resp *dto.GetFriendLinksResp, err error) {
+func (*friendLinkServiceImpl) GetAllFriendLinks(req *dto.GetFriendLinksReq, ctx *gin.Context) (resp *dto.GetFriendLinksResp, err error) {
 	friendLinkTx := biz.FriendLink
 	list, err := friendLinkTx.
 		WithContext(ctx).
@@ -128,7 +140,7 @@ func (*_friendLinkService) GetAllFriendLinks(req *dto.GetFriendLinksReq, ctx *gi
 	return
 }
 
-func (*_friendLinkService) DeleteFriendLinkByIDList(req *dto.DeleteFriendLinkReq, ctx *gin.Context) (resp *dto.DeleteFriendLinkResp, err error) {
+func (*friendLinkServiceImpl) DeleteFriendLinkByIDList(req *dto.DeleteFriendLinkReq, ctx *gin.Context) (resp *dto.DeleteFriendLinkResp, err error) {
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		friendLinkTx := tx.FriendLink
 		_, e := friendLinkTx.WithContext(ctx).Where(friendLinkTx.ID.In(req.IDList...)).Delete()

@@ -11,11 +11,23 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type _menuService struct{}
+type (
+	IMenuService interface {
+		CreateOrUpdateMenu(req *dto.CreateOrUpdateMenuReq, ctx *gin.Context) (resp *dto.CreateOrUpdateMenuResp, err error)
+		GetVisibleMenus(req *dto.GetMenusReq, ctx *gin.Context) (resp *dto.GetMenusResp, err error)
+		GetAnyMenus(req *dto.GetMenusReq, ctx *gin.Context) (resp *dto.GetMenusResp, err error)
+		DeleteMenuGroupByIDList(req *dto.DeleteMenuGroupsReq, ctx *gin.Context) (resp *dto.DeleteMenuGroupsResp, err error)
+	}
+	menuServiceImpl struct{}
+)
 
-var DefaultMenuService = &_menuService{}
+var (
+	_ IMenuService = (*menuServiceImpl)(nil)
 
-func (*_menuService) CreateOrUpdateMenu(req *dto.CreateOrUpdateMenuReq, ctx *gin.Context) (resp *dto.CreateOrUpdateMenuResp, err error) {
+	DefaultMenuService IMenuService = &menuServiceImpl{}
+)
+
+func (*menuServiceImpl) CreateOrUpdateMenu(req *dto.CreateOrUpdateMenuReq, ctx *gin.Context) (resp *dto.CreateOrUpdateMenuResp, err error) {
 	var menuID int64
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		menuTx := tx.MenuGroup
@@ -89,7 +101,7 @@ func (*_menuService) CreateOrUpdateMenu(req *dto.CreateOrUpdateMenuReq, ctx *gin
 	return
 }
 
-func (*_menuService) GetVisibleMenus(req *dto.GetMenusReq, ctx *gin.Context) (resp *dto.GetMenusResp, err error) {
+func (*menuServiceImpl) GetVisibleMenus(req *dto.GetMenusReq, ctx *gin.Context) (resp *dto.GetMenusResp, err error) {
 	menuCtx := biz.MenuGroup
 	list, err := menuCtx.WithContext(ctx).Where(menuCtx.Hide.Neq(0)).Find()
 	if err != nil {
@@ -112,7 +124,7 @@ func (*_menuService) GetVisibleMenus(req *dto.GetMenusReq, ctx *gin.Context) (re
 	return
 }
 
-func (*_menuService) GetAnyMenus(req *dto.GetMenusReq, ctx *gin.Context) (resp *dto.GetMenusResp, err error) {
+func (*menuServiceImpl) GetAnyMenus(req *dto.GetMenusReq, ctx *gin.Context) (resp *dto.GetMenusResp, err error) {
 	menuTx := biz.MenuGroup
 	list, err := menuTx.WithContext(ctx).Find()
 	if err != nil {
@@ -127,7 +139,7 @@ func (*_menuService) GetAnyMenus(req *dto.GetMenusReq, ctx *gin.Context) (resp *
 	return
 }
 
-func (*_menuService) DeleteMenuGroupByIDList(req *dto.DeleteMenuGroupsReq, ctx *gin.Context) (resp *dto.DeleteMenuGroupsResp, err error) {
+func (*menuServiceImpl) DeleteMenuGroupByIDList(req *dto.DeleteMenuGroupsReq, ctx *gin.Context) (resp *dto.DeleteMenuGroupsResp, err error) {
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		menuTx := tx.MenuGroup
 		_, e := menuTx.WithContext(ctx).

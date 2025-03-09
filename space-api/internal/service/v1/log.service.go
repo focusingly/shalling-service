@@ -21,12 +21,22 @@ import (
 	"gorm.io/gen/field"
 )
 
-type _logService struct {
-}
+type (
+	ILogService interface {
+		GetLogPages(req *dto.GetLogPagesReq, ctx *gin.Context) (resp *dto.GetLogPagesResp, err error)
+		DeleteLogsByCondition(req *dto.DeleteLogReq, ctx *gin.Context) (resp *dto.DeleteLogResp, err error)
+		DumLogsStream(req *dto.DumpLogReq, ctx *gin.Context)
+	}
+	logServiceImpl struct{}
+)
 
-var DefaultLogService = &_logService{}
+var (
+	_ ILogService = (*logServiceImpl)(nil)
 
-func (*_logService) GetLogPages(req *dto.GetLogPagesReq, ctx *gin.Context) (resp *dto.GetLogPagesResp, err error) {
+	DefaultLogService ILogService = &logServiceImpl{}
+)
+
+func (*logServiceImpl) GetLogPages(req *dto.GetLogPagesReq, ctx *gin.Context) (resp *dto.GetLogPagesResp, err error) {
 	logOp := extra.LogInfo
 	condList, err := query.ParseCondList(logOp.TableName(), req.Conditions)
 
@@ -74,7 +84,7 @@ func (*_logService) GetLogPages(req *dto.GetLogPagesReq, ctx *gin.Context) (resp
 
 }
 
-func (*_logService) DeleteLogsByCondition(req *dto.DeleteLogReq, ctx *gin.Context) (resp *dto.DeleteLogResp, err error) {
+func (*logServiceImpl) DeleteLogsByCondition(req *dto.DeleteLogReq, ctx *gin.Context) (resp *dto.DeleteLogResp, err error) {
 	for _, col := range req.Conditions {
 		if _, ok := extra.LogInfo.GetFieldByName(xstrings.ToSnakeCase(col.Column)); !ok {
 			err = util.CreateBizErr("非法的条件参数: "+col.Column, fmt.Errorf("illegal condition param: %s", col.Column))
@@ -107,7 +117,7 @@ func (*_logService) DeleteLogsByCondition(req *dto.DeleteLogReq, ctx *gin.Contex
 	return
 }
 
-func (*_logService) DumLogsStream(req *dto.DumpLogReq, ctx *gin.Context) {
+func (*logServiceImpl) DumLogsStream(req *dto.DumpLogReq, ctx *gin.Context) {
 	rows, err := extra.LogInfo.WithContext(ctx).UnderlyingDB().Rows()
 	if err != nil {
 		ctx.Error(util.CreateBizErr("导出日志失败"+err.Error(), err))

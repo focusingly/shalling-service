@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"context"
+	"io"
 	"space-api/db"
 	"space-api/dto"
 	"space-api/util"
@@ -17,17 +18,38 @@ import (
 	"gorm.io/gorm"
 )
 
-type _searchService struct {
-	cutter *gojieba.Jieba
-	*gorm.DB
+type (
+	ISearchService interface {
+		io.Closer
+		ExpireAllPostIndex(ctx context.Context) error
+		DeletePostSearchIndex(postIDList []int64, ctx context.Context) error
+		GetPostSearchIndexPages(req *dto.GetSearchIndexPagesReq, ctx context.Context) (resp *dto.GetSearchIndexPagesResp, err error)
+		UpdatePostSearchIndex(post *model.Post)
+		SearchKeywordPages(req *dto.GlobalSearchReq, ctx *gin.Context) (resp *dto.GlobalSearchResp, err error)
+	}
+
+	searchServiceImpl struct {
+		cutter *gojieba.Jieba
+		*gorm.DB
+	}
+)
+
+var (
+	_ ISearchService = (*searchServiceImpl)(nil)
+
+	DefaultGlobalSearchService = &searchServiceImpl{
+		cutter: gojieba.NewJieba(),
+		DB:     db.GetBizDB(),
+	}
+)
+
+// Free 销毁分词器(注意: 销毁之后无法继续继续使用, 仅且应当用于当服务需要关闭的资源释放方操作)
+func (s *searchServiceImpl) Close() error {
+	s.cutter.Free()
+	return nil
 }
 
-var DefaultGlobalSearchService = &_searchService{
-	cutter: gojieba.NewJieba(),
-	DB:     db.GetBizDB(),
-}
-
-func (s *_searchService) ExpireAllPostIndex(ctx context.Context) error {
+func (s *searchServiceImpl) ExpireAllPostIndex(ctx context.Context) error {
 	return s.
 		Table("keyword_docs").
 		WithContext(ctx).
@@ -35,13 +57,8 @@ func (s *_searchService) ExpireAllPostIndex(ctx context.Context) error {
 		Error
 }
 
-// Free 销毁分词器(注意: 销毁之后无法继续继续使用, 仅且应当用于当服务需要关闭的资源释放方操作)
-func (s *_searchService) Free() {
-	s.cutter.Free()
-}
-
 // DeletePostSearchIndex 根据 ID 列表删除缓存
-func (s *_searchService) DeletePostSearchIndex(postIDList []int64, ctx context.Context) error {
+func (s *searchServiceImpl) DeletePostSearchIndex(postIDList []int64, ctx context.Context) error {
 	return biz.Q.Transaction(func(tx *biz.Query) error {
 		docTx := tx.Sqlite3KeywordDoc
 		_, e := docTx.WithContext(ctx).Where(docTx.PostID.In(postIDList...)).Delete()
@@ -49,7 +66,7 @@ func (s *_searchService) DeletePostSearchIndex(postIDList []int64, ctx context.C
 	})
 }
 
-func (s *_searchService) GetPostSearchIndexPages(req *dto.GetSearchIndexPagesReq, ctx context.Context) (resp *dto.GetSearchIndexPagesResp, err error) {
+func (s *searchServiceImpl) GetPostSearchIndexPages(req *dto.GetSearchIndexPagesReq, ctx context.Context) (resp *dto.GetSearchIndexPagesResp, err error) {
 	docOP := biz.Sqlite3KeywordDoc
 
 	docs, count, err := docOP.WithContext(ctx).
@@ -77,7 +94,7 @@ func (s *_searchService) GetPostSearchIndexPages(req *dto.GetSearchIndexPagesReq
 	return
 }
 
-func (s *_searchService) UpdatePostSearchIndex(post *model.Post) {
+func (s *searchServiceImpl) UpdatePostSearchIndex(post *model.Post) {
 	const space = " "
 
 	var titleBf bytes.Buffer
@@ -176,7 +193,7 @@ func (s *_searchService) UpdatePostSearchIndex(post *model.Post) {
 }
 
 // SearchKeywordPages 全文搜索
-func (s *_searchService) SearchKeywordPages(req *dto.GlobalSearchReq, ctx *gin.Context) (resp *dto.GlobalSearchResp, err error) {
+func (s *searchServiceImpl) SearchKeywordPages(req *dto.GlobalSearchReq, ctx *gin.Context) (resp *dto.GlobalSearchResp, err error) {
 	offset, limit := req.Normalize()
 	keyword := strings.TrimSpace(req.Keyword)
 	docOP := biz.Sqlite3KeywordDoc

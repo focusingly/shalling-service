@@ -5,7 +5,7 @@ import (
 	"space-api/constants"
 	"space-api/dto"
 	"space-api/internal/service/v1/comment"
-	"space-api/middleware/auth"
+	"space-api/middleware/inbound"
 	"space-api/middleware/outbound"
 	"space-api/util"
 	"space-api/util/performance"
@@ -76,7 +76,7 @@ func UseCommentController(routeGroup *gin.RouterGroup) {
 		"/update",
 		func(ctx *gin.Context) {
 			// TODO 暂时仅限登录用户进行评论
-			loginSession, err := auth.GetCurrentLoginSession(ctx)
+			loginSession, err := inbound.GetCurrentLoginSession(ctx)
 			if err != nil {
 				ctx.Error(err)
 				ctx.Abort()

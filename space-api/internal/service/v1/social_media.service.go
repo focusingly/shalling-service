@@ -10,11 +10,23 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type mediaService struct{}
+type (
+	IMediaService interface {
+		CreateOrUpdateMediaTag(req *dto.CreateOrUpdateSocialMediaReq, ctx *gin.Context) (resp *dto.CreateOrUpdateSocialMediaResp, err error)
+		GetAnyMediaTags(req *dto.GetMediaTagsReq, ctx *gin.Context) (resp dto.GetMediaTagsResp, err error)
+		GetVisibleMediaTags(req *dto.GetMediaTagsReq, ctx *gin.Context) (resp dto.GetMediaTagsResp, err error)
+		DeleteMediaTagByIdList(req *dto.DeleteSocialMediaByIdListReq, ctx *gin.Context) (resp *dto.DeleteSocialMediaByIdListResp, err error)
+	}
+	mediaServiceImpl struct{}
+)
 
-var DefaultMediaService *mediaService = &mediaService{}
+var (
+	_ IMediaService = (*mediaServiceImpl)(nil)
 
-func (*mediaService) CreateOrUpdateMediaTag(req *dto.CreateOrUpdateSocialMediaReq, ctx *gin.Context) (resp *dto.CreateOrUpdateSocialMediaResp, err error) {
+	DefaultMediaService IMediaService = &mediaServiceImpl{}
+)
+
+func (*mediaServiceImpl) CreateOrUpdateMediaTag(req *dto.CreateOrUpdateSocialMediaReq, ctx *gin.Context) (resp *dto.CreateOrUpdateSocialMediaResp, err error) {
 	var mediaId int64 = 0
 
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
@@ -84,7 +96,7 @@ func (*mediaService) CreateOrUpdateMediaTag(req *dto.CreateOrUpdateSocialMediaRe
 	return
 }
 
-func (*mediaService) GetAnyMediaTags(req *dto.GetMediaTagsReq, ctx *gin.Context) (resp dto.GetMediaTagsResp, err error) {
+func (*mediaServiceImpl) GetAnyMediaTags(req *dto.GetMediaTagsReq, ctx *gin.Context) (resp dto.GetMediaTagsResp, err error) {
 	list, err := biz.PubSocialMedia.WithContext(ctx).
 		Find()
 
@@ -98,7 +110,7 @@ func (*mediaService) GetAnyMediaTags(req *dto.GetMediaTagsReq, ctx *gin.Context)
 }
 
 // GetVisibleMediaTags 获取所有已经设置公开媒体展示标签
-func (*mediaService) GetVisibleMediaTags(req *dto.GetMediaTagsReq, ctx *gin.Context) (resp dto.GetMediaTagsResp, err error) {
+func (*mediaServiceImpl) GetVisibleMediaTags(req *dto.GetMediaTagsReq, ctx *gin.Context) (resp dto.GetMediaTagsResp, err error) {
 	list, err := biz.PubSocialMedia.WithContext(ctx).
 		Where(biz.PubSocialMedia.Hide.Eq(0)).
 		Find()
@@ -112,7 +124,7 @@ func (*mediaService) GetVisibleMediaTags(req *dto.GetMediaTagsReq, ctx *gin.Cont
 	return
 }
 
-func (*mediaService) DeleteMediaTagByIdList(req *dto.DeleteSocialMediaByIdListReq, ctx *gin.Context) (resp *dto.DeleteSocialMediaByIdListResp, err error) {
+func (*mediaServiceImpl) DeleteMediaTagByIdList(req *dto.DeleteSocialMediaByIdListReq, ctx *gin.Context) (resp *dto.DeleteSocialMediaByIdListResp, err error) {
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		_, err := tx.PubSocialMedia.
 			WithContext(ctx).

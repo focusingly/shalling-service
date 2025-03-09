@@ -1,4 +1,4 @@
-package auth
+package inbound
 
 import (
 	"fmt"
@@ -16,14 +16,15 @@ import (
 	"github.com/google/uuid"
 )
 
-const BearerAuthPrefix = "Bearer "
+const (
+	BearerAuthPrefix = "Bearer "
+)
 
 var (
-	BaseVersion = conf.ProjectConf.GetAppConf().ApiPrefix
-	AdminPath   = BaseVersion + "/admin"
-	Client      = BaseVersion + "/client"
-	Common      = BaseVersion + "/common"
-
+	BaseVersion    = conf.ProjectConf.GetAppConf().ApiPrefix
+	AdminPath      = BaseVersion + "/admin"
+	Client         = BaseVersion + "/client"
+	Common         = BaseVersion + "/common"
 	_jwtRandMark   = uuid.NewString()
 	authSpaceCache = performance.DefaultJsonCache.Group("auth")
 )

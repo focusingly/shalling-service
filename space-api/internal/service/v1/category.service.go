@@ -12,11 +12,26 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type categoryService struct{}
+type (
+	ICategoryService interface {
+		CreateOrUpdateCategory(req *dto.CreateOrUpdateCategoryReq, ctx *gin.Context) (resp *dto.CreateOrUpdateCategoryResp, err error)
+		GetCategoryByID(id int64, ctx *gin.Context) (resp *model.Category, err error)
+		GetCategoryWithAllPosts(req *dto.GetCategoryWithPostsReq, ctx *gin.Context) (resp *dto.GetCategoryWithPostsResp, err error)
+		GetAllCategories(req *dto.GetCategoryListReq, ctx *gin.Context) (resp *dto.GetCategoryListResp, err error)
+		GetAllVisibleCategories(req *dto.GetCategoryListReq, ctx *gin.Context) (resp *dto.GetCategoryListResp, err error)
+		GetCategoryWithVisiblePosts(req *dto.GetCategoryWithPostsReq, ctx *gin.Context) (resp *dto.GetCategoryWithPostsResp, err error)
+		DeleteCategoryByIDList(req *dto.DeleteCategoryReq, ctx *gin.Context) (resp *dto.DeleteCategoryResp, err error)
+	}
+	categoryServiceImpl struct{}
+)
 
-var DefaultCategoryService = &categoryService{}
+var (
+	_ ICategoryService = (*categoryServiceImpl)(nil)
 
-func (c *categoryService) CreateOrUpdateCategory(req *dto.CreateOrUpdateCategoryReq, ctx *gin.Context) (resp *dto.CreateOrUpdateCategoryResp, err error) {
+	DefaultCategoryService ICategoryService = &categoryServiceImpl{}
+)
+
+func (c *categoryServiceImpl) CreateOrUpdateCategory(req *dto.CreateOrUpdateCategoryReq, ctx *gin.Context) (resp *dto.CreateOrUpdateCategoryResp, err error) {
 	var tagID int64
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		catTx := tx.Category
@@ -91,7 +106,7 @@ func (c *categoryService) CreateOrUpdateCategory(req *dto.CreateOrUpdateCategory
 	return
 }
 
-func (c *categoryService) GetCategoryByID(id int64, ctx *gin.Context) (resp *model.Category, err error) {
+func (c *categoryServiceImpl) GetCategoryByID(id int64, ctx *gin.Context) (resp *model.Category, err error) {
 	resp, err = biz.Category.WithContext(ctx).Where(biz.Category.ID.Eq(id)).Take()
 	if err != nil {
 		err = util.CreateBizErr("分类不存在", err)
@@ -100,7 +115,7 @@ func (c *categoryService) GetCategoryByID(id int64, ctx *gin.Context) (resp *mod
 }
 
 // GetCategoryWithAllPosts 获取所有的分类-文章关系, 不关心文章是否被隐藏/未公开
-func (c *categoryService) GetCategoryWithAllPosts(req *dto.GetCategoryWithPostsReq, ctx *gin.Context) (resp *dto.GetCategoryWithPostsResp, err error) {
+func (c *categoryServiceImpl) GetCategoryWithAllPosts(req *dto.GetCategoryWithPostsReq, ctx *gin.Context) (resp *dto.GetCategoryWithPostsResp, err error) {
 	cat, err := c.GetCategoryByID(req.CatID, ctx)
 	if err != nil {
 		return
@@ -143,7 +158,7 @@ func (c *categoryService) GetCategoryWithAllPosts(req *dto.GetCategoryWithPostsR
 }
 
 // GetAllCategories 获取所有的分类信息
-func (c *categoryService) GetAllCategories(req *dto.GetCategoryListReq, ctx *gin.Context) (resp *dto.GetCategoryListResp, err error) {
+func (c *categoryServiceImpl) GetAllCategories(req *dto.GetCategoryListReq, ctx *gin.Context) (resp *dto.GetCategoryListResp, err error) {
 	catTx := biz.Category
 	list, err := catTx.WithContext(ctx).Find()
 	if err != nil {
@@ -158,7 +173,7 @@ func (c *categoryService) GetAllCategories(req *dto.GetCategoryListReq, ctx *gin
 }
 
 // GetAllCategories 获取所有可见的分类信息
-func (c *categoryService) GetAllVisibleCategories(req *dto.GetCategoryListReq, ctx *gin.Context) (resp *dto.GetCategoryListResp, err error) {
+func (c *categoryServiceImpl) GetAllVisibleCategories(req *dto.GetCategoryListReq, ctx *gin.Context) (resp *dto.GetCategoryListResp, err error) {
 	catTx := biz.Category
 	list, err := catTx.WithContext(ctx).
 		Where(catTx.Hide.Eq(0)).
@@ -175,7 +190,7 @@ func (c *categoryService) GetAllVisibleCategories(req *dto.GetCategoryListReq, c
 }
 
 // GetCategoryWithVisiblePosts 获取 [分类-公开文章] 的数据
-func (c *categoryService) GetCategoryWithVisiblePosts(req *dto.GetCategoryWithPostsReq, ctx *gin.Context) (resp *dto.GetCategoryWithPostsResp, err error) {
+func (c *categoryServiceImpl) GetCategoryWithVisiblePosts(req *dto.GetCategoryWithPostsReq, ctx *gin.Context) (resp *dto.GetCategoryWithPostsResp, err error) {
 	cat, err := c.GetCategoryByID(req.CatID, ctx)
 	if err != nil {
 		return
@@ -219,7 +234,7 @@ func (c *categoryService) GetCategoryWithVisiblePosts(req *dto.GetCategoryWithPo
 	return
 }
 
-func (c *categoryService) DeleteCategoryByIDList(req *dto.DeleteCategoryReq, ctx *gin.Context) (resp *dto.DeleteCategoryResp, err error) {
+func (c *categoryServiceImpl) DeleteCategoryByIDList(req *dto.DeleteCategoryReq, ctx *gin.Context) (resp *dto.DeleteCategoryResp, err error) {
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		catTx := tx.Category
 		catList, e := catTx.WithContext(ctx).

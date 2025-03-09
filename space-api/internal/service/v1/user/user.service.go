@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"space-api/constants"
 	"space-api/dto"
-	"space-api/middleware/auth"
+	"space-api/middleware/inbound"
+
 	"space-api/util"
 	"space-api/util/arr"
 	"space-api/util/encrypt"
@@ -18,14 +19,30 @@ import (
 	"gorm.io/gen/field"
 )
 
-type userService struct{}
+type (
+	IUserService interface {
+		UpdateLocalUserProfile(req *dto.UpdateLocalUserBasicReq, ctx *gin.Context) (resp *dto.UpdateLocalUserResp, err error)
+		UpdateLocalUserPassword(req *dto.UpdateLocalUserPassReq, ctx *gin.Context) (resp *dto.UpdateLocalUserPassResp, err error)
+		ExpireAnyLoginSessions(req *dto.ExpireUserLoginSessionReq, ctx context.Context) (resp *dto.ExpireUserLoginSessionResp, err error)
+		DeleteCacheSessionFromCache(key string)
+		UpdateOauth2User(req *dto.UpdateOauthUserReq, ctx *gin.Context) (resp *dto.UpdateOauthUserResp, err error)
+		DeleteOauth2User(req *dto.DeleteOauth2UserReq, ctx *gin.Context) (resp *dto.DeleteOauth2UserResp, err error)
+		GetLocalUserLoginSessions(req *dto.GetLoginUserSessionsReq, ctx *gin.Context) (resp *dto.GetLoginUserSessionsResp, err error)
+		GetLoginUserBasicProfile(ctx *gin.Context) (resp *dto.LoginUserBasicProfile, err error)
+	}
+	userServiceImpl struct{}
+)
 
-var DefaultUserService = &userService{}
+var (
+	_ IUserService = (*userServiceImpl)(nil)
+
+	DefaultUserService IUserService = &userServiceImpl{}
+)
 
 // UpdateLocalUserProfile 更新本地用户处除了密码之外的配置信息
-func (*userService) UpdateLocalUserProfile(req *dto.UpdateLocalUserBasicReq, ctx *gin.Context) (resp *dto.UpdateLocalUserResp, err error) {
+func (*userServiceImpl) UpdateLocalUserProfile(req *dto.UpdateLocalUserBasicReq, ctx *gin.Context) (resp *dto.UpdateLocalUserResp, err error) {
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
-		loginSession, e := auth.GetCurrentLoginSession(ctx)
+		loginSession, e := inbound.GetCurrentLoginSession(ctx)
 		if e != nil {
 			return e
 		}
@@ -91,14 +108,14 @@ func (*userService) UpdateLocalUserProfile(req *dto.UpdateLocalUserBasicReq, ctx
 	return
 }
 
-func (*userService) UpdateLocalUserPassword(req *dto.UpdateLocalUserPassReq, ctx *gin.Context) (resp *dto.UpdateLocalUserPassResp, err error) {
+func (*userServiceImpl) UpdateLocalUserPassword(req *dto.UpdateLocalUserPassReq, ctx *gin.Context) (resp *dto.UpdateLocalUserPassResp, err error) {
 	newPass := strings.TrimSpace(req.NewPassword)
 	if utf8.RuneCountInString(newPass) < 8 {
 		err = util.CreateBizErr("密码强度太弱, 请使用至少 8 位的密码", fmt.Errorf("new password strength too weak, must less has 8 character"))
 	}
 
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
-		loginSession, e := auth.GetCurrentLoginSession(ctx)
+		loginSession, e := inbound.GetCurrentLoginSession(ctx)
 		if e != nil {
 			return e
 		}
@@ -154,7 +171,7 @@ func (*userService) UpdateLocalUserPassword(req *dto.UpdateLocalUserPassReq, ctx
 }
 
 // ExpireAnyLoginSessions 删除登录会话信息
-func (s *userService) ExpireAnyLoginSessions(req *dto.ExpireUserLoginSessionReq, ctx context.Context) (resp *dto.ExpireUserLoginSessionResp, err error) {
+func (s *userServiceImpl) ExpireAnyLoginSessions(req *dto.ExpireUserLoginSessionReq, ctx context.Context) (resp *dto.ExpireUserLoginSessionResp, err error) {
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		loginSessionTx := tx.UserLoginSession
 		_, e := loginSessionTx.WithContext(ctx).
@@ -181,11 +198,11 @@ func (s *userService) ExpireAnyLoginSessions(req *dto.ExpireUserLoginSessionReq,
 	return
 }
 
-func (s *userService) DeleteCacheSessionFromCache(key string) {
-	auth.GetMiddlewareRelativeAuthCache().Delete(key)
+func (s *userServiceImpl) DeleteCacheSessionFromCache(key string) {
+	inbound.GetMiddlewareRelativeAuthCache().Delete(key)
 }
 
-func (*userService) UpdateOauth2User(req *dto.UpdateOauthUserReq, ctx *gin.Context) (resp *dto.UpdateOauthUserResp, err error) {
+func (*userServiceImpl) UpdateOauth2User(req *dto.UpdateOauthUserReq, ctx *gin.Context) (resp *dto.UpdateOauthUserResp, err error) {
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		userTx := tx.OAuth2User
 		_, e := userTx.WithContext(ctx).
@@ -226,7 +243,7 @@ func (*userService) UpdateOauth2User(req *dto.UpdateOauthUserReq, ctx *gin.Conte
 			}
 
 			// 清空缓存空间
-			cacheSpace := auth.GetMiddlewareRelativeAuthCache()
+			cacheSpace := inbound.GetMiddlewareRelativeAuthCache()
 			for _, t := range loginSessions {
 				cacheSpace.Delete(fmt.Sprintf("%d", t.ID))
 			}
@@ -245,7 +262,7 @@ func (*userService) UpdateOauth2User(req *dto.UpdateOauthUserReq, ctx *gin.Conte
 }
 
 // DeleteOauth2User 删除已经登录的 Oauth2 用户信息
-func (*userService) DeleteOauth2User(req *dto.DeleteOauth2UserReq, ctx *gin.Context) (resp *dto.DeleteOauth2UserResp, err error) {
+func (*userServiceImpl) DeleteOauth2User(req *dto.DeleteOauth2UserReq, ctx *gin.Context) (resp *dto.DeleteOauth2UserResp, err error) {
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		userTx := tx.OAuth2User
 		// 找到所有要被删除的用户
@@ -293,7 +310,7 @@ func (*userService) DeleteOauth2User(req *dto.DeleteOauth2UserReq, ctx *gin.Cont
 			return e
 		}
 		// 清空缓存中的记录
-		cacheSpace := auth.GetMiddlewareRelativeAuthCache()
+		cacheSpace := inbound.GetMiddlewareRelativeAuthCache()
 		for _, s := range loginSessions {
 			cacheSpace.Delete(fmt.Sprintf("%d", s.ID))
 		}
@@ -311,9 +328,9 @@ func (*userService) DeleteOauth2User(req *dto.DeleteOauth2UserReq, ctx *gin.Cont
 }
 
 // GetLocalUserLoginSessions 获取已登录用户的会话列表
-func (*userService) GetLocalUserLoginSessions(req *dto.GetLoginUserSessionsReq, ctx *gin.Context) (resp *dto.GetLoginUserSessionsResp, err error) {
+func (*userServiceImpl) GetLocalUserLoginSessions(req *dto.GetLoginUserSessionsReq, ctx *gin.Context) (resp *dto.GetLoginUserSessionsResp, err error) {
 	sessionOp := biz.UserLoginSession
-	currentLogin, e := auth.GetCurrentLoginSession(ctx)
+	currentLogin, e := inbound.GetCurrentLoginSession(ctx)
 	if e != nil {
 		err = util.CreateAuthErr("无效的用户凭据", err)
 		return
@@ -362,8 +379,8 @@ func (*userService) GetLocalUserLoginSessions(req *dto.GetLoginUserSessionsReq, 
 }
 
 // GetLoginUserBasicProfile 获取已登录用户的基本信息(头像, 链接等)
-func (*userService) GetLoginUserBasicProfile(ctx *gin.Context) (resp *dto.LoginUserBasicProfile, err error) {
-	currentLogin, e := auth.GetCurrentLoginSession(ctx)
+func (*userServiceImpl) GetLoginUserBasicProfile(ctx *gin.Context) (resp *dto.LoginUserBasicProfile, err error) {
+	currentLogin, e := inbound.GetCurrentLoginSession(ctx)
 
 	if e != nil {
 		err = util.CreateAuthErr("无效的用户凭据", err)

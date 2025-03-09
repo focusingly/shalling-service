@@ -11,20 +11,29 @@ import (
 )
 
 type (
+	IMailService interface {
+		SendEmailByPrimary(req *dto.SendMailReq) (resp *dto.SendMailResp, err error)
+		SendEmailBySelection(req *dto.SendMailWithSelectionReq) (resp *dto.SendMailResp, err error)
+		GetConfList(req *dto.GetMailConfListReq) (resp *dto.GetMailConfListResp)
+	}
+
+	mailServiceImpl struct {
+		primaryDialer *gomail.Dialer
+		mapping       map[string]*confDialerMapping
+	}
 	confDialerMapping struct {
 		conf   *conf.MailSmtpConf
 		dialer *gomail.Dialer
 	}
-	mailService struct {
-		primaryDialer *gomail.Dialer
-		mapping       map[string]*confDialerMapping
-	}
 )
 
-var DefaultMailService *mailService
+var (
+	_                  IMailService = (*mailServiceImpl)(nil)
+	DefaultMailService IMailService = newMailService()
+)
 
-func init() {
-	DefaultMailService = &mailService{
+func newMailService() IMailService {
+	tmp := &mailServiceImpl{
 		mapping: make(map[string]*confDialerMapping),
 	}
 
@@ -39,18 +48,20 @@ func init() {
 			),
 			conf: mailConf,
 		}
-		DefaultMailService.mapping[mailConf.SpecificID] = t
+		tmp.mapping[mailConf.SpecificID] = t
 		if mailConf.Primary {
-			DefaultMailService.primaryDialer = t.dialer
+			tmp.primaryDialer = t.dialer
 		}
 	}
-	if DefaultMailService.primaryDialer == nil {
+	if tmp.primaryDialer == nil {
 		log.Fatal("未设置主要的邮件发送配置参数")
 	}
+
+	return tmp
 }
 
 // SendEmailByPrimary 使用主邮件配置发送邮件
-func (s *mailService) SendEmailByPrimary(req *dto.SendMailReq) (resp *dto.SendMailResp, err error) {
+func (s *mailServiceImpl) SendEmailByPrimary(req *dto.SendMailReq) (resp *dto.SendMailResp, err error) {
 	msg := gomail.NewMessage()
 	msg.SetHeader("From", req.From)
 	msg.SetHeader("To", req.To...)
@@ -77,7 +88,7 @@ func (s *mailService) SendEmailByPrimary(req *dto.SendMailReq) (resp *dto.SendMa
 }
 
 // SendEmailByPrimary 使用主邮件配置发送邮件
-func (s *mailService) SendEmailBySelection(req *dto.SendMailWithSelectionReq) (resp *dto.SendMailResp, err error) {
+func (s *mailServiceImpl) SendEmailBySelection(req *dto.SendMailWithSelectionReq) (resp *dto.SendMailResp, err error) {
 	c, ok := s.mapping[req.SpecificID]
 	if !ok {
 		err = util.CreateBizErr("未找到匹配的邮件发送配置", fmt.Errorf("not found matched mail config by id: %s", req.SpecificID))
@@ -112,7 +123,7 @@ func (s *mailService) SendEmailBySelection(req *dto.SendMailWithSelectionReq) (r
 	return
 }
 
-func (s *mailService) GetConfList(req *dto.GetMailConfListReq) (resp *dto.GetMailConfListResp) {
+func (s *mailServiceImpl) GetConfList(req *dto.GetMailConfListReq) (resp *dto.GetMailConfListResp) {
 	list := []*dto.MailConf{}
 	for _, m := range s.mapping {
 		list = append(list, &dto.MailConf{

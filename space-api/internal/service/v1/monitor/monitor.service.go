@@ -9,8 +9,6 @@ import (
 	"github.com/shirou/gopsutil/net"
 )
 
-type _monitorService struct{}
-
 type (
 	// SystemInfo 包含所有系统性能信息
 	SystemInfo struct {
@@ -30,11 +28,20 @@ type (
 		PacketsSent uint64 `json:"packetsSent"`
 		PacketsRecv uint64 `json:"packetsRecv"`
 	}
+
+	IMonitorService interface {
+		GetStatus() (resp *SystemInfo, err error)
+	}
+	monitorServiceImpl struct{}
 )
 
-var DefaultMonitorService = &_monitorService{}
+var (
+	_ IMonitorService = (*monitorServiceImpl)(nil)
 
-func (*_monitorService) GetStatus() (resp *SystemInfo, err error) {
+	DefaultMonitorService IMonitorService = &monitorServiceImpl{}
+)
+
+func (*monitorServiceImpl) GetStatus() (resp *SystemInfo, err error) {
 	// 构建 SystemInfo 结构体
 	resp = &SystemInfo{}
 

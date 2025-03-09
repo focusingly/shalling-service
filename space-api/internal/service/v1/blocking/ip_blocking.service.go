@@ -14,15 +14,29 @@ import (
 	"gorm.io/gen/field"
 )
 
-type _ipBlockingService struct {
-	cache performance.CacheGroupInf
-}
+type (
+	INetBlockingService interface {
+		AddBlockingIP(req *dto.AddBlockingIPReq, ctx context.Context) (resp *dto.AddBlockingIPResp, err error)
+		IpInBlockingList(ip string) bool
+		GetBlockingPages(req *dto.GetBlockingPagesReq, ctx context.Context) (resp *dto.GetBlockingPagesResp, err error)
+		DeleteBlockingRecord(req *dto.DeleteBlockingRecordReq, ctx context.Context) (resp *dto.DeleteBlockingRecordResp, err error)
+		SyncBlockingRecordInCache(ctx context.Context) (err error)
+	}
 
-var DefaultIPBlockingService = &_ipBlockingService{
-	cache: performance.DefaultJsonCache.Group("ip-limit"),
-}
+	netBlockingServiceImpl struct {
+		cache performance.CacheGroupInf
+	}
+)
 
-func (s *_ipBlockingService) AddBlockingIP(req *dto.AddBlockingIPReq, ctx context.Context) (resp *dto.AddBlockingIPResp, err error) {
+var (
+	_ INetBlockingService = (*netBlockingServiceImpl)(nil)
+
+	DefaultIPBlockingService INetBlockingService = &netBlockingServiceImpl{
+		cache: performance.DefaultJsonCache.Group("ip-limit"),
+	}
+)
+
+func (s *netBlockingServiceImpl) AddBlockingIP(req *dto.AddBlockingIPReq, ctx context.Context) (resp *dto.AddBlockingIPResp, err error) {
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		ipTx := tx.BlockIPRecord
 		_, e := ipTx.WithContext(ctx).
@@ -55,7 +69,7 @@ func (s *_ipBlockingService) AddBlockingIP(req *dto.AddBlockingIPReq, ctx contex
 	return
 }
 
-func (s *_ipBlockingService) IpInBlockingList(ip string) bool {
+func (s *netBlockingServiceImpl) IpInBlockingList(ip string) bool {
 	var tmp int64
 	if err := s.cache.Get(ip, &tmp); err == nil {
 		return true
@@ -64,7 +78,7 @@ func (s *_ipBlockingService) IpInBlockingList(ip string) bool {
 	return false
 }
 
-func (s *_ipBlockingService) GetBlockingPages(req *dto.GetBlockingPagesReq, ctx context.Context) (resp *dto.GetBlockingPagesResp, err error) {
+func (s *netBlockingServiceImpl) GetBlockingPages(req *dto.GetBlockingPagesReq, ctx context.Context) (resp *dto.GetBlockingPagesResp, err error) {
 	ipOp := biz.BlockIPRecord
 
 	condList := []gen.Condition{}
@@ -109,7 +123,7 @@ func (s *_ipBlockingService) GetBlockingPages(req *dto.GetBlockingPagesReq, ctx 
 	return
 }
 
-func (s *_ipBlockingService) DeleteBlockingRecord(req *dto.DeleteBlockingRecordReq, ctx context.Context) (resp *dto.DeleteBlockingRecordResp, err error) {
+func (s *netBlockingServiceImpl) DeleteBlockingRecord(req *dto.DeleteBlockingRecordReq, ctx context.Context) (resp *dto.DeleteBlockingRecordResp, err error) {
 	err = biz.Q.Transaction(func(tx *biz.Query) error {
 		ipTx := tx.BlockIPRecord
 		condList := []gen.Condition{}
@@ -167,8 +181,8 @@ func (s *_ipBlockingService) DeleteBlockingRecord(req *dto.DeleteBlockingRecordR
 	return
 }
 
-// SyncBlockingRecordInCache 同步数据库的阻止列表到缓存, 这个过程不是异步的
-func (s *_ipBlockingService) SyncBlockingRecordInCache(ctx context.Context) (err error) {
+// SyncBlockingRecordInCache 同步数据库的阻止列表到缓存, 这个过程不是同步步的
+func (s *netBlockingServiceImpl) SyncBlockingRecordInCache(ctx context.Context) (err error) {
 	ipOp := biz.BlockIPRecord
 	list, err := ipOp.WithContext(ctx).Find()
 	if err != nil {

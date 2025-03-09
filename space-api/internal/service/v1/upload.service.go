@@ -29,14 +29,22 @@ import (
 )
 
 type (
-	_localUploadService struct{}
+	ILocalUploadService interface {
+		Upload(ctx *gin.Context, maxSize ...constants.MemoryByteSize) (resp *model.FileRecord, err error)
+		UploadImage2Webp(ctx *gin.Context, maxSize ...constants.MemoryByteSize) (resp *model.FileRecord, err error)
+	}
+	localUploadServiceImpl struct{}
 )
 
-var DefaultUploadService = &_localUploadService{}
+var (
+	_ ILocalUploadService = (*localUploadServiceImpl)(nil)
+
+	DefaultUploadService ILocalUploadService = &localUploadServiceImpl{}
+)
 
 // Upload 上传文件到本地
 // 表单参数规范: file: File(必须), md5: text(可选)
-func (d *_localUploadService) Upload(ctx *gin.Context, maxSize ...constants.MemoryByteSize) (resp *model.FileRecord, err error) {
+func (d *localUploadServiceImpl) Upload(ctx *gin.Context, maxSize ...constants.MemoryByteSize) (resp *model.FileRecord, err error) {
 	i := len(maxSize)
 	switch {
 	case i == 0: // 无配置, 使用默认的全局上传大小限制
@@ -163,7 +171,7 @@ func (d *_localUploadService) Upload(ctx *gin.Context, maxSize ...constants.Memo
 }
 
 // UploadImage2Webp 上传图片并转码为 webp 格式
-func (d *_localUploadService) UploadImage2Webp(ctx *gin.Context, maxSize ...constants.MemoryByteSize) (resp *model.FileRecord, err error) {
+func (d *localUploadServiceImpl) UploadImage2Webp(ctx *gin.Context, maxSize ...constants.MemoryByteSize) (resp *model.FileRecord, err error) {
 	i := len(maxSize)
 	switch {
 	case i == 0: // 无配置, 使用默认的全局上传大小限制

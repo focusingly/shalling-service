@@ -14,18 +14,34 @@ import (
 	"strings"
 	"time"
 
+	"slices"
+
 	"github.com/gin-gonic/gin"
 )
 
-type _staticFileService struct {
-	cache performance.CacheGroupInf
-}
+type (
+	IStaticFileService interface {
+		IsPubVisible(locationName string) bool
+		InvalidateAllVisibleCache(locationName string)
+		HandlePubVisit(rawFileParam string, ctx *gin.Context)
+		InvalidateCache(locationName string)
+		HandleAllVisit(rawFileParam string, ctx *gin.Context)
+	}
 
-const pubCacheControlExpired = time.Hour * 24 * 15
-const adminCacheControlExpired = time.Minute * 1
+	staticFileServiceImpl struct {
+		cache performance.CacheGroupInf
+	}
+)
+
+const (
+	pubCacheControlExpired   = time.Hour * 24 * 15
+	adminCacheControlExpired = time.Minute * 1
+)
 
 var (
-	DefaultStaticFileService = &_staticFileService{
+	_ IStaticFileService = (*staticFileServiceImpl)(nil)
+
+	DefaultStaticFileService IStaticFileService = &staticFileServiceImpl{
 		cache: performance.DefaultJsonCache.Group("static-file"),
 	}
 	// 公开静态资源缓存时间为 15 天
@@ -36,11 +52,11 @@ var (
 	staticDirPrefix         = path.Clean(appConf.StaticDir)
 )
 
-func (s *_staticFileService) ExposeInnerCacher() performance.CacheGroupInf {
+func (s *staticFileServiceImpl) ExposeInnerCacher() performance.CacheGroupInf {
 	return s.cache
 }
 
-func (s *_staticFileService) IsPubVisible(locationName string) bool {
+func (s *staticFileServiceImpl) IsPubVisible(locationName string) bool {
 	if e := s.cache.Get(locationName, &performance.Empty{}); e == nil {
 		return true
 	}
@@ -61,12 +77,12 @@ func (s *_staticFileService) IsPubVisible(locationName string) bool {
 	}
 }
 
-func (s *_staticFileService) InvalidateAllVisibleCache(locationName string) {
+func (s *staticFileServiceImpl) InvalidateAllVisibleCache(locationName string) {
 	s.cache.ClearAll()
 }
 
 // HandlePubVisit 处理公共的访问的文件服务, 并添加缓存标识, 限制未公开文件访问
-func (s *_staticFileService) HandlePubVisit(rawFileParam string, ctx *gin.Context) {
+func (s *staticFileServiceImpl) HandlePubVisit(rawFileParam string, ctx *gin.Context) {
 	// 获取请求的文件路径
 	// 使用 path.Clean 清理路径, 防止路径跳跃比如 ../)
 	cleanFileName := path.Clean(rawFileParam)
@@ -127,12 +143,12 @@ func (s *_staticFileService) HandlePubVisit(rawFileParam string, ctx *gin.Contex
 	ctx.File(fullPath)
 }
 
-func (s *_staticFileService) InvalidateCache(locationName string) {
+func (s *staticFileServiceImpl) InvalidateCache(locationName string) {
 	s.cache.Delete(locationName)
 }
 
 // HandleAllVisit 处理所有的静态资源(包括未公开的, 适合于管理员使用), 并且设置较短的缓存策略
-func (s *_staticFileService) HandleAllVisit(rawFileParam string, ctx *gin.Context) {
+func (s *staticFileServiceImpl) HandleAllVisit(rawFileParam string, ctx *gin.Context) {
 	// 获取请求的文件路径
 	// 使用 path.Clean 清理路径, 防止路径跳跃比如 ../)
 	cleanFileName := path.Clean(rawFileParam)
@@ -205,10 +221,5 @@ func generateCRC32ETag(filePath string) string {
 
 // 检查 Referer 是否有效
 func IsValidReferer(referer string, allowedRefererList []string) bool {
-	for _, allowedReferer := range allowedRefererList {
-		if referer == allowedReferer {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(allowedRefererList, referer)
 }

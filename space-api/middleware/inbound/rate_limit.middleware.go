@@ -8,7 +8,6 @@ import (
 	"slices"
 	"space-api/constants"
 	"space-api/internal/service/v1/blocking"
-	"space-api/middleware/auth"
 	"strings"
 
 	"space-api/util"
@@ -37,7 +36,7 @@ func UseReqRateLimitMiddleware(d time.Duration, maxReq int, limitPath ...string)
 		}
 
 		// 管理员忽略任务访问基数限制
-		user, e := auth.GetCurrentLoginSession(ctx)
+		user, e := GetCurrentLoginSession(ctx)
 		if e == nil && user.UserType == constants.Admin {
 			ctx.Next()
 			return

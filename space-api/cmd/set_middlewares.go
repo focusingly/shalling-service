@@ -3,7 +3,6 @@ package cmd
 import (
 	"space-api/conf"
 	"space-api/constants"
-	"space-api/middleware/auth"
 	"space-api/middleware/inbound"
 	"space-api/middleware/outbound"
 	"time"
@@ -25,7 +24,7 @@ func getMiddlewares(appConf *conf.AppConf) []gin.HandlerFunc {
 		inbound.UseUploadFileLimitMiddleware(constants.MemoryByteSize(appConf.ParsedUploadSize)),
 		inbound.UseUseragentParserMiddleware(),
 		inbound.UseExtractIPv4Middleware(),
-		auth.UseJwtAuthExtractMiddleware(),
+		inbound.UseJwtAuthExtractMiddleware(),
 		inbound.UseReqRateLimitMiddleware(time.Second*16, 32, appConf.ApiPrefix),
 
 		sessions.Sessions("shalling.space", store),

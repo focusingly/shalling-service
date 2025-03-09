@@ -1,6 +1,8 @@
 package str
 
-import "unicode"
+import (
+	"unicode"
+)
 
 func ExtractAroundKeyword(str, keyword string, padding int) (string, int) {
 	// 将原始字符串转换为 rune 切片，这样能够按字符进行操作
@@ -29,15 +31,8 @@ func ExtractAroundKeyword(str, keyword string, padding int) (string, int) {
 	}
 
 	// 计算前后各10个字符的起始和结束位置
-	start := index - padding
-	if start < 0 {
-		start = 0 // 如果起始位置小于0，则从字符串开头开始
-	}
-
-	end := index + len(keywordRunes) + padding
-	if end > len(runes) {
-		end = len(runes) // 如果结束位置超过字符串长度，则从字符串结尾处结束
-	}
+	start := max(index-padding, 0)
+	end := min(index+len(keywordRunes)+padding, len(runes))
 
 	// 截取包含关键词的子串
 	subRunes := runes[start:end]

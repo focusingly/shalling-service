@@ -1,10 +1,14 @@
 package dto
 
-import "space-domain/model"
+import (
+	"space-api/dto/query"
+	"space-api/util/performance"
+	"space-domain/model"
+)
 
 type (
 	CreateOrUpdateMenuReq struct {
-		ID        int64             `json:"id"`
+		ID        int64             `json:"id,string"`
 		MenuName  string            `json:"menuName"`
 		RoutePath *string           `json:"routePath"`
 		PostLink  *int64            `json:"postLink"`
@@ -21,8 +25,7 @@ type (
 	}
 
 	DeleteMenuGroupsReq struct {
-		IDList []int64 `json:"idList" yaml:"idList" xml:"idList" toml:"idList"`
+		IDList query.Int64Array `json:"idList" yaml:"idList" xml:"idList" toml:"idList"`
 	}
-	DeleteMenuGroupsResp struct {
-	}
+	DeleteMenuGroupsResp = performance.Empty
 )

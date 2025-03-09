@@ -85,8 +85,10 @@ var (
 	_appConf  = conf.ProjectConf.GetAppConf()
 )
 
-type authService struct {
-}
+type (
+	authService struct {
+	}
+)
 
 var DefaultAuthService = &authService{}
 

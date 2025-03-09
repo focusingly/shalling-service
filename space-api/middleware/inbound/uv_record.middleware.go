@@ -63,7 +63,8 @@ func (m *UVManager) CreateUVMiddleware() gin.HandlerFunc {
 				MaxAge:   m.CookieMaxAge, // 注意 cookie 使用的是 UTC 时间, 和本地时间(如北京时间)的显示存在时差
 				Secure:   true,
 				HttpOnly: true,
-				SameSite: http.SameSiteLaxMode,
+				SameSite: http.SameSiteStrictMode,
+				Path:     "/",
 			})
 			session.Save()
 		}

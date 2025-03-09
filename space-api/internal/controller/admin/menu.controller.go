@@ -28,7 +28,7 @@ func UseMenuController(group *gin.RouterGroup) {
 	})
 
 	// 添加/更新 菜单
-	menuGroup.POST("/", func(ctx *gin.Context) {
+	menuGroup.POST("/update", func(ctx *gin.Context) {
 		req := &dto.CreateOrUpdateMenuReq{}
 
 		if err := ctx.ShouldBindBodyWithJSON(req); err != nil {
@@ -44,7 +44,7 @@ func UseMenuController(group *gin.RouterGroup) {
 	})
 
 	// 删除菜单
-	menuGroup.DELETE("/", func(ctx *gin.Context) {
+	menuGroup.POST("/delete", func(ctx *gin.Context) {
 		req := &dto.DeleteMenuGroupsReq{}
 		if err := ctx.ShouldBindBodyWithJSON(req); err != nil {
 			ctx.Error(util.CreateBizErr("参数错误: "+err.Error(), err))

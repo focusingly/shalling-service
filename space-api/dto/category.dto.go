@@ -1,6 +1,9 @@
 package dto
 
-import "space-domain/model"
+import (
+	"space-api/dto/query"
+	"space-domain/model"
+)
 
 type (
 	CreateOrUpdateCategoryReq struct {
@@ -20,7 +23,7 @@ type (
 
 	// 获取分类和其文章关联的所有文章列表信息
 	GetCategoryWithPostsReq struct {
-		CatID int64 `uri:"catID" json:"catID"`
+		CatID int64 `uri:"catID" json:"catID,string"`
 	}
 	GetCategoryWithPostsResp struct {
 		Category      *model.Category `json:"category" yaml:"category" xml:"category" toml:"category"`
@@ -28,7 +31,7 @@ type (
 	}
 
 	DeleteCategoryReq struct {
-		IDList []int64
+		IDList query.Int64Array `json:"idList" yaml:"idList" xml:"idList" toml:"idList"`
 	}
 	DeleteCategoryResp struct{}
 )

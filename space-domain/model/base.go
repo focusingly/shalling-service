@@ -8,7 +8,7 @@ import (
 
 // BaseColumn 表的基础字段信息
 type BaseColumn struct {
-	ID        int64 `gorm:"type:bigint;primaryKey;autoIncrement:false;comment:主键" json:"id"`
+	ID        int64 `gorm:"type:bigint;primaryKey;autoIncrement:false;comment:主键" json:"id,string"` // 对于 ID 使用 string 的方式进行序列化返回给前端
 	CreatedAt int64 `gorm:"type:bigint;autoCreateTime:milli;not null;comment:创建时间, unix 毫秒" json:"createdAt"`
 	UpdatedAt int64 `gorm:"type:bigint;autoUpdateTime:milli;not null;comment:更新时间, unix 毫秒时间戳" json:"updatedAt"`
 	Hide      int   `gorm:"type:smallint;not null;default:0;comment:是否隐藏, 默认为 0 不隐藏" json:"hide"`

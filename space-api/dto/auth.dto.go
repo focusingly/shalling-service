@@ -7,7 +7,7 @@ type (
 		IconURL      *string `json:"iconURL" yaml:"iconURL" xml:"iconURL" toml:"iconURL"`
 		HomePageLink *string `json:"homePageLink" yaml:"homePageLink" xml:"homePageLink" toml:"homePageLink"`
 		DisplayName  string  `json:"displayName" yaml:"displayName" xml:"displayName" toml:"displayName"`
-		ExpiredAt    int64   `json:"expiredAt" yaml:"expiredAt" xml:"expiredAt" toml:"expiredAt"`
+		ExpiredAt    int64   `json:"expiredAt,string" yaml:"expiredAt" xml:"expiredAt" toml:"expiredAt"`
 	}
 )
 

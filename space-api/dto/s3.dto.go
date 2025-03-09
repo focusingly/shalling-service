@@ -2,6 +2,7 @@ package dto
 
 import (
 	"space-api/dto/query"
+	"space-api/util/performance"
 	"space-domain/model"
 )
 
@@ -19,7 +20,7 @@ type (
 		ChecksumType   string `json:"checksumType" yaml:"checksumType" xml:"checksumType" toml:"checksumType"`
 		Checksum       string `json:"checksum" yaml:"checksum" xml:"checksum" toml:"checksum"`
 		URL            string `json:"url" yaml:"url" xml:"url" toml:"url"`
-		ExpiredAt      int64  `json:"expiredAt" yaml:"expiredAt" xml:"expiredAt" toml:"expiredAt"`
+		ExpiredAt      int64  `json:"expiredAt,string" yaml:"expiredAt" xml:"expiredAt" toml:"expiredAt"`
 	}
 
 	SyncS3RecordToDatabaseReq struct {
@@ -49,6 +50,5 @@ type (
 	DeleteS3ObjectPagesReq struct {
 		CondList []*query.WhereCond `json:"condList" yaml:"condList" xml:"condList" toml:"condList"`
 	}
-	DeleteS3ObjectPagesResp struct {
-	}
+	DeleteS3ObjectPagesResp performance.Empty
 )

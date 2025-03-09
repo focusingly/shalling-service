@@ -1,10 +1,14 @@
 package dto
 
-import "space-domain/model"
+import (
+	"space-api/dto/query"
+	"space-api/util/performance"
+	"space-domain/model"
+)
 
 type (
 	CreateOrUpdateSocialMediaReq struct {
-		Id          int64  `json:"id"`
+		Id          int64  `json:"id,string"`
 		Hide        int    `json:"hide"`
 		DisplayName string `gorm:"type:varchar(255);not null;comment:显示名称" json:"displayName"`
 		IconURL     string `gorm:"type:varchar(255);not null;comment:图标链接" json:"iconURL"`
@@ -19,7 +23,7 @@ type (
 
 	DeleteSocialMediaByIdListReq struct {
 		WarningOverride
-		IdList []int64 `json:"idList"`
+		IdList query.Int64Array `json:"idList"`
 	}
-	DeleteSocialMediaByIdListResp struct{}
+	DeleteSocialMediaByIdListResp performance.Empty
 )

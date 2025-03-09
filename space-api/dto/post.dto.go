@@ -1,13 +1,14 @@
 package dto
 
 import (
+	"space-api/dto/query"
 	"space-domain/model"
 )
 
 type (
 	UpdateOrCreatePostReq struct {
 		WarningOverride `json:"warningOverride" yaml:"warningOverride" xml:"warningOverride" toml:"warningOverride"`
-		PostId          int64    `json:"postId" yaml:"postId" xml:"postId" toml:"postId"`
+		PostId          int64    `json:"postId,string" yaml:"postId" xml:"postId" toml:"postId"`
 		AuthorId        int64    `json:"authorId" yaml:"authorId" xml:"authorId" toml:"authorId"`
 		Hide            byte     `json:"hide" yaml:"hide" xml:"hide" toml:"hide"`
 		Title           string   `json:"title" yaml:"title" xml:"title" toml:"title"`
@@ -39,14 +40,14 @@ type (
 	}
 
 	GetPostDetailReq struct {
-		PostID int64 `json:"postID" yaml:"postID" xml:"postID" toml:"postID"`
+		PostID int64 `json:"postID,string" yaml:"postID" xml:"postID" toml:"postID"`
 	}
 	GetPostDetailResp struct {
 		model.Post
 	}
 
 	DeletePostByIdListReq struct {
-		IdList []int64 `json:"idList"`
+		IdList query.Int64Array `json:"idList"`
 	}
 	DeletePostByIdListResp struct {
 	}

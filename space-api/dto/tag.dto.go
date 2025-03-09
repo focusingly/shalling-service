@@ -1,6 +1,9 @@
 package dto
 
-import "space-domain/model"
+import (
+	"space-api/dto/query"
+	"space-domain/model"
+)
 
 type (
 	GetTagPageListReq struct {
@@ -11,14 +14,14 @@ type (
 	}
 
 	GetTagDetailReq struct {
-		Id int64 `uri:"id" json:"id"`
+		Id int64 `uri:"id" json:"id,string"`
 	}
 	GetTagDetailResp struct {
 		model.Tag
 	}
 
 	CreateOrUpdateTagReq struct {
-		Id      int64   `json:"id"`
+		Id      int64   `json:"id,string"`
 		Hide    int     `json:"hide"`
 		TagName string  `json:"tagName"`
 		Color   *string `json:"color"`
@@ -30,7 +33,7 @@ type (
 
 	DeleteTagByIdListReq struct {
 		WarningOverride
-		IdList []int64 `json:"idList"`
+		IdList query.Int64Array `json:"idList"`
 	}
 	DeleteTagByIdListResp struct{}
 )

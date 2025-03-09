@@ -21,6 +21,8 @@ func Run() {
 	gin.SetMode(util.TernaryExpr(isDebug, gin.DebugMode, gin.ReleaseMode))
 	gin.ForceConsoleColor()
 	engine := gin.New()
+	engine.RedirectTrailingSlash = false
+	engine.RemoveExtraSlash = true
 	engine.MaxMultipartMemory = int64(constants.MB * 16) // 设置较小的表单内存
 	appConf := conf.ProjectConf.GetAppConf()
 	setTimeZoneIfRequire()                 // 设置时区(如果有指定的话)

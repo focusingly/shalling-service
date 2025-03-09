@@ -500,16 +500,18 @@ func (s *postService) GetVisiblePostById(req *dto.GetPostDetailReq, ctx *gin.Con
 
 // GetPostById 根据文章 ID 获取全量的文章信息
 func (s *postService) DeletePostByIdList(req *dto.DeletePostByIdListReq, ctx *gin.Context) (resp *dto.DeletePostByIdListResp, err error) {
-	err = biz.Q.Transaction(func(tx *biz.Query) error {
-		_, err = tx.Post.WithContext(ctx).Where(tx.Post.ID.In(req.IdList...)).Delete()
-		return err
+	deleteErr := biz.Q.Transaction(func(tx *biz.Query) error {
+		_, dErr := tx.Post.WithContext(ctx).Where(tx.Post.ID.In(req.IdList...)).Delete()
+		return dErr
 	})
 
-	if err != nil {
-		return nil, &util.BizErr{
-			Msg:    "删除失败: " + err.Error(),
+	if deleteErr != nil {
+		err = &util.BizErr{
+			Msg:    "删除失败: " + deleteErr.Error(),
 			Reason: err,
 		}
+
+		return
 	}
 
 	// 清空相关的全文搜索索引
@@ -519,8 +521,9 @@ func (s *postService) DeletePostByIdList(req *dto.DeletePostByIdListReq, ctx *gi
 		}
 		s.searchService.DeletePostSearchIndex(req.IdList, context.Background())
 	})
+	resp = &dto.DeletePostByIdListResp{}
 
-	return &dto.DeletePostByIdListResp{}, nil
+	return
 }
 
 func (s *postService) GetVisiblePostsByTagName(req *dto.GetPostByTagNameReq, ctx *gin.Context) (resp *dto.GetPostByTagNameResp, err error) {

@@ -41,7 +41,7 @@ type (
 	// UserLoginSession 表示登录会话信息
 	UserLoginSession struct {
 		BaseColumn `json:"baseColumn" yaml:"baseColumn" xml:"baseColumn" toml:"baseColumn"`
-		UserID     int64   `gorm:"type:bigint;not null;comment:用户的 ID" json:"userID" yaml:"userID" xml:"userID" toml:"userID"`
+		UserID     int64   `gorm:"type:bigint;not null;comment:用户的 ID" json:"userID,string" yaml:"userID" xml:"userID" toml:"userID"`
 		IpU32Val   *uint32 `gorm:"type:int;null;comment:ipv4 地址的 uint32 表示值" json:"ipU32Val" yaml:"ipU32Val" xml:"ipU32Val" toml:"ipU32Val"`
 		IpAddress  *string `gorm:"type:varchar(255);null;comment:ip 地址表示字符串" json:"ipAddress" yaml:"ipAddress" xml:"ipAddress" toml:"ipAddress"`
 		IpSource   *string `gorm:"type:varchar(255);null;comment:ip 来源归属地" json:"ipSource" yaml:"ipSource" xml:"ipSource" toml:"ipSource"`
@@ -57,7 +57,7 @@ type (
 	Post struct {
 		BaseColumn   `json:"baseColumn" yaml:"baseColumn" xml:"baseColumn" toml:"baseColumn"`
 		Title        string   `gorm:"type:varchar(255);not null;comment:文章标题" json:"title" yaml:"title" xml:"title" toml:"title"`
-		AuthorId     int64    `gorm:"type:bigint;not null;comment:文章作者的主键 ID" json:"authorId" yaml:"authorId" xml:"authorId" toml:"authorId"`
+		AuthorId     int64    `gorm:"type:bigint;not null;comment:文章作者的主键 ID" json:"authorId,string" yaml:"authorId" xml:"authorId" toml:"authorId"`
 		Content      string   `gorm:"type:text;comment:文章内容" json:"content" yaml:"content" xml:"content" toml:"content"`
 		WordCount    int64    `gorm:"type:bigint;not null;comment:字数统计" json:"wordCount" yaml:"wordCount" xml:"wordCount" toml:"wordCount"`
 		ReadTime     *int64   `gorm:"type:bigint;null;comment:阅读时间 unix 毫秒时间戳" json:"readTime" yaml:"readTime" xml:"readTime" toml:"readTime"`
@@ -84,8 +84,8 @@ type (
 	// PostTagRelation 文章和标签的关联关系
 	PostTagRelation struct {
 		BaseColumn `json:"baseColumn" yaml:"baseColumn" xml:"baseColumn" toml:"baseColumn"`
-		PostId     int64 `gorm:"type:bigint;not null;comment:文章的主键 ID" json:"postId" yaml:"postId" xml:"postId" toml:"postId"`
-		TagId      int64 `gorm:"type:bigint;not null;comment:标签的主键 ID" json:"tagId" yaml:"tagId" xml:"tagId" toml:"tagId"`
+		PostId     int64 `gorm:"type:bigint;not null;comment:文章的主键 ID" json:"postId,string" yaml:"postId" xml:"postId" toml:"postId"`
+		TagId      int64 `gorm:"type:bigint;not null;comment:标签的主键 ID" json:"tagId,string" yaml:"tagId" xml:"tagId" toml:"tagId"`
 	}
 
 	// Category 分类信息
@@ -99,14 +99,14 @@ type (
 	// 评论表
 	Comment struct {
 		BaseColumn      `json:"baseColumn" yaml:"baseColumn" xml:"baseColumn" toml:"baseColumn"`
-		PostId          int64   `gorm:"type:bigint;not null;comment:文章的的 ID" json:"postId" yaml:"postId" xml:"postId" toml:"postId"`
-		UserId          int64   `gorm:"type:bigint;not null;comment:评论用户 ID" json:"userId" yaml:"userId" xml:"userId" toml:"userId"`
+		PostId          int64   `gorm:"type:bigint;not null;comment:文章的的 ID" json:"postId,string" yaml:"postId" xml:"postId" toml:"postId"`
+		UserId          int64   `gorm:"type:bigint;not null;comment:评论用户 ID" json:"userId,string" yaml:"userId" xml:"userId" toml:"userId"`
 		UserType        string  `gorm:"type:text;null;comment:用户类型" json:"userType" yaml:"userType" xml:"userType" toml:"userType"`
 		DisplayUsername string  `gorm:"type:text;null;comment:显示的用户名称" json:"displayUsername" yaml:"displayUsername" xml:"displayUsername" toml:"displayUsername"`
 		Avatar          *string `gorm:"type:text;null;comment:用户头像的链接" json:"avatar" yaml:"avatar" xml:"avatar" toml:"avatar"`
 		HomePageURL     *string `gorm:"type:text;null;comment:用户的公开主页" json:"homePageURL" yaml:"homePageURL" xml:"homePageURL" toml:"homePageURL"`
 		RootCommentId   int64   `gorm:"type:bigint;not null;default:0;comment:评论所属的根评论 ID, 用于查找评论下所有子评论的以及评论二级分页" json:"rootCommentId" yaml:"rootCommentId" xml:"rootCommentId" toml:"rootCommentId"`
-		ReplyToId       int64   `gorm:"type:bigint;not null;default:0;comment:回复的上条评论 ID, 如果自身是根评论, 那么为 0" json:"replyToId" yaml:"replyToId" xml:"replyToId" toml:"replyToId"`
+		ReplyToId       int64   `gorm:"type:bigint;not null;default:0;comment:回复的上条评论 ID, 如果自身是根评论, 那么为 0" json:"replyToId,string" yaml:"replyToId" xml:"replyToId" toml:"replyToId"`
 		Content         string  `gorm:"type:text;not null;comment:评论内容" json:"content" yaml:"content" xml:"content" toml:"content"`
 		UpVote          *int64  `gorm:"type:bigint;null;comment:赞成数" json:"upVote" yaml:"upVote" xml:"upVote" toml:"upVote"`
 		DownVote        *int64  `gorm:"type:bigint;null;comment:否定数" json:"downVote" yaml:"downVote" xml:"downVote" toml:"downVote"`
@@ -222,7 +222,7 @@ type (
 
 	// Sqlite3KeywordDoc sqlite3 虚拟表配置
 	Sqlite3KeywordDoc struct {
-		PostID          int64  `gorm:"column:post_id" json:"postID" yaml:"postID" xml:"postID" toml:"postID"`
+		PostID          int64  `gorm:"column:post_id" json:"postID,string" yaml:"postID" xml:"postID" toml:"postID"`
 		TileSplit       string `gorm:"column:title_split" json:"tileSplit" yaml:"tileSplit" xml:"tileSplit" toml:"tileSplit"`
 		ContentSplit    string `gorm:"column:content_split" json:"contentSplit" yaml:"contentSplit" xml:"contentSplit" toml:"contentSplit"`
 		Weight          int    `gorm:"column:weight" json:"weight" yaml:"weight" xml:"weight" toml:"weight"`
@@ -248,7 +248,7 @@ type (
 // Extra tables
 type (
 	LogInfo struct {
-		ID            int64   `gorm:"primaryKey;autoIncrement:false;comment:日志 ID" json:"id" yaml:"id" xml:"id" toml:"id"`
+		ID            int64   `gorm:"primaryKey;autoIncrement:false;comment:日志 ID" json:"id,string" yaml:"id" xml:"id" toml:"id"`
 		LogType       string  `gorm:"type:varchar(255);not null;comment:日志类型" json:"category" yaml:"logType" xml:"logType" toml:"logType"`
 		Message       string  `gorm:"type:varchar(255);not null;comment:消息" json:"message" yaml:"message" xml:"message" toml:"message"`
 		Level         string  `gorm:"type:varchar(255);not null;comment:" json:"level" yaml:"level" xml:"level" toml:"level"`
@@ -265,7 +265,6 @@ type (
 
 func (logRecord *LogInfo) BeforeCreate(tx *gorm.DB) (err error) {
 	logRecord.ID = id.GetSnowFlakeNode().Generate().Int64()
-
 	return
 }
 

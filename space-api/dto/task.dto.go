@@ -1,6 +1,9 @@
 package dto
 
-import "space-domain/model"
+import (
+	"space-api/util/performance"
+	"space-domain/model"
+)
 
 type (
 	RegisteredJob struct {
@@ -8,13 +11,13 @@ type (
 		Description string `json:"description"`
 	}
 	CreateOrUpdateJobReq struct {
-		DBRecordID  int64  `json:"dbRecordID"`
+		DBRecordID  int64  `json:"dbRecordID,string"`
 		JobFuncName string `json:"jobFuncName"`
 		CronExpr    string `json:"cronExpr"`
 		Enable      int    `json:"enable"`
 		Mark        string `json:"mark"`
 	}
-	CreateOrUpdateJobResp struct{}
+	CreateOrUpdateJobResp performance.Empty
 
 	GetAvailableJobListReq  struct{}
 	GetAvailableJobListResp struct {
@@ -29,11 +32,10 @@ type (
 	DeleteRunningJobListReq struct {
 		IDList []int64 `json:"idList"`
 	}
-	DeleteRunningJobListResp struct {
-	}
+	DeleteRunningJobListResp performance.Empty
 
 	RunJobReq struct {
-		JobID int64 `json:"jobID" yaml:"jobID" xml:"jobID" toml:"jobID"`
+		JobID int64 `json:"jobID,string" yaml:"jobID" xml:"jobID" toml:"jobID"`
 	}
-	RunJobResp struct{}
+	RunJobResp performance.Empty
 )

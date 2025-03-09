@@ -14,7 +14,7 @@ func UseFriendLinkController(group *gin.RouterGroup) {
 	friendLinkGroup := group.Group("/friend")
 
 	// 获取所有的友情信息列表信息
-	friendLinkGroup.GET("/", func(ctx *gin.Context) {
+	friendLinkGroup.GET("/list", func(ctx *gin.Context) {
 		req := &dto.GetFriendLinksReq{}
 		if err := ctx.ShouldBindQuery(req); err != nil {
 			ctx.Error(util.CreateBizErr("参数错误: "+err.Error(), err))
@@ -27,7 +27,7 @@ func UseFriendLinkController(group *gin.RouterGroup) {
 		}
 	})
 
-	friendLinkGroup.POST("/", func(ctx *gin.Context) {
+	friendLinkGroup.POST("/update", func(ctx *gin.Context) {
 		req := &dto.CreateOrUpdateFriendLinkReq{}
 
 		if err := ctx.ShouldBindBodyWithJSON(req); err != nil {
@@ -42,7 +42,7 @@ func UseFriendLinkController(group *gin.RouterGroup) {
 		}
 	})
 
-	friendLinkGroup.DELETE("/", func(ctx *gin.Context) {
+	friendLinkGroup.POST("/delete", func(ctx *gin.Context) {
 		req := &dto.DeleteFriendLinkReq{}
 		if err := ctx.ShouldBindBodyWithJSON(req); err != nil {
 			ctx.Error(util.CreateBizErr("参数错误: "+err.Error(), err))

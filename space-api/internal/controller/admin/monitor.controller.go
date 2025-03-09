@@ -12,13 +12,11 @@ func UseMonitorController(group *gin.RouterGroup) {
 	pefService := monitor.DefaultMonitorService
 
 	// 查看当前系统的负载情况
-	{
-		perfGroup.GET("/", func(ctx *gin.Context) {
-			if resp, err := pefService.GetStatus(); err != nil {
-				ctx.Error(err)
-			} else {
-				outbound.NotifyProduceResponse(resp, ctx)
-			}
-		})
-	}
+	perfGroup.GET("/info", func(ctx *gin.Context) {
+		if resp, err := pefService.GetStatus(); err != nil {
+			ctx.Error(err)
+		} else {
+			outbound.NotifyProduceResponse(resp, ctx)
+		}
+	})
 }

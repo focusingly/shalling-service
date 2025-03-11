@@ -25,7 +25,7 @@ type (
 		GetAllPostList(req *dto.GetPostPageListReq, ctx *gin.Context) (resp *dto.GetPostPageListResp, err error)
 		GetCachedViewCountOrFallback(post *model.Post, isPubMode bool) int64
 		GetVisiblePostList(req *dto.GetPostPageListReq, ctx *gin.Context) (resp *dto.GetPostPageListResp, err error)
-		GetPostById(req *dto.GetPostDetailReq, ctx *gin.Context) (resp *dto.GetPostDetailResp, err error)
+		GetAnyPostById(req *dto.GetPostDetailReq, ctx *gin.Context) (resp *dto.GetPostDetailResp, err error)
 		SyncAllPostViews(ctx context.Context) (err error)
 		ClearPostsViewsCache()
 		ExpirePubViewsCacheByID(postID int64)
@@ -422,8 +422,8 @@ func (s *postsServiceImpl) GetVisiblePostList(req *dto.GetPostPageListReq, ctx *
 	}, nil
 }
 
-// GetPostById 根据文章 ID 获取全量的文章信息
-func (s *postsServiceImpl) GetPostById(req *dto.GetPostDetailReq, ctx *gin.Context) (resp *dto.GetPostDetailResp, err error) {
+// GetAnyPostById 根据文章 ID 获取全量的文章信息
+func (s *postsServiceImpl) GetAnyPostById(req *dto.GetPostDetailReq, ctx *gin.Context) (resp *dto.GetPostDetailResp, err error) {
 	val, err := biz.Post.WithContext(ctx).Where(biz.Post.ID.Eq(req.PostID)).Take()
 	if err != nil {
 		return nil, &util.BizErr{

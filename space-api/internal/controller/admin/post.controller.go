@@ -47,14 +47,14 @@ func UsePostController(group *gin.RouterGroup) {
 	})
 
 	// 根据 ID 查询单条文章的详细数据
-	postGroup.GET("/detail/:id", func(ctx *gin.Context) {
+	postGroup.GET("/detail/:postID", func(ctx *gin.Context) {
 		req := &dto.GetPostDetailReq{}
 		if err := ctx.ShouldBindUri(req); err != nil {
 			ctx.Error(util.CreateBizErr("非法的请求参数: "+err.Error(), err))
 			return
 		}
 
-		if resp, err := postService.GetPostById(req, ctx); err != nil {
+		if resp, err := postService.GetAnyPostById(req, ctx); err != nil {
 			ctx.Error(err)
 		} else {
 			outbound.NotifyProduceResponse(resp, ctx)

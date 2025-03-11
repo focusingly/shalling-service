@@ -40,7 +40,7 @@ type (
 	}
 
 	GetPostDetailReq struct {
-		PostID int64 `json:"postID,string" yaml:"postID" xml:"postID" toml:"postID"`
+		PostID int64 `uri:"postID" binding:"required" json:"postID,string" yaml:"postID" xml:"postID" toml:"postID"`
 	}
 	GetPostDetailResp struct {
 		model.Post

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"crypto/md5"
 	"fmt"
 	"image"
@@ -15,6 +16,7 @@ import (
 	"path"
 	"space-api/conf"
 	"space-api/constants"
+	"space-api/dto"
 	"space-api/middleware/inbound"
 	"space-api/util"
 	"space-api/util/id"
@@ -30,8 +32,12 @@ import (
 
 type (
 	ILocalUploadService interface {
+		// Upload 上传文件到本地
+		// 表单参数规范: file: File(必须), md5: text(可选)
 		Upload(ctx *gin.Context, maxSize ...constants.MemoryByteSize) (resp *model.FileRecord, err error)
+		// UploadImage2Webp 上传图片并转码为 webp 格式
 		UploadImage2Webp(ctx *gin.Context, maxSize ...constants.MemoryByteSize) (resp *model.FileRecord, err error)
+		GetLocalFilesByPagination(req *dto.GetLocalFilesPaginationReq, ctx context.Context) (resp *dto.GetLocalFilesPaginationResp, err error)
 	}
 	localUploadServiceImpl struct{}
 )
@@ -42,8 +48,6 @@ var (
 	DefaultUploadService ILocalUploadService = &localUploadServiceImpl{}
 )
 
-// Upload 上传文件到本地
-// 表单参数规范: file: File(必须), md5: text(可选)
 func (d *localUploadServiceImpl) Upload(ctx *gin.Context, maxSize ...constants.MemoryByteSize) (resp *model.FileRecord, err error) {
 	i := len(maxSize)
 	switch {
@@ -170,7 +174,6 @@ func (d *localUploadServiceImpl) Upload(ctx *gin.Context, maxSize ...constants.M
 	return
 }
 
-// UploadImage2Webp 上传图片并转码为 webp 格式
 func (d *localUploadServiceImpl) UploadImage2Webp(ctx *gin.Context, maxSize ...constants.MemoryByteSize) (resp *model.FileRecord, err error) {
 	i := len(maxSize)
 	switch {
@@ -301,6 +304,26 @@ func (d *localUploadServiceImpl) UploadImage2Webp(ctx *gin.Context, maxSize ...c
 	if err != nil {
 		err = util.CreateBizErr("上传文件失败", err)
 		return
+	}
+
+	return
+}
+
+func (d *localUploadServiceImpl) GetLocalFilesByPagination(req *dto.GetLocalFilesPaginationReq, ctx context.Context) (resp *dto.GetLocalFilesPaginationResp, err error) {
+	fileOp := biz.FileRecord
+	fileList, total, getFileListErr := fileOp.WithContext(ctx).FindByPage(req.Normalize())
+	if getFileListErr != nil {
+		err = util.CreateBizErr("获取本地文件列表失败: "+getFileListErr.Error(), getFileListErr)
+		return
+	}
+
+	resp = &dto.GetLocalFilesPaginationResp{
+		PageList: model.PageList[*model.FileRecord]{
+			List:  fileList,
+			Page:  int64(*req.Page),
+			Size:  int64(*req.Size),
+			Total: total,
+		},
 	}
 
 	return

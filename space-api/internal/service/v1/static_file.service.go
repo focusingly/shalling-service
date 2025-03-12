@@ -23,9 +23,9 @@ type (
 	IStaticFileService interface {
 		IsPubVisible(locationName string) bool
 		InvalidateAllVisibleCache(locationName string)
-		HandlePubVisit(rawFileParam string, ctx *gin.Context)
 		InvalidateCache(locationName string)
-		HandleAllVisit(rawFileParam string, ctx *gin.Context)
+		HandlePubVisit(rawFileParam string, ctx *gin.Context)
+		HandleAnyVisit(rawFileParam string, ctx *gin.Context)
 	}
 
 	staticFileServiceImpl struct {
@@ -147,8 +147,8 @@ func (s *staticFileServiceImpl) InvalidateCache(locationName string) {
 	s.cache.Delete(locationName)
 }
 
-// HandleAllVisit 处理所有的静态资源(包括未公开的, 适合于管理员使用), 并且设置较短的缓存策略
-func (s *staticFileServiceImpl) HandleAllVisit(rawFileParam string, ctx *gin.Context) {
+// HandleAnyVisit 处理所有的静态资源(包括未公开的, 适合于管理员使用), 并且设置较短的缓存策略
+func (s *staticFileServiceImpl) HandleAnyVisit(rawFileParam string, ctx *gin.Context) {
 	// 获取请求的文件路径
 	// 使用 path.Clean 清理路径, 防止路径跳跃比如 ../)
 	cleanFileName := path.Clean(rawFileParam)

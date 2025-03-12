@@ -67,7 +67,11 @@ func loadTokenAndSetupContext(ctx *gin.Context) {
 	bearerToken := ctx.Request.Header.Get("Authorization")
 	// 没有携带 token 的情况下直接跳过设置上下文, 不进行解析
 	if bearerToken == "" {
-		return
+		tokenMaybe, ok := ctx.GetQuery("auth-token")
+		if !ok {
+			return
+		}
+		bearerToken = BearerAuthPrefix + tokenMaybe
 	}
 
 	if !strings.HasPrefix(bearerToken, BearerAuthPrefix) {

@@ -34,6 +34,7 @@ func newPost(db *gorm.DB, opts ...gen.DOOption) post {
 	_post.Hide = field.NewInt(tableName, "hide")
 	_post.Title = field.NewString(tableName, "title")
 	_post.AuthorId = field.NewInt64(tableName, "author_id")
+	_post.PostImgURL = field.NewString(tableName, "post_img_url")
 	_post.Content = field.NewString(tableName, "content")
 	_post.WordCount = field.NewInt64(tableName, "word_count")
 	_post.ReadTime = field.NewInt64(tableName, "read_time")
@@ -63,6 +64,7 @@ type post struct {
 	Hide         field.Int
 	Title        field.String
 	AuthorId     field.Int64
+	PostImgURL   field.String
 	Content      field.String
 	WordCount    field.Int64
 	ReadTime     field.Int64
@@ -98,6 +100,7 @@ func (p *post) updateTableName(table string) *post {
 	p.Hide = field.NewInt(table, "hide")
 	p.Title = field.NewString(table, "title")
 	p.AuthorId = field.NewInt64(table, "author_id")
+	p.PostImgURL = field.NewString(table, "post_img_url")
 	p.Content = field.NewString(table, "content")
 	p.WordCount = field.NewInt64(table, "word_count")
 	p.ReadTime = field.NewInt64(table, "read_time")
@@ -135,13 +138,14 @@ func (p *post) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (p *post) fillFieldMap() {
-	p.fieldMap = make(map[string]field.Expr, 19)
+	p.fieldMap = make(map[string]field.Expr, 20)
 	p.fieldMap["id"] = p.ID
 	p.fieldMap["created_at"] = p.CreatedAt
 	p.fieldMap["updated_at"] = p.UpdatedAt
 	p.fieldMap["hide"] = p.Hide
 	p.fieldMap["title"] = p.Title
 	p.fieldMap["author_id"] = p.AuthorId
+	p.fieldMap["post_img_url"] = p.PostImgURL
 	p.fieldMap["content"] = p.Content
 	p.fieldMap["word_count"] = p.WordCount
 	p.fieldMap["read_time"] = p.ReadTime

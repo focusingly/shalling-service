@@ -22,14 +22,14 @@ import (
 type (
 	IPostsService interface {
 		CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.Context) (resp *dto.UpdateOrCreatePostResp, err error)
-		GetAllPostList(req *dto.GetPostPageListReq, ctx *gin.Context) (resp *dto.GetPostPageListResp, err error)
+		GetAnyPostsByPagination(req *dto.GetPostPageListReq, ctx *gin.Context) (resp *dto.GetPostPageListResp, err error)
+		GetVisiblePostsByPagination(req *dto.GetPostPageListReq, ctx *gin.Context) (resp *dto.GetPostPageListResp, err error)
 		GetCachedViewCountOrFallback(post *model.Post, isPubMode bool) int64
-		GetVisiblePostList(req *dto.GetPostPageListReq, ctx *gin.Context) (resp *dto.GetPostPageListResp, err error)
 		GetAnyPostById(req *dto.GetPostDetailReq, ctx *gin.Context) (resp *dto.GetPostDetailResp, err error)
+		GetVisiblePostById(req *dto.GetPostDetailReq, ctx *gin.Context) (resp *dto.GetPostDetailResp, err error)
 		SyncAllPostViews(ctx context.Context) (err error)
 		ClearPostsViewsCache()
 		ExpirePubViewsCacheByID(postID int64)
-		GetVisiblePostById(req *dto.GetPostDetailReq, ctx *gin.Context) (resp *dto.GetPostDetailResp, err error)
 		DeletePostByIdList(req *dto.DeletePostByIdListReq, ctx *gin.Context) (resp *dto.DeletePostByIdListResp, err error)
 		GetVisiblePostsByTagName(req *dto.GetPostByTagNameReq, ctx *gin.Context) (resp *dto.GetPostByTagNameResp, err error)
 	}
@@ -54,44 +54,51 @@ var (
 func (s *postsServiceImpl) CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ctx *gin.Context) (resp *dto.UpdateOrCreatePostResp, err error) {
 	// 被创建/更新的 文章的 ID
 	var postId int64 = 0
+	// 获取当前登录的用户信息
+	loginUser, notUserErr := inbound.GetCurrentLoginSession(ctx)
+	if notUserErr != nil {
+		return nil, notUserErr
+	}
 
 	// 全部在事务内操作
-	err = biz.Q.Transaction(func(tx *biz.Query) error {
-		postOp := tx.Post
-		tagOp := tx.Tag
-		postTagRelationOp := tx.PostTagRelation
+	txErr := biz.Q.Transaction(func(tx *biz.Query) error {
+		tagTx := tx.Tag
+		postTx := tx.Post
+		postTagTx := tx.PostTagRelation
 
 		// 标准化标签(去除首尾空格和移除纯空白字符串)
 		if req.Tags != nil {
-			filters := []string{}
-			for _, tag := range req.Tags {
-				t := strings.TrimSpace(tag)
-				if t != "" {
-					filters = append(filters, t)
-				}
-			}
-			if len(filters) == 0 {
-				req.Tags = nil
-			} else {
-				req.Tags = filters
-			}
+			req.Tags = arr.Compress(
+				arr.FilterSlice(
+					arr.MapSlice(req.Tags, func(_ int, tag string) string {
+						return strings.TrimSpace(tag)
+					}),
+					func(tag string, _ int) bool {
+						return tag != ""
+					},
+				),
+				func(a, b string) bool {
+					return a == b
+				},
+			)
 		}
 
 		// 查找已经存在的文章
-		findPost, err := postOp.WithContext(ctx).Where(postOp.ID.Eq(req.PostId)).Take()
+		exitsPost, err := postTx.WithContext(ctx).
+			Where(postTx.ID.Eq(req.ID)).
+			Take()
 		// 如果当前不存在文章则直接创新新的文章
-		if err != nil {
-			// 同步更新 ID
+		if err != nil || exitsPost == nil {
+			// 创建新的 ID
 			postId = id.GetSnowFlakeNode().Generate().Int64()
 			// 获取当前登录的用户信息
-			loginUser, err := inbound.GetCurrentLoginSession(ctx)
-			if err != nil {
-				return err
-			}
 
 			// 创建新的文章
 			t := &model.Post{
-				BaseColumn:   model.BaseColumn{ID: postId},
+				BaseColumn: model.BaseColumn{
+					ID:   postId,
+					Hide: req.Hide,
+				},
 				Title:        req.Title,
 				AuthorId:     loginUser.ID,
 				Content:      req.Content,
@@ -108,18 +115,24 @@ func (s *postsServiceImpl) CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ct
 				AllowComment: req.AllowComment,
 				Lang:         req.Lang,
 			}
-			if err := postOp.WithContext(ctx).Create(t); err != nil {
+			if err := postTx.WithContext(ctx).Create(t); err != nil {
 				return err
 			}
 		} else {
-			// 表示文章存在, 操作为更新
-			// 更改为文章的 ID
-			postId = findPost.ID
-			// 存在的情况下进行更新
+			// 同步文章的ID
+			postId = exitsPost.ID
+
+			// 文章存在, 操作为更新
 			t := &model.Post{
-				BaseColumn:   findPost.BaseColumn,
+				BaseColumn: model.BaseColumn{
+					ID:        exitsPost.ID,
+					CreatedAt: exitsPost.CreatedAt,
+					UpdatedAt: exitsPost.UpdatedAt,
+					Hide:      req.Hide,
+				},
 				Title:        req.Title,
-				AuthorId:     findPost.AuthorId,
+				PostImgURL:   req.PostImgURL,
+				AuthorId:     exitsPost.AuthorId,
 				Content:      req.Content,
 				WordCount:    req.WordCount,
 				ReadTime:     req.ReadTime,
@@ -135,41 +148,42 @@ func (s *postsServiceImpl) CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ct
 				AllowComment: req.AllowComment,
 			}
 
-			_, err := postOp.WithContext(ctx).
-				Where(postOp.ID.Eq(postId)).
+			_, updateErr := postTx.WithContext(ctx).
+				Where(postTx.ID.Eq(postId)).
 				Select(
-					postOp.ID,
-					postOp.Hide,
-					postOp.Snippet,
-					postOp.Title,
-					postOp.AuthorId,
-					postOp.Content,
-					postOp.WordCount,
-					postOp.ReadTime,
-					postOp.Category,
-					postOp.Lang,
-					postOp.Tags,
-					postOp.LastPubTime,
-					postOp.Weight,
-					postOp.Views,
-					postOp.Snippet,
-					postOp.UpVote,
-					postOp.DownVote,
-					postOp.AllowComment,
+					postTx.ID,
+					postTx.Hide,
+					postTx.Snippet,
+					postTx.Title,
+					postTx.AuthorId,
+					postTx.Content,
+					postTx.WordCount,
+					postTx.ReadTime,
+					postTx.PostImgURL,
+					postTx.Category,
+					postTx.Lang,
+					postTx.Tags,
+					postTx.LastPubTime,
+					postTx.Weight,
+					postTx.Views,
+					postTx.Snippet,
+					postTx.UpVote,
+					postTx.DownVote,
+					postTx.AllowComment,
 				).
 				Updates(t)
-			if err != nil {
-				return err
+			if updateErr != nil {
+				return updateErr
 			}
 		}
 
 		// 同步其它表的信息
 		// 同步新的标签操作
 		// 查找表里所有已经存在的标签
-		distinctTags, err := tagOp.
+		distinctTags, err := tagTx.
 			WithContext(ctx).
-			Distinct(tagOp.TagName).
-			Select(tagOp.TagName).
+			Distinct(tagTx.TagName).
+			Select(tagTx.TagName).
 			Find()
 		if err != nil {
 			return err
@@ -195,7 +209,7 @@ func (s *postsServiceImpl) CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ct
 				})
 			}
 			// 批量创建新标签
-			err := tagOp.WithContext(ctx).
+			err := tagTx.WithContext(ctx).
 				CreateInBatches(
 					shouldCreateTags,
 					64,
@@ -207,17 +221,17 @@ func (s *postsServiceImpl) CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ct
 
 		// 先清空已经存在的所有 文章-标签映射关系, 然后重新创建
 		// 删除所有文章 ID 为当前文章的 postTagRelation 记录
-		_, err = postTagRelationOp.WithContext(ctx).Where(postTagRelationOp.PostId.Eq(postId)).Delete()
+		_, err = postTagTx.WithContext(ctx).Where(postTagTx.PostId.Eq(postId)).Delete()
 		// 删除失败
 		if err != nil {
 			return err
 		} else {
 			// 删除成功, 需要重新恢复映射关系
 			// 查找所有在 post 里出现的 tag
-			findRequireTags, err := tagOp.WithContext(ctx).
-				Distinct(tagOp.TagName).
-				Select(tagOp.ID).
-				Where(tagOp.TagName.In(req.Tags...)).
+			findRequireTags, err := tagTx.WithContext(ctx).
+				Distinct(tagTx.TagName).
+				Select(tagTx.ID).
+				Where(tagTx.TagName.In(req.Tags...)).
 				Find()
 
 			if err != nil {
@@ -231,7 +245,7 @@ func (s *postsServiceImpl) CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ct
 			})
 
 			// 恢复映射关系
-			if err := postTagRelationOp.WithContext(ctx).CreateInBatches(tagPostRelationsList, 64); err != nil {
+			if err := postTagTx.WithContext(ctx).CreateInBatches(tagPostRelationsList, 64); err != nil {
 				return err
 			}
 		}
@@ -254,30 +268,33 @@ func (s *postsServiceImpl) CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ct
 	})
 
 	// 判断前面的事务操作结果
-	if err != nil {
+	if txErr != nil {
 		err = &util.BizErr{
 			Reason: err,
-			Msg:    "更新/创建文章失败: " + err.Error(),
+			Msg:    "更新/创建文章失败: " + txErr.Error(),
 		}
-
 		return
 	}
 
-	post, err := biz.Q.Post.WithContext(ctx).
+	post, findErr := biz.Q.Post.WithContext(ctx).
 		Where(biz.Q.Post.ID.Eq(postId)).
 		Take()
-	if err != nil {
-		err = util.CreateBizErr("更新/创建文章失败", err)
+	if findErr != nil {
+		err = util.CreateBizErr("更新/创建文章失败", findErr)
 		return
 	}
+
 	resp = &dto.UpdateOrCreatePostResp{
-		Post: *post,
+		Post: post,
 	}
 
+	// 异步更新全文搜索信息
 	s.executor.Go(func() {
+		// 需要移除掉旧的数据
 		if resp.Hide != 0 {
 			s.searchService.DeletePostSearchIndex([]int64{postId}, context.Background())
 		} else {
+			// 添加/更新 全文搜索信息
 			s.searchService.UpdatePostSearchIndex(post)
 		}
 	})
@@ -285,16 +302,16 @@ func (s *postsServiceImpl) CreateOrUpdatePost(req *dto.UpdateOrCreatePostReq, ct
 	return
 }
 
-// GetAllPostList 获取所有文章分页的信息(不包括正文内容)
-func (s *postsServiceImpl) GetAllPostList(req *dto.GetPostPageListReq, ctx *gin.Context) (resp *dto.GetPostPageListResp, err error) {
+func (s *postsServiceImpl) GetAnyPostsByPagination(req *dto.GetPostPageListReq, ctx *gin.Context) (resp *dto.GetPostPageListResp, err error) {
 	postOp := biz.Post
 
-	result, count, err := postOp.
+	result, count, getListErr := postOp.
 		WithContext(ctx).
 		Select(postOp.ID,
 			postOp.CreatedAt,
 			postOp.UpdatedAt,
 			postOp.Hide,
+			postOp.PostImgURL,
 			postOp.Title,
 			postOp.AuthorId,
 			postOp.WordCount,
@@ -310,35 +327,38 @@ func (s *postsServiceImpl) GetAllPostList(req *dto.GetPostPageListReq, ctx *gin.
 			postOp.DownVote,
 			postOp.AllowComment,
 		).
+		Order(
+			postOp.CreatedAt.Desc(),
+			postOp.LastPubTime.Desc(),
+		).
 		FindByPage(req.Normalize())
 
-	if err != nil {
-		return nil, &util.BizErr{
-			Msg:    "查询错误",
-			Reason: err,
-		}
+	if getListErr != nil {
+		err = util.CreateBizErr("获取列表数据失败: "+getListErr.Error(), getListErr)
+		return
 	}
 
 	for _, post := range result {
 		post.Views = ptr.ToPtr(s.GetCachedViewCountOrFallback(post, false))
 	}
 
-	return &dto.GetPostPageListResp{
+	resp = &dto.GetPostPageListResp{
 		PageList: model.PageList[*model.Post]{
 			List:  result,
 			Page:  int64(*req.Page),
 			Size:  int64(*req.Size),
 			Total: count,
 		},
-	}, nil
+	}
+
+	return
 }
 
 // GetCachedViewCountOrFallback 获取文章在缓存中的技术值, 如果为公开访问, 那么还递增对应的缓存计数
 func (s *postsServiceImpl) GetCachedViewCountOrFallback(post *model.Post, isPubMode bool) int64 {
 	key := fmt.Sprintf("%d", post.ID)
 	shouldIncr := util.TernaryExpr[int64](isPubMode, 1, 0)
-
-	var fallbackViewCount = util.TernaryExprWithProducer(
+	fallbackViewCount := util.TernaryExprWithProducer(
 		post.Views != nil,
 		func() int64 {
 			return shouldIncr + (*post.Views)
@@ -362,28 +382,28 @@ func (s *postsServiceImpl) GetCachedViewCountOrFallback(post *model.Post, isPubM
 	case
 		err != nil,                   // 缓存中不存在
 		fallbackViewCount > getViews: // 缓存中的计数值比数据库记录值低, 那么需要使用数据库提供的
-
-		s.visitCache.Set(key, fallbackViewCount)
+		s.visitCache.Set(key, fallbackViewCount) //
 		getViews = fallbackViewCount
 	}
 
 	return getViews
 }
 
-// GetVisiblePostList 获取可见文章分页的信息(不包括正文内容)
-func (s *postsServiceImpl) GetVisiblePostList(req *dto.GetPostPageListReq, ctx *gin.Context) (resp *dto.GetPostPageListResp, err error) {
+// GetVisiblePostsByPagination 获取可见文章分页的信息(不包括正文内容)
+func (s *postsServiceImpl) GetVisiblePostsByPagination(req *dto.GetPostPageListReq, ctx *gin.Context) (resp *dto.GetPostPageListResp, err error) {
 	postOp := biz.Post
 
 	// 只允许可见的文章
-	result, count, err := postOp.
+	result, count, getListErr := postOp.
 		WithContext(ctx).
-		Where(postOp.Hide.Eq(0)).
+		Where(postOp.Hide.Eq(0)). // 只查找可见的(为隐藏的数据)
 		Select(postOp.ID,
 			postOp.CreatedAt,
 			postOp.UpdatedAt,
 			postOp.Hide,
 			postOp.Title,
 			postOp.AuthorId,
+			postOp.PostImgURL,
 			// postOp.Content,
 			postOp.Snippet,
 			postOp.Lang,
@@ -398,28 +418,27 @@ func (s *postsServiceImpl) GetVisiblePostList(req *dto.GetPostPageListReq, ctx *
 			postOp.DownVote,
 			postOp.AllowComment,
 		).
-		Order(postOp.CreatedAt.Distinct()).
+		Order(postOp.CreatedAt.Desc(), postOp.LastPubTime.Desc()).
 		FindByPage(req.Normalize())
 
-	if err != nil {
-		return nil, &util.BizErr{
-			Msg:    "查询错误",
-			Reason: err,
-		}
+	if getListErr != nil {
+		err = util.CreateBizErr("获取文章列表信息失败", getListErr)
+		return
 	}
 
 	for _, post := range result {
 		post.Views = ptr.ToPtr(s.GetCachedViewCountOrFallback(post, false))
 	}
-
-	return &dto.GetPostPageListResp{
+	resp = &dto.GetPostPageListResp{
 		PageList: model.PageList[*model.Post]{
 			List:  result,
 			Page:  int64(*req.Page),
 			Size:  int64(*req.Size),
 			Total: count,
 		},
-	}, nil
+	}
+
+	return
 }
 
 // GetAnyPostById 根据文章 ID 获取全量的文章信息
@@ -572,6 +591,7 @@ func (s *postsServiceImpl) GetVisiblePostsByTagName(req *dto.GetPostByTagNameReq
 			postOp.AuthorId,
 			// postOp.Content,省略文章内容, 减少传输
 			postOp.WordCount,
+			postOp.PostImgURL,
 			postOp.ReadTime,
 			postOp.Snippet,
 			postOp.Lang,

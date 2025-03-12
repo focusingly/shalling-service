@@ -1,9 +1,11 @@
 package admin
 
 import (
+	"fmt"
 	"space-api/constants"
 	"space-api/internal/service/v1"
 	"space-api/middleware/outbound"
+	"space-api/util"
 	"space-api/util/performance"
 
 	"github.com/gin-gonic/gin"
@@ -12,6 +14,7 @@ import (
 func UseUploadController(group *gin.RouterGroup) {
 	uploadService := service.DefaultUploadService
 	uploadGroup := group.Group("/upload")
+	localFileVisitService := service.DefaultStaticFileService
 
 	// 上传普通的文件, 如果携带 MD5 并匹配通过, 那么跳过重复保存
 	uploadGroup.POST("/common", func(ctx *gin.Context) {
@@ -23,6 +26,18 @@ func UseUploadController(group *gin.RouterGroup) {
 			outbound.NotifyProduceResponse(resp, ctx)
 		}
 	})
+
+	// 本地文件访问服务
+	uploadGroup.GET("/static/visit",
+		func(ctx *gin.Context) {
+			filename, ok := ctx.GetQuery("file")
+			if !ok {
+				ctx.Error(util.CreateBizErr("未指定访问的文件", fmt.Errorf("not define any request file name")))
+				return
+			}
+
+			localFileVisitService.HandleAnyVisit(filename, ctx)
+		})
 
 	// 设置图象转码任务的并行度, 防止 webp 转码过度消耗 CPU
 	tokenLimitChan := make(chan performance.Empty, 1)

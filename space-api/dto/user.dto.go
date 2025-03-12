@@ -39,7 +39,7 @@ type (
 	UpdateLocalUserResp performance.Empty
 
 	UpdateLocalUserPassReq struct {
-		UserID      int64  `json:"userID,tring" yaml:"userID" xml:"userID" toml:"userID"`
+		UserID      int64  `json:"userID,string" yaml:"userID" xml:"userID" toml:"userID"`
 		OldPassword string `json:"oldPassword" yaml:"oldPassword" xml:"oldPassword" toml:"oldPassword"`
 		NewPassword string `json:"newPassword" yaml:"newPassword" xml:"newPassword" toml:"newPassword"`
 	}

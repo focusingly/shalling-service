@@ -50,7 +50,7 @@ func IndexController(group *gin.RouterGroup) {
 				err = util.CreateBizErr("参数错误: "+err.Error(), err)
 				return
 			}
-			if resp, err := postService.GetVisiblePostList(req, ctx); err != nil {
+			if resp, err := postService.GetVisiblePostsByPagination(req, ctx); err != nil {
 				return nil, err
 			} else {
 				return resp, nil

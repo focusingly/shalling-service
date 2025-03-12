@@ -57,7 +57,8 @@ type (
 	Post struct {
 		BaseColumn   `json:"baseColumn" yaml:"baseColumn" xml:"baseColumn" toml:"baseColumn"`
 		Title        string   `gorm:"type:varchar(255);not null;comment:文章标题" json:"title" yaml:"title" xml:"title" toml:"title"`
-		AuthorId     int64    `gorm:"type:bigint;not null;comment:文章作者的主键 ID" json:"authorId,string" yaml:"authorId" xml:"authorId" toml:"authorId"`
+		AuthorId     int64    `gorm:"type:bigint;not null;comment:文章作者的主键 ID" json:"authorId,string," yaml:"authorId" xml:"authorId" toml:"authorId"`
+		PostImgURL   *string  `gorm:"type:text;null;comment:文章的封面头图(可选)" json:"postImgURL" yaml:"postImgURL" xml:"postImgURL" toml:"postImgURL"`
 		Content      string   `gorm:"type:text;comment:文章内容" json:"content" yaml:"content" xml:"content" toml:"content"`
 		WordCount    int64    `gorm:"type:bigint;not null;comment:字数统计" json:"wordCount" yaml:"wordCount" xml:"wordCount" toml:"wordCount"`
 		ReadTime     *int64   `gorm:"type:bigint;null;comment:阅读时间 unix 毫秒时间戳" json:"readTime" yaml:"readTime" xml:"readTime" toml:"readTime"`
